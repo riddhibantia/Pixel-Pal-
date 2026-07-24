@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="utf-8"?>
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="64dp"
+    android:height="64dp"
+    android:viewportWidth="64"
+    android:viewportHeight="64">
+    <!-- Cat Head -->
+    <path
+        android:fillColor="#E17055"
+        android:pathData="M16,20h32v28h-32z"/>
+    <!-- Cat Ears -->
+    <path
+        android:fillColor="#D63031"
+        android:pathData="M16,12h8v8h-8z M40,12h8v8h-8z"/>
+    <!-- Cat Eyes -->
+    <path
+        android:fillColor="#1A1A2E"
+        android:pathData="M22,28h4v6h-4z M38,28h4v6h-4z"/>
+    <!-- Cat Nose -->
+    <path
+        android:fillColor="#FAB1A0"
+        android:pathData="M30,36h4v3h-4z"/>
+    <!-- Cat Cheeks -->
+    <path
+        android:fillColor="#FAB1A0"
+        android:pathData="M18,34h3v3h-3z M43,34h3v3h-3z"/>
+</vector>

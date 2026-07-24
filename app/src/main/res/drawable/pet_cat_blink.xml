@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="64dp"
+    android:height="64dp"
+    android:viewportWidth="64"
+    android:viewportHeight="64">
+    <path android:fillColor="#E17055" android:pathData="M16,20h32v28h-32z"/>
+    <path android:fillColor="#D63031" android:pathData="M16,12h8v8h-8z M40,12h8v8h-8z"/>
+    <!-- Closed Eyes -->
+    <path android:fillColor="#1A1A2E" android:pathData="M22,30h5v2h-5z M37,30h5v2h-5z"/>
+    <path android:fillColor="#FAB1A0" android:pathData="M30,36h4v3h-4z"/>
+</vector>
