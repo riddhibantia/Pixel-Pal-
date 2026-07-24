@@ -1,0 +1,35 @@
+package com.pixelpal.app.presentation.theme
+
+import androidx.compose.ui.graphics.Color
+
+// Pixel-art inspired dark palette
+val PixelDarkBackground = Color(0xFF1A1A2E)
+val PixelDarkSurface = Color(0xFF16213E)
+val PixelDarkSurfaceVariant = Color(0xFF0F3460)
+val PixelPrimary = Color(0xFF00D4AA)
+val PixelPrimaryVariant = Color(0xFF00B894)
+val PixelSecondary = Color(0xFFE17055)
+val PixelSecondaryVariant = Color(0xFFD63031)
+val PixelAccent = Color(0xFF6C5CE7)
+val PixelAccentVariant = Color(0xFFA29BFE)
+val PixelOnDark = Color(0xFFDFE6E9)
+val PixelOnDarkMuted = Color(0xFFB2BEC3)
+val PixelError = Color(0xFFFF7675)
+val PixelSuccess = Color(0xFF55EFC4)
+val PixelWarning = Color(0xFFFDCB6E)
+val PixelCatOrange = Color(0xFFE17055)
+val PixelCatBrown = Color(0xFFD63031)
+val PixelCatCream = Color(0xFFFAB1A0)
+val PixelBubbleBackground = Color(0xFF2D2D44)
+val PixelBubbleBorder = Color(0xFF00D4AA)
+
+// Light theme (future use)
+val PixelLightBackground = Color(0xFFF5F5FA)
+val PixelLightSurface = Color(0xFFFFFFFF)
+val PixelLightSurfaceVariant = Color(0xFFE8E8F0)
+val PixelLightPrimary = Color(0xFF00A886)
+val PixelLightPrimaryVariant = Color(0xFF008B6E)
+val PixelLightSecondary = Color(0xFFD35400)
+val PixelLightAccent = Color(0xFF5A4BD1)
+val PixelLightOnLight = Color(0xFF2D2D3A)
+val PixelLightOnLightMuted = Color(0xFF6C6C7A)

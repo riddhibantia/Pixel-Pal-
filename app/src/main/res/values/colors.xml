@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="pixel_dark_background">#FF1A1A2E</color>
+    <color name="pixel_dark_surface">#FF16213E</color>
+    <color name="pixel_primary">#FF00D4AA</color>
+    <color name="pixel_secondary">#FFE17055</color>
+    <color name="pixel_accent">#FF6C5CE7</color>
+    <color name="pixel_on_dark">#FFDFE6E9</color>
+    <color name="pixel_error">#FFFF7675</color>
+    <color name="pixel_success">#FF55EFC4</color>
+    <color name="pixel_cat_orange">#FFE17055</color>
+    <color name="pixel_cat_brown">#FFD63031</color>
+    <color name="pixel_cat_cream">#FFFAB1A0</color>
+</resources>

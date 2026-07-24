@@ -1,0 +1,135 @@
+package com.pixelpal.app.overlay
+
+import android.app.Notification
+import android.app.NotificationChannel
+import android.app.NotificationManager
+import android.app.PendingIntent
+import android.app.Service
+import android.content.Context
+import android.content.Intent
+import android.os.Build
+import android.os.IBinder
+import androidx.core.app.NotificationCompat
+import com.pixelpal.app.R
+import com.pixelpal.app.animation.AnimationEngine
+import com.pixelpal.app.animation.AnimationState
+import com.pixelpal.app.animation.SpriteAnimator
+import com.pixelpal.app.data.local.datastore.PreferencesManager
+import com.pixelpal.app.presentation.MainActivity
+import com.pixelpal.app.util.Constants
+import dagger.hilt.android.AndroidEntryPoint
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.launch
+import timber.log.Timber
+import javax.inject.Inject
+
+@AndroidEntryPoint
+class OverlayService : Service() {
+
+    @Inject lateinit var overlayManager: OverlayManager
+    @Inject lateinit var animationEngine: AnimationEngine
+    @Inject lateinit var spriteAnimator: SpriteAnimator
+    @Inject lateinit var preferencesManager: PreferencesManager
+
+    private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Main)
+
+    override fun onCreate() {
+        super.onCreate()
+        Timber.d("OverlayService created")
+        createNotificationChannel()
+
+        scope.launch {
+            val petName = preferencesManager.petName.first()
+            val petType = preferencesManager.selectedPetType.first()
+
+            spriteAnimator.setPetType(petType)
+            animationEngine.initialize()
+
+            startForeground(Constants.FOREGROUND_SERVICE_ID, buildNotification(petName))
+
+            overlayManager.showCompanion(
+                onTap = {
+                    animationEngine.trigger(AnimationState.HAPPY)
+                },
+                onDoubleTap = {
+                    animationEngine.trigger(AnimationState.EXCITED)
+                }
+            )
+
+            // Observe sprite updates
+            launch {
+                spriteAnimator.currentDrawableRes.collect { resId ->
+                    if (resId != 0) {
+                        overlayManager.updateSprite(resId)
+                    }
+                }
+            }
+        }
+    }
+
+    override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
+        return START_STICKY
+    }
+
+    override fun onDestroy() {
+        super.onDestroy()
+        Timber.d("OverlayService destroyed")
+        animationEngine.destroy()
+        overlayManager.hideCompanion()
+    }
+
+    override fun onBind(intent: Intent?): IBinder? = null
+
+    private fun createNotificationChannel() {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            val channel = NotificationChannel(
+                Constants.CHANNEL_COMPANION,
+                Constants.CHANNEL_COMPANION_NAME,
+                NotificationManager.IMPORTANCE_LOW
+            ).apply {
+                description = "Keeps your pixel companion active on screen"
+                setShowBadge(false)
+            }
+            val manager = getSystemService(NotificationManager::class.java)
+            manager?.createNotificationChannel(channel)
+        }
+    }
+
+    private fun buildNotification(petName: String): Notification {
+        val intent = Intent(this, MainActivity::class.java).apply {
+            flags = Intent.FLAG_ACTIVITY_SINGLE_TOP
+        }
+        val pendingIntent = PendingIntent.getActivity(
+            this, 0, intent,
+            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+        )
+
+        return NotificationCompat.Builder(this, Constants.CHANNEL_COMPANION)
+            .setContentTitle(petName)
+            .setContentText("$petName is hanging out with you 🐱")
+            .setSmallIcon(R.mipmap.ic_launcher)
+            .setContentIntent(pendingIntent)
+            .setOngoing(true)
+            .setPriority(NotificationCompat.PRIORITY_LOW)
+            .build()
+    }
+
+    companion object {
+        fun start(context: Context) {
+            val intent = Intent(context, OverlayService::class.java)
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                context.startForegroundService(intent)
+            } else {
+                context.startService(intent)
+            }
+        }
+
+        fun stop(context: Context) {
+            val intent = Intent(context, OverlayService::class.java)
+            context.stopService(intent)
+        }
+    }
+}

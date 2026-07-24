@@ -1,0 +1,18 @@
+{
+  "project": "PixelPal",
+  "root": "/",
+  "commands": {
+    "build": "./gradlew :app:assembleDebug",
+    "install": "./gradlew :app:installDebug",
+    "test": "./gradlew :app:testDebugUnitTest",
+    "instrumentation": "./gradlew :app:connectedDebugAndroidTest",
+    "clean": "./gradlew clean"
+  },
+  "agents": {
+    "directory": ".kilo/agents",
+    "default_workflow": "build -> test -> verify"
+  },
+  "skills": {
+    "directory": ".kilo/skills"
+  }
+}
