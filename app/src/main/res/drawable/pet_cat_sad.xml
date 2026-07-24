@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="64dp"
+    android:height="64dp"
+    android:viewportWidth="64"
+    android:viewportHeight="64">
+    <path android:fillColor="#E17055" android:pathData="M16,22h32v26h-32z"/>
+    <!-- Droopy Ears -->
+    <path android:fillColor="#D63031" android:pathData="M12,18h8v6h-8z M44,18h8v6h-8z"/>
+    <path android:fillColor="#1A1A2E" android:pathData="M22,30h4v4h-4z M38,30h4v4h-4z"/>
+    <!-- Frown -->
+    <path android:fillColor="#1A1A2E" android:pathData="M28,42h8v2h-8z"/>
+</vector>

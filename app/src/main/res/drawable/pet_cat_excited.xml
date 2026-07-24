@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="64dp"
+    android:height="64dp"
+    android:viewportWidth="64"
+    android:viewportHeight="64">
+    <path android:fillColor="#E17055" android:pathData="M16,16h32v28h-32z"/>
+    <path android:fillColor="#D63031" android:pathData="M16,8h8v8h-8z M40,8h8v8h-8z"/>
+    <!-- Big Sparkle Eyes -->
+    <path android:fillColor="#FDCB6E" android:pathData="M22,22h5v5h-5z M37,22h5v5h-5z"/>
+    <path android:fillColor="#1A1A2E" android:pathData="M24,24h2v2h-2z M39,24h2v2h-2z"/>
+    <!-- Open Mouth -->
+    <path android:fillColor="#D63031" android:pathData="M28,34h8v6h-8z"/>
+</vector>

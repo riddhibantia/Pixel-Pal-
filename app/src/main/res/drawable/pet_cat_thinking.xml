@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="64dp"
+    android:height="64dp"
+    android:viewportWidth="64"
+    android:viewportHeight="64">
+    <path android:fillColor="#E17055" android:pathData="M16,20h32v28h-32z"/>
+    <path android:fillColor="#D63031" android:pathData="M16,12h8v8h-8z M40,12h8v8h-8z"/>
+    <!-- Looking Up Eyes -->
+    <path android:fillColor="#1A1A2E" android:pathData="M22,26h4v4h-4z M38,26h4v4h-4z"/>
+    <!-- Thought bubble dot -->
+    <path android:fillColor="#00D4AA" android:pathData="M48,16h4v4h-4z M52,10h6v6h-6z"/>
+</vector>
