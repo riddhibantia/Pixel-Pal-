@@ -1,0 +1,22 @@
+{
+  "lines": [
+    {
+      "id": "bond_lvl_10",
+      "text": "I feel like we're becoming really good friends, {user_name}!",
+      "emotion": "excited",
+      "context": "bond_milestone",
+      "minBond": 10,
+      "maxBond": 24,
+      "personality": null
+    },
+    {
+      "id": "bond_lvl_25",
+      "text": "You're my best friend on this phone!",
+      "emotion": "happy",
+      "context": "bond_milestone",
+      "minBond": 25,
+      "maxBond": 100,
+      "personality": null
+    }
+  ]
+}

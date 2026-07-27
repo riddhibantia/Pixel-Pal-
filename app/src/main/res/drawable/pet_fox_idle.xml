@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="64dp"
+    android:height="64dp"
+    android:viewportWidth="64"
+    android:viewportHeight="64">
+    <!-- Pointy Fox Ears -->
+    <path android:fillColor="#E67E22" android:pathData="M14,8h8v12h-8z M42,8h8v12h-8z"/>
+    <path android:fillColor="#1A1A2E" android:pathData="M16,8h4v4h-4z M44,8h4v4h-4z"/>
+    <!-- Fox Head -->
+    <path android:fillColor="#E67E22" android:pathData="M16,20h32v28h-32z"/>
+    <path android:fillColor="#F5F5FA" android:pathData="M16,36h12v12h-12z M36,36h12v12h-12z"/>
+    <path android:fillColor="#1A1A2E" android:pathData="M22,28h4v6h-4z M38,28h4v6h-4z"/>
+    <path android:fillColor="#1A1A2E" android:pathData="M30,38h4v4h-4z"/>
+</vector>

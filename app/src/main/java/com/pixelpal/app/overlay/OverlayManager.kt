@@ -2,7 +2,6 @@ package com.pixelpal.app.overlay
 
 import android.content.Context
 import android.graphics.PixelFormat
-import android.os.Build
 import android.view.Gravity
 import android.view.WindowManager
 import com.pixelpal.app.data.local.datastore.PreferencesManager
@@ -24,7 +23,9 @@ class OverlayManager @Inject constructor(
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Main)
 
     private var companionView: CompanionOverlayView? = null
+    private var speechBubbleView: SpeechBubbleOverlayView? = null
     private var layoutParams: WindowManager.LayoutParams? = null
+    private var bubbleLayoutParams: WindowManager.LayoutParams? = null
 
     private var currentX: Int = 0
     private var currentY: Int = 0
@@ -79,6 +80,7 @@ class OverlayManager @Inject constructor(
     }
 
     fun hideCompanion() {
+        hideSpeechBubble()
         companionView?.let { view ->
             try {
                 windowManager.removeView(view)
@@ -96,6 +98,87 @@ class OverlayManager @Inject constructor(
             params.x = x
             params.y = y
             companionView?.let { view ->
+                try {
+                    windowManager.updateViewLayout(view, params)
+                } catch (e: Exception) {
+                    // ignore
+                }
+            }
+        }
+        updateBubblePosition()
+    }
+
+    fun showSpeechBubble(
+        text: String,
+        onDone: (() -> Unit)? = null,
+        onSnooze: (() -> Unit)? = null,
+        onDismiss: (() -> Unit)? = null
+    ) {
+        hideSpeechBubble()
+
+        val view = SpeechBubbleOverlayView(context)
+        speechBubbleView = view
+
+        val density = context.resources.displayMetrics.density
+        val params = WindowManager.LayoutParams(
+            WindowManager.LayoutParams.WRAP_CONTENT,
+            WindowManager.LayoutParams.WRAP_CONTENT,
+            WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY,
+            WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE or WindowManager.LayoutParams.FLAG_NOT_TOUCH_MODAL,
+            PixelFormat.TRANSLUCENT
+        ).apply {
+            gravity = Gravity.TOP or Gravity.START
+            x = currentX - (40 * density).toInt()
+            y = (currentY - (80 * density).toInt()).coerceAtLeast(0)
+        }
+        bubbleLayoutParams = params
+
+        view.showText(text)
+
+        if (onDone != null && onSnooze != null && onDismiss != null) {
+            view.showActions(
+                onDone = {
+                    hideSpeechBubble()
+                    onDone()
+                },
+                onSnooze = {
+                    hideSpeechBubble()
+                    onSnooze()
+                },
+                onDismiss = {
+                    hideSpeechBubble()
+                    onDismiss()
+                }
+            )
+        } else {
+            view.setOnClickListener { hideSpeechBubble() }
+            view.postDelayed({ hideSpeechBubble() }, 6000L)
+        }
+
+        try {
+            windowManager.addView(view, params)
+        } catch (e: Exception) {
+            speechBubbleView = null
+        }
+    }
+
+    fun hideSpeechBubble() {
+        speechBubbleView?.let { view ->
+            try {
+                windowManager.removeView(view)
+            } catch (e: Exception) {
+                // ignore
+            }
+            speechBubbleView = null
+        }
+    }
+
+    private fun updateBubblePosition() {
+        speechBubbleView?.let { view ->
+            bubbleLayoutParams?.let { params ->
+                val density = context.resources.displayMetrics.density
+                params.x = currentX - (40 * density).toInt()
+                params.y = (currentY - (80 * density).toInt()).coerceAtLeast(0)
                 try {
                     windowManager.updateViewLayout(view, params)
                 } catch (e: Exception) {

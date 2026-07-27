@@ -6,6 +6,11 @@ import androidx.lifecycle.viewModelScope
 import com.pixelpal.app.animation.AnimationEngine
 import com.pixelpal.app.animation.AnimationState
 import com.pixelpal.app.data.local.datastore.PreferencesManager
+import com.pixelpal.app.domain.engine.CompanionEngine
+import com.pixelpal.app.domain.model.Bond
+import com.pixelpal.app.domain.model.Emotion
+import com.pixelpal.app.domain.usecase.companion.GetCompanionStateUseCase
+import android.provider.Settings
 import com.pixelpal.app.overlay.OverlayService
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.SharingStarted
@@ -17,7 +22,9 @@ import javax.inject.Inject
 @HiltViewModel
 class HomeViewModel @Inject constructor(
     private val preferencesManager: PreferencesManager,
-    private val animationEngine: AnimationEngine
+    private val animationEngine: AnimationEngine,
+    private val companionEngine: CompanionEngine,
+    getCompanionStateUseCase: GetCompanionStateUseCase
 ) : ViewModel() {
 
     val petName: StateFlow<String> = preferencesManager.petName
@@ -30,6 +37,12 @@ class HomeViewModel @Inject constructor(
         .stateIn(viewModelScope, SharingStarted.Lazily, true)
 
     val currentAnimation: StateFlow<AnimationState> = animationEngine.currentState
+
+    val currentEmotion: StateFlow<Emotion> = getCompanionStateUseCase.currentEmotion
+        .stateIn(viewModelScope, SharingStarted.Lazily, Emotion.CALM)
+
+    val bond: StateFlow<Bond> = getCompanionStateUseCase.bond
+        .stateIn(viewModelScope, SharingStarted.Lazily, Bond())
 
     fun toggleOverlay(context: Context) {
         viewModelScope.launch {
@@ -45,6 +58,10 @@ class HomeViewModel @Inject constructor(
     }
 
     fun tapPet() {
-        animationEngine.trigger(AnimationState.HAPPY)
+        companionEngine.onTap()
+    }
+
+    fun feedPet() {
+        companionEngine.onFeed()
     }
 }

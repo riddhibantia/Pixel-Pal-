@@ -4,7 +4,6 @@ object Constants {
     const val APP_NAME = "PixelPal"
     const val PACKAGE_NAME = "com.pixelpal.app"
     const val DEFAULT_PET_TYPE = "cat"
-    const val DEFAULT_PET_NAME = "PixelPal"
 
     // DataStore keys
     const val PREFERENCES_NAME = "pixelpal_preferences"

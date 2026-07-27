@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="64dp"
+    android:height="64dp"
+    android:viewportWidth="64"
+    android:viewportHeight="64">
+    <!-- Elevated Position -->
+    <path android:fillColor="#E17055" android:pathData="M16,12h32v28h-32z"/>
+    <path android:fillColor="#D63031" android:pathData="M16,4h8v8h-8z M40,4h8v8h-8z"/>
+    <path android:fillColor="#1A1A2E" android:pathData="M22,20h4v6h-4z M38,20h4v6h-4z"/>
+    <!-- Jump Lines below -->
+    <path android:fillColor="#55EFC4" android:pathData="M20,44h24v3h-24z M26,50h12v2h-12z"/>
+</vector>

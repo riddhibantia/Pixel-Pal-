@@ -1,0 +1,40 @@
+{
+  "lines": [
+    {
+      "id": "react_tap_01",
+      "text": "Hehe! That tickles!",
+      "emotion": "happy",
+      "context": "tap_response",
+      "minBond": 0,
+      "maxBond": 100,
+      "personality": null
+    },
+    {
+      "id": "react_tap_02",
+      "text": "Hi {user_name}! Having a good day?",
+      "emotion": "happy",
+      "context": "tap_response",
+      "minBond": 5,
+      "maxBond": 100,
+      "personality": null
+    },
+    {
+      "id": "react_double_tap_01",
+      "text": "Yay! High five!",
+      "emotion": "excited",
+      "context": "double_tap_response",
+      "minBond": 0,
+      "maxBond": 100,
+      "personality": null
+    },
+    {
+      "id": "react_feed_01",
+      "text": "Yum! Thanks for the treats, {user_name}!",
+      "emotion": "happy",
+      "context": "feed_response",
+      "minBond": 0,
+      "maxBond": 100,
+      "personality": null
+    }
+  ]
+}

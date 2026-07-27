@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="64dp"
+    android:height="64dp"
+    android:viewportWidth="64"
+    android:viewportHeight="64">
+    <!-- Long Bunny Ears -->
+    <path android:fillColor="#F5F5FA" android:pathData="M20,4h6v18h-6z M38,4h6v18h-6z"/>
+    <path android:fillColor="#FAB1A0" android:pathData="M22,8h2v12h-2z M40,8h2v12h-2z"/>
+    <!-- Bunny Head -->
+    <path android:fillColor="#F5F5FA" android:pathData="M16,20h32v28h-32z"/>
+    <path android:fillColor="#1A1A2E" android:pathData="M22,28h4v6h-4z M38,28h4v6h-4z"/>
+    <path android:fillColor="#FAB1A0" android:pathData="M30,36h4v3h-4z"/>
+</vector>

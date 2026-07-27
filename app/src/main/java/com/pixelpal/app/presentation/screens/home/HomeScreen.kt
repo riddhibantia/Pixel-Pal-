@@ -18,6 +18,7 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
+import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.NavigationBarItem
@@ -50,6 +51,8 @@ fun HomeScreen(
     val petType by viewModel.selectedPetType.collectAsState()
     val overlayEnabled by viewModel.overlayEnabled.collectAsState()
     val currentAnim by viewModel.currentAnimation.collectAsState()
+    val currentEmotion by viewModel.currentEmotion.collectAsState()
+    val bond by viewModel.bond.collectAsState()
 
     Scaffold(
         topBar = {
@@ -99,11 +102,11 @@ fun HomeScreen(
             PetRenderer(
                 petType = petType,
                 animationState = currentAnim,
-                size = 200.dp,
+                size = 180.dp,
                 modifier = Modifier.clickable { viewModel.tapPet() }
             )
 
-            Spacer(modifier = Modifier.height(16.dp))
+            Spacer(modifier = Modifier.height(12.dp))
 
             Text(
                 text = petName,
@@ -113,12 +116,48 @@ fun HomeScreen(
             )
 
             Text(
-                text = "😊 Emotion: Happy",
+                text = "Emotion: ${currentEmotion.name.lowercase().capitalize()}",
                 fontSize = 14.sp,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
 
-            Spacer(modifier = Modifier.height(24.dp))
+            Spacer(modifier = Modifier.height(16.dp))
+
+            Card(
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Column(modifier = Modifier.padding(16.dp)) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween
+                    ) {
+                        Text("Friendship Bond", fontWeight = FontWeight.SemiBold)
+                        Text("Level ${bond.level}/100", fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.primary)
+                    }
+                    Spacer(modifier = Modifier.height(8.dp))
+                    LinearProgressIndicator(
+                        progress = { bond.level / 100f },
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                    Spacer(modifier = Modifier.height(4.dp))
+                    Text(
+                        text = "Total Interactions: ${bond.totalInteractions}",
+                        fontSize = 12.sp,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+            }
+
+            Spacer(modifier = Modifier.height(12.dp))
+
+            Button(
+                onClick = { viewModel.feedPet() },
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Text("🍎 Feed $petName")
+            }
+
+            Spacer(modifier = Modifier.height(12.dp))
 
             Card(
                 modifier = Modifier.fillMaxWidth()
@@ -147,3 +186,5 @@ fun HomeScreen(
         }
     }
 }
+
+private fun String.capitalize(): String = this.replaceFirstChar { if (it.isLowerCase()) it.titlecase() else it.toString() }

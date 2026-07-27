@@ -7,15 +7,18 @@ import android.app.PendingIntent
 import android.app.Service
 import android.content.Context
 import android.content.Intent
+import android.content.IntentFilter
 import android.os.Build
 import android.os.IBinder
+import android.provider.Settings
 import androidx.core.app.NotificationCompat
 import com.pixelpal.app.R
 import com.pixelpal.app.animation.AnimationEngine
-import com.pixelpal.app.animation.AnimationState
 import com.pixelpal.app.animation.SpriteAnimator
 import com.pixelpal.app.data.local.datastore.PreferencesManager
+import com.pixelpal.app.domain.engine.CompanionEngine
 import com.pixelpal.app.presentation.MainActivity
+import com.pixelpal.app.receiver.ScreenStateReceiver
 import com.pixelpal.app.util.Constants
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.CoroutineScope
@@ -32,14 +35,17 @@ class OverlayService : Service() {
     @Inject lateinit var overlayManager: OverlayManager
     @Inject lateinit var animationEngine: AnimationEngine
     @Inject lateinit var spriteAnimator: SpriteAnimator
+    @Inject lateinit var companionEngine: CompanionEngine
     @Inject lateinit var preferencesManager: PreferencesManager
 
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Main)
+    private var screenStateReceiver: ScreenStateReceiver? = null
 
     override fun onCreate() {
         super.onCreate()
         Timber.d("OverlayService created")
         createNotificationChannel()
+        registerScreenStateReceiver()
 
         scope.launch {
             val petName = preferencesManager.petName.first()
@@ -50,16 +56,17 @@ class OverlayService : Service() {
 
             startForeground(Constants.FOREGROUND_SERVICE_ID, buildNotification(petName))
 
+            if (!Settings.canDrawOverlays(this@OverlayService)) {
+                Timber.w("SYSTEM_ALERT_WINDOW permission not granted, skipping overlay")
+                return@launch
+            }
+
             overlayManager.showCompanion(
-                onTap = {
-                    animationEngine.trigger(AnimationState.HAPPY)
-                },
-                onDoubleTap = {
-                    animationEngine.trigger(AnimationState.EXCITED)
-                }
+                onTap = { companionEngine.onTap() },
+                onDoubleTap = { companionEngine.onDoubleTap() },
+                onLongPress = { companionEngine.onFeed() }
             )
 
-            // Observe sprite updates
             launch {
                 spriteAnimator.currentDrawableRes.collect { resId ->
                     if (resId != 0) {
@@ -77,11 +84,34 @@ class OverlayService : Service() {
     override fun onDestroy() {
         super.onDestroy()
         Timber.d("OverlayService destroyed")
+        unregisterScreenStateReceiver()
         animationEngine.destroy()
         overlayManager.hideCompanion()
     }
 
     override fun onBind(intent: Intent?): IBinder? = null
+
+    private fun registerScreenStateReceiver() {
+        screenStateReceiver = ScreenStateReceiver(
+            onScreenOn = { animationEngine.initialize() },
+            onScreenOff = { /* timers pause automatically */ }
+        )
+        val filter = IntentFilter().apply {
+            addAction(Intent.ACTION_SCREEN_OFF)
+            addAction(Intent.ACTION_SCREEN_ON)
+        }
+        registerReceiver(screenStateReceiver, filter)
+    }
+
+    private fun unregisterScreenStateReceiver() {
+        screenStateReceiver?.let {
+            try {
+                unregisterReceiver(it)
+            } catch (e: Exception) {
+                // ignore if already unregistered
+            }
+        }
+    }
 
     private fun createNotificationChannel() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
@@ -110,7 +140,7 @@ class OverlayService : Service() {
         return NotificationCompat.Builder(this, Constants.CHANNEL_COMPANION)
             .setContentTitle(petName)
             .setContentText("$petName is hanging out with you 🐱")
-            .setSmallIcon(R.mipmap.ic_launcher)
+            .setSmallIcon(R.drawable.pet_cat_idle)
             .setContentIntent(pendingIntent)
             .setOngoing(true)
             .setPriority(NotificationCompat.PRIORITY_LOW)

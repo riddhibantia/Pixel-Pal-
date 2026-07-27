@@ -1,0 +1,22 @@
+{
+  "lines": [
+    {
+      "id": "greet_morning_01",
+      "text": "Good morning {user_name}! Ready to conquer the day?",
+      "emotion": "happy",
+      "context": "greeting_morning",
+      "minBond": 0,
+      "maxBond": 100,
+      "personality": null
+    },
+    {
+      "id": "greet_night_01",
+      "text": "*yawns* Staying up late, {user_name}?",
+      "emotion": "sleepy",
+      "context": "greeting_night",
+      "minBond": 0,
+      "maxBond": 100,
+      "personality": null
+    }
+  ]
+}

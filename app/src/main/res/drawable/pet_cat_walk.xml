@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="64dp"
+    android:height="64dp"
+    android:viewportWidth="64"
+    android:viewportHeight="64">
+    <path android:fillColor="#E17055" android:pathData="M16,18h32v26h-32z"/>
+    <path android:fillColor="#D63031" android:pathData="M16,10h8v8h-8z M40,10h8v8h-8z"/>
+    <path android:fillColor="#1A1A2E" android:pathData="M22,26h4v6h-4z M38,26h4v6h-4z"/>
+    <!-- Walking Paws -->
+    <path android:fillColor="#E17055" android:pathData="M18,44h6v8h-6z M40,44h6v8h-6z"/>
+</vector>

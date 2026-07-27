@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="64dp"
+    android:height="64dp"
+    android:viewportWidth="64"
+    android:viewportHeight="64">
+    <path android:fillColor="#E17055" android:pathData="M16,24h32v24h-32z"/>
+    <path android:fillColor="#D63031" android:pathData="M16,16h8v8h-8z M40,16h8v8h-8z"/>
+    <!-- Closed Eyes enjoying food -->
+    <path android:fillColor="#1A1A2E" android:pathData="M22,32h4v2h-4z M38,32h4v2h-4z"/>
+    <!-- Food Bowl -->
+    <path android:fillColor="#6C5CE7" android:pathData="M24,44h16v8h-16z"/>
+    <path android:fillColor="#FDCB6E" android:pathData="M26,42h12v3h-12z"/>
+</vector>

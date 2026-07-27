@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="64dp"
+    android:height="64dp"
+    android:viewportWidth="64"
+    android:viewportHeight="64">
+    <!-- Axolotl Pink Gills -->
+    <path android:fillColor="#FF7675" android:pathData="M8,20h8v16h-8z M48,20h8v16h-8z"/>
+    <!-- Axolotl Head -->
+    <path android:fillColor="#FAB1A0" android:pathData="M16,20h32v28h-32z"/>
+    <path android:fillColor="#1A1A2E" android:pathData="M24,28h4v6h-4z M36,28h4v6h-4z"/>
+    <path android:fillColor="#E17055" android:pathData="M28,36h8v2h-8z"/>
+</vector>

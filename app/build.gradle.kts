@@ -2,7 +2,7 @@ plugins {
     id("com.android.application")
     id("org.jetbrains.kotlin.android")
     id("com.google.dagger.hilt.android")
-    id("androidx.compose.compiler")
+    id("org.jetbrains.kotlin.plugin.compose")
     alias(libs.plugins.kotlin.serialization)
     kotlin("kapt")
 }
@@ -52,6 +52,7 @@ android {
     buildFeatures {
         compose = true
         viewBinding = true
+        buildConfig = true
     }
 }
 
@@ -71,7 +72,9 @@ dependencies {
     // Hilt DI
     implementation(libs.hilt.android)
     implementation(libs.hilt.navigation.compose)
+    implementation(libs.hilt.work)
     kapt(libs.hilt.compiler)
+    kapt(libs.androidx.hilt.compiler)
 
     // DataStore Preferences
     implementation(libs.androidx.datastore.preferences)
@@ -90,7 +93,7 @@ dependencies {
 
     // Kotlinx Coroutines & Flow
     implementation(libs.kotlinx.coroutines.android)
-    implementation(libs.kotlinx.coroutines.playServices)
+    implementation(libs.kotlinx.coroutines.play.services)
 
     // Kotlinx Serialization
     implementation(libs.kotlinx.serialization.json)
@@ -113,8 +116,8 @@ kapt {
     correctErrorTypes = true
 }
 
-tasks.withType(org.jetbrains.kotlin.gradle.tasks.KotlinCompile).configureEach {
-    kotlinOptions {
-        freeCompilerArgs += listOf("-Xjsr305=strict", "-Xopt-in=kotlin.RequiresOptIn")
+tasks.withType<org.jetbrains.kotlin.gradle.tasks.KotlinCompile>().configureEach {
+    compilerOptions {
+        freeCompilerArgs.addAll("-Xjsr305=strict", "-opt-in=kotlin.RequiresOptIn")
     }
 }

@@ -5,6 +5,7 @@ import android.content.Context
 import android.content.Intent
 import com.pixelpal.app.data.local.datastore.PreferencesManager
 import com.pixelpal.app.overlay.OverlayService
+import com.pixelpal.app.worker.ReminderScheduler
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -17,14 +18,21 @@ import javax.inject.Inject
 class BootReceiver : BroadcastReceiver() {
 
     @Inject lateinit var preferencesManager: PreferencesManager
+    @Inject lateinit var reminderScheduler: ReminderScheduler
 
     override fun onReceive(context: Context, intent: Intent) {
         if (intent.action == Intent.ACTION_BOOT_COMPLETED) {
             Timber.d("BootReceiver received BOOT_COMPLETED")
+            val pendingResult = goAsync()
             CoroutineScope(Dispatchers.IO).launch {
-                val enabled = preferencesManager.overlayEnabled.first()
-                if (enabled) {
-                    OverlayService.start(context)
+                try {
+                    reminderScheduler.rescheduleAll()
+                    val enabled = preferencesManager.overlayEnabled.first()
+                    if (enabled) {
+                        OverlayService.start(context)
+                    }
+                } finally {
+                    pendingResult.finish()
                 }
             }
         }

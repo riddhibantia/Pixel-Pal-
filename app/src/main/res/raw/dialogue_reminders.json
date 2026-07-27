@@ -1,0 +1,94 @@
+{
+  "lines": [
+    {
+      "id": "rem_happy_01",
+      "text": "Hey {user_name}! Didn't we have {title} coming up?",
+      "emotion": "happy",
+      "context": "reminder_trigger",
+      "minBond": 0,
+      "maxBond": 100,
+      "personality": null
+    },
+    {
+      "id": "rem_happy_02",
+      "text": "Psst... I think it's almost time for {title}!",
+      "emotion": "happy",
+      "context": "reminder_trigger",
+      "minBond": 0,
+      "maxBond": 100,
+      "personality": null
+    },
+    {
+      "id": "rem_happy_03",
+      "text": "Just a friendly nudge! We planned to do {title} soon.",
+      "emotion": "happy",
+      "context": "reminder_trigger",
+      "minBond": 5,
+      "maxBond": 100,
+      "personality": null
+    },
+    {
+      "id": "rem_thinking_01",
+      "text": "Hmm... wasn't there something about {title} right now?",
+      "emotion": "thinking",
+      "context": "reminder_trigger",
+      "minBond": 0,
+      "maxBond": 100,
+      "personality": null
+    },
+    {
+      "id": "rem_curious_01",
+      "text": "Are we ready for {title}? I've been looking forward to it!",
+      "emotion": "curious",
+      "context": "reminder_trigger",
+      "minBond": 10,
+      "maxBond": 100,
+      "personality": null
+    },
+    {
+      "id": "rem_excited_01",
+      "text": "It's time for {title}! Let's do this, {user_name}!",
+      "emotion": "excited",
+      "context": "reminder_trigger",
+      "minBond": 15,
+      "maxBond": 100,
+      "personality": null
+    },
+    {
+      "id": "rem_sleepy_01",
+      "text": "*yawns* ...Oh right, {title} is coming up soon...",
+      "emotion": "sleepy",
+      "context": "reminder_trigger",
+      "minBond": 0,
+      "maxBond": 100,
+      "personality": null
+    },
+    {
+      "id": "rem_done_01",
+      "text": "Awesome! One less thing to worry about!",
+      "emotion": "happy",
+      "context": "reminder_completed",
+      "minBond": 0,
+      "maxBond": 100,
+      "personality": null
+    },
+    {
+      "id": "rem_done_02",
+      "text": "Great job! Proud of us, {user_name}!",
+      "emotion": "excited",
+      "context": "reminder_completed",
+      "minBond": 5,
+      "maxBond": 100,
+      "personality": null
+    },
+    {
+      "id": "rem_snooze_01",
+      "text": "Sure! I'll remind you again in 15 minutes.",
+      "emotion": "calm",
+      "context": "reminder_snoozed",
+      "minBond": 0,
+      "maxBond": 100,
+      "personality": null
+    }
+  ]
+}

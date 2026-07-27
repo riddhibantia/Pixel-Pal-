@@ -7,6 +7,7 @@ import androidx.navigation.compose.composable
 import com.pixelpal.app.presentation.screens.customize.CustomizeScreen
 import com.pixelpal.app.presentation.screens.home.HomeScreen
 import com.pixelpal.app.presentation.screens.onboarding.OnboardingScreen
+import com.pixelpal.app.presentation.screens.reminders.CreateReminderScreen
 import com.pixelpal.app.presentation.screens.reminders.ReminderListScreen
 import com.pixelpal.app.presentation.screens.settings.SettingsScreen
 
@@ -14,6 +15,7 @@ sealed class Screen(val route: String) {
     object Onboarding : Screen("onboarding")
     object Home : Screen("home")
     object Reminders : Screen("reminders")
+    object CreateReminder : Screen("create_reminder")
     object Customize : Screen("customize")
     object Settings : Screen("settings")
 }
@@ -41,6 +43,9 @@ fun PixelPalNavGraph(
         }
         composable(Screen.Reminders.route) {
             ReminderListScreen(navController = navController)
+        }
+        composable(Screen.CreateReminder.route) {
+            CreateReminderScreen(navController = navController)
         }
         composable(Screen.Customize.route) {
             CustomizeScreen(navController = navController)

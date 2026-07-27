@@ -1,0 +1,22 @@
+{
+  "lines": [
+    {
+      "id": "gen_idle_01",
+      "text": "I love hanging out on your screen!",
+      "emotion": "happy",
+      "context": "idle_chatter",
+      "minBond": 10,
+      "maxBond": 100,
+      "personality": null
+    },
+    {
+      "id": "gen_idle_02",
+      "text": "Just quietly watching over things...",
+      "emotion": "calm",
+      "context": "idle_chatter",
+      "minBond": 5,
+      "maxBond": 100,
+      "personality": null
+    }
+  ]
+}
