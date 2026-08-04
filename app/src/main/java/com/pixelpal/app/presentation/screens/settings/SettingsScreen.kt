@@ -16,10 +16,7 @@ import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.NavigationBar
-import androidx.compose.material3.NavigationBarItem
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Switch
@@ -36,6 +33,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
+import com.pixelpal.app.presentation.components.PixelPalBottomBar
 import com.pixelpal.app.presentation.navigation.Screen
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -52,32 +50,7 @@ fun SettingsScreen(
     Scaffold(
         topBar = { TopAppBar(title = { Text("Settings", fontWeight = FontWeight.Bold) }) },
         bottomBar = {
-            NavigationBar {
-                NavigationBarItem(
-                    selected = false,
-                    onClick = { navController.navigate(Screen.Home.route) },
-                    icon = { Icon(Icons.Default.Home, contentDescription = "Home") },
-                    label = { Text("Home") }
-                )
-                NavigationBarItem(
-                    selected = false,
-                    onClick = { navController.navigate(Screen.Reminders.route) },
-                    icon = { Icon(Icons.Default.Notifications, contentDescription = "Reminders") },
-                    label = { Text("Reminders") }
-                )
-                NavigationBarItem(
-                    selected = false,
-                    onClick = { navController.navigate(Screen.Customize.route) },
-                    icon = { Icon(Icons.Default.Palette, contentDescription = "Customize") },
-                    label = { Text("Customize") }
-                )
-                NavigationBarItem(
-                    selected = true,
-                    onClick = { },
-                    icon = { Icon(Icons.Default.Settings, contentDescription = "Settings") },
-                    label = { Text("Settings") }
-                )
-            }
+            PixelPalBottomBar(navController = navController, selected = Screen.Settings)
         }
     ) { innerPadding ->
         Column(
@@ -138,6 +111,21 @@ fun SettingsScreen(
                 singleLine = true,
                 modifier = Modifier.fillMaxWidth()
             )
+
+            Spacer(modifier = Modifier.height(16.dp))
+            
+            Button(
+                onClick = { 
+                    com.pixelpal.app.util.PermissionHelper.requestIgnoreBatteryOptimizations(context as android.app.Activity) 
+                },
+                modifier = Modifier.fillMaxWidth(),
+                colors = androidx.compose.material3.ButtonDefaults.buttonColors(
+                    containerColor = MaterialTheme.colorScheme.secondaryContainer,
+                    contentColor = MaterialTheme.colorScheme.onSecondaryContainer
+                )
+            ) {
+                Text("Keep Overlay Alive in Background")
+            }
 
             Spacer(modifier = Modifier.height(32.dp))
 

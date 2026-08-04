@@ -1,6 +1,15 @@
 {
   "lines": [
     {
+      "id": "bond_lvl_05",
+      "text": "I think we're getting along great!",
+      "emotion": "happy",
+      "context": "bond_milestone",
+      "minBond": 5,
+      "maxBond": 9,
+      "personality": null
+    },
+    {
       "id": "bond_lvl_10",
       "text": "I feel like we're becoming really good friends, {user_name}!",
       "emotion": "excited",
@@ -15,6 +24,33 @@
       "emotion": "happy",
       "context": "bond_milestone",
       "minBond": 25,
+      "maxBond": 49,
+      "personality": null
+    },
+    {
+      "id": "bond_lvl_50",
+      "text": "I can't imagine life without you, {user_name}!",
+      "emotion": "happy",
+      "context": "bond_milestone",
+      "minBond": 50,
+      "maxBond": 74,
+      "personality": null
+    },
+    {
+      "id": "bond_lvl_75",
+      "text": "We're inseparable! Best friends forever!",
+      "emotion": "excited",
+      "context": "bond_milestone",
+      "minBond": 75,
+      "maxBond": 100,
+      "personality": null
+    },
+    {
+      "id": "bond_lvl_100",
+      "text": "You've maxed out our bond! I love you so much!",
+      "emotion": "excited",
+      "context": "bond_milestone",
+      "minBond": 100,
       "maxBond": 100,
       "personality": null
     }

@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<inset xmlns:android="http://schemas.android.com/apk/res/android"
+    android:drawable="@drawable/pet_cat_idle"
+    android:inset="12%"
+    android:insetLeft="12%"
+    android:insetTop="12%"
+    android:insetRight="12%"
+    android:insetBottom="12%" />

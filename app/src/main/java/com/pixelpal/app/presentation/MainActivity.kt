@@ -26,7 +26,8 @@ class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContent {
-            PixelPalTheme(darkTheme = true) {
+            val currentTheme by preferencesManager.currentTheme.collectAsState(initial = "dark")
+            PixelPalTheme(theme = currentTheme) {
                 Surface(
                     modifier = Modifier.fillMaxSize(),
                     color = MaterialTheme.colorScheme.background

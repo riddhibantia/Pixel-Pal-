@@ -6,7 +6,7 @@
       "emotion": "happy",
       "context": "tap_response",
       "minBond": 0,
-      "maxBond": 100,
+      "maxBond": 4,
       "personality": null
     },
     {
@@ -15,6 +15,78 @@
       "emotion": "happy",
       "context": "tap_response",
       "minBond": 5,
+      "maxBond": 100,
+      "personality": null
+    },
+    {
+      "id": "react_tap_03",
+      "text": "Hey! Watch the fur!",
+      "emotion": "happy",
+      "context": "tap_response",
+      "minBond": 0,
+      "maxBond": 4,
+      "personality": null
+    },
+    {
+      "id": "react_tap_04",
+      "text": "*purrs happily*",
+      "emotion": "happy",
+      "context": "tap_response",
+      "minBond": 0,
+      "maxBond": 100,
+      "personality": null
+    },
+    {
+      "id": "react_tap_05",
+      "text": "You always know how to make me smile!",
+      "emotion": "happy",
+      "context": "tap_response",
+      "minBond": 10,
+      "maxBond": 100,
+      "personality": null
+    },
+    {
+      "id": "react_tap_06",
+      "text": "Boop!",
+      "emotion": "happy",
+      "context": "tap_response",
+      "minBond": 0,
+      "maxBond": 100,
+      "personality": null
+    },
+    {
+      "id": "react_tap_07",
+      "text": "I love hanging out with you, {user_name}!",
+      "emotion": "happy",
+      "context": "tap_response",
+      "minBond": 15,
+      "maxBond": 100,
+      "personality": null
+    },
+    {
+      "id": "react_tap_08",
+      "text": "Need something? I'm here!",
+      "emotion": "happy",
+      "context": "tap_response",
+      "minBond": 5,
+      "maxBond": 100,
+      "personality": null
+    },
+    {
+      "id": "react_tap_09",
+      "text": "That's the spot! Right there!",
+      "emotion": "happy",
+      "context": "tap_response",
+      "minBond": 0,
+      "maxBond": 100,
+      "personality": null
+    },
+    {
+      "id": "react_tap_10",
+      "text": "You're my favorite person, {user_name}!",
+      "emotion": "happy",
+      "context": "tap_response",
+      "minBond": 20,
       "maxBond": 100,
       "personality": null
     },
@@ -28,8 +100,89 @@
       "personality": null
     },
     {
+      "id": "react_double_tap_02",
+      "text": "WOOO! Let's gooo!",
+      "emotion": "excited",
+      "context": "double_tap_response",
+      "minBond": 0,
+      "maxBond": 100,
+      "personality": null
+    },
+    {
+      "id": "react_double_tap_03",
+      "text": "Double tap? That means extra love!",
+      "emotion": "excited",
+      "context": "double_tap_response",
+      "minBond": 5,
+      "maxBond": 100,
+      "personality": null
+    },
+    {
+      "id": "react_double_tap_04",
+      "text": "*jumps excitedly*",
+      "emotion": "excited",
+      "context": "double_tap_response",
+      "minBond": 0,
+      "maxBond": 100,
+      "personality": null
+    },
+    {
       "id": "react_feed_01",
       "text": "Yum! Thanks for the treats, {user_name}!",
+      "emotion": "happy",
+      "context": "feed_response",
+      "minBond": 0,
+      "maxBond": 100,
+      "personality": null
+    },
+    {
+      "id": "react_feed_02",
+      "text": "*munches happily* Delish!",
+      "emotion": "happy",
+      "context": "feed_response",
+      "minBond": 0,
+      "maxBond": 100,
+      "personality": null
+    },
+    {
+      "id": "react_feed_03",
+      "text": "My favorite! You always know!",
+      "emotion": "happy",
+      "context": "feed_response",
+      "minBond": 5,
+      "maxBond": 100,
+      "personality": null
+    },
+    {
+      "id": "react_feed_04",
+      "text": "Nom nom nom... *purrs*",
+      "emotion": "happy",
+      "context": "feed_response",
+      "minBond": 0,
+      "maxBond": 100,
+      "personality": null
+    },
+    {
+      "id": "react_feed_05",
+      "text": "I was SO hungry! Thank you!",
+      "emotion": "happy",
+      "context": "feed_response",
+      "minBond": 0,
+      "maxBond": 100,
+      "personality": null
+    },
+    {
+      "id": "react_feed_06",
+      "text": "Best {user_name} ever! *licks chops*",
+      "emotion": "happy",
+      "context": "feed_response",
+      "minBond": 10,
+      "maxBond": 100,
+      "personality": null
+    },
+    {
+      "id": "react_feed_07",
+      "text": "My tummy thanks you!",
       "emotion": "happy",
       "context": "feed_response",
       "minBond": 0,

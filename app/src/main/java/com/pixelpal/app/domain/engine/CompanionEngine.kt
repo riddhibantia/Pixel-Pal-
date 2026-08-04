@@ -96,39 +96,18 @@ class CompanionEngine @Inject constructor(
         scope.launch {
             emotionEngine.triggerEmotion(Emotion.THINKING, durationMs = 60_000L)
 
-            val petName = preferencesManager.petName.first()
-            val userName = preferencesManager.userName.first().ifEmpty { "friend" }
-            val bond = bondEngine.bond.first()
-
-            val text = dialogueLoader.getLine(
-                contextStr = "reminder_trigger",
-                emotion = Emotion.THINKING,
-                bondLevel = bond.level,
-                variables = mapOf(
-                    "pet_name" to petName,
-                    "user_name" to userName,
-                    "title" to reminder.title
-                )
-            ) ?: "Hey $userName! Time for ${reminder.title}!"
-
             if (overlayManager.isShowing()) {
-                overlayManager.showSpeechBubble(
-                    text = text,
-                    onDone = {
+                overlayManager.showReminderPill(
+                    title = reminder.title,
+                    note = reminder.message,
+                    onAccept = {
                         scope.launch {
                             reminderRepository.complete(reminder.id)
                             bondEngine.recordReminderCompleted()
                             emotionEngine.triggerEmotion(Emotion.HAPPY)
                         }
                     },
-                    onSnooze = {
-                        scope.launch {
-                            val newTime = System.currentTimeMillis() + (15 * 60 * 1000L)
-                            reminderRepository.snooze(reminder.id, newTime)
-                            emotionEngine.triggerEmotion(Emotion.CALM)
-                        }
-                    },
-                    onDismiss = {
+                    onDeny = {
                         scope.launch {
                             emotionEngine.triggerEmotion(Emotion.SAD, durationMs = 10_000L)
                         }

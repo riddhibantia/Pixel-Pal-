@@ -9,6 +9,9 @@ data class ReminderEntity(
     val title: String,
     val message: String? = null,
     val triggerTime: Long,
+    val hour: Int = 0,
+    val minute: Int = 0,
+    val soundUri: String? = null,
     val recurrence: String = "ONCE",       // ONCE, DAILY, WEEKLY, MONTHLY
     val recurrenceInterval: Long? = null,
     val category: String = "CUSTOM",       // MEETING, MEDICINE, BIRTHDAY, SHOPPING, ASSIGNMENT, CUSTOM

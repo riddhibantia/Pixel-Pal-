@@ -43,12 +43,53 @@ private val LightColorScheme = lightColorScheme(
     outline = PixelLightPrimary
 )
 
+private val SpringColorScheme = lightColorScheme(
+    primary = SpringPrimary,
+    onPrimary = SpringOn,
+    primaryContainer = SpringSurfaceVariant,
+    secondary = SpringSecondary,
+    onSecondary = SpringOn,
+    tertiary = SpringAccent,
+    background = SpringBackground,
+    onBackground = SpringOn,
+    surface = SpringSurface,
+    onSurface = SpringOn,
+    surfaceVariant = SpringSurfaceVariant,
+    onSurfaceVariant = SpringSecondary,
+    error = PixelError,
+    onError = SpringSurface,
+    outline = SpringPrimary
+)
+
+private val AutumnColorScheme = darkColorScheme(
+    primary = AutumnPrimary,
+    onPrimary = AutumnOnDarkPrimary,
+    primaryContainer = AutumnSurfaceVariant,
+    secondary = AutumnSecondary,
+    onSecondary = AutumnOn,
+    tertiary = AutumnAccent,
+    background = AutumnBackground,
+    onBackground = AutumnOn,
+    surface = AutumnSurface,
+    onSurface = AutumnOn,
+    surfaceVariant = AutumnSurfaceVariant,
+    onSurfaceVariant = AutumnOn,
+    error = PixelError,
+    onError = AutumnOnDarkPrimary,
+    outline = AutumnPrimary
+)
+
 @Composable
 fun PixelPalTheme(
-    darkTheme: Boolean = true,
+    theme: String = "dark",
     content: @Composable () -> Unit
 ) {
-    val colorScheme = if (darkTheme) DarkColorScheme else LightColorScheme
+    val colorScheme = when (theme.lowercase()) {
+        "light" -> LightColorScheme
+        "spring" -> SpringColorScheme
+        "autumn" -> AutumnColorScheme
+        else -> DarkColorScheme
+    }
 
     MaterialTheme(
         colorScheme = colorScheme,

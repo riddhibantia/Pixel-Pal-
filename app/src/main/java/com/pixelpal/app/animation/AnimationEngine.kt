@@ -23,13 +23,21 @@ class AnimationEngine @Inject constructor() {
     val currentState: StateFlow<AnimationState> = _currentState.asStateFlow()
 
     private var blinkJob: Job? = null
-    private var sleepJob: Job? = null
+    private var idleBehaviorJob: Job? = null
     private var returnToIdleJob: Job? = null
     private var lastInteractionTime = System.currentTimeMillis()
+    private var isScreenOn = true
+
+    fun setScreenOn(isOn: Boolean) {
+        isScreenOn = isOn
+        if (isOn && _currentState.value == AnimationState.SLEEP) {
+            trigger(AnimationState.IDLE)
+        }
+    }
 
     fun initialize() {
         startBlinkTimer()
-        startSleepTimer()
+        startIdleBehaviorTimer()
     }
 
     fun trigger(state: AnimationState) {
@@ -62,14 +70,35 @@ class AnimationEngine @Inject constructor() {
         }
     }
 
-    private fun startSleepTimer() {
-        sleepJob?.cancel()
-        sleepJob = scope.launch {
+    private fun startIdleBehaviorTimer() {
+        idleBehaviorJob?.cancel()
+        idleBehaviorJob = scope.launch {
             while (isActive) {
-                delay(30_000L)
+                val delayMs = Random.nextLong(
+                    AnimationConfig.IDLE_ANIMATION_MIN_INTERVAL_MS,
+                    AnimationConfig.IDLE_ANIMATION_MAX_INTERVAL_MS
+                )
+                delay(delayMs)
+                
                 val inactiveMs = System.currentTimeMillis() - lastInteractionTime
-                if (inactiveMs >= AnimationConfig.SLEEP_TIMEOUT_MS && _currentState.value == AnimationState.IDLE) {
-                    _currentState.value = AnimationState.SLEEP
+                
+                // Sleep only when the screen is off (do NOT auto-sleep at night while idle on-screen).
+                if (inactiveMs >= AnimationConfig.SLEEP_TIMEOUT_MS && !isScreenOn) {
+                    if (_currentState.value == AnimationState.IDLE) {
+                        _currentState.value = AnimationState.SLEEP
+                    }
+                    continue
+                }
+                
+                // If we get here, the screen is ON. Do micro-animations if idle
+                if (_currentState.value == AnimationState.IDLE) {
+                    val randomAction = listOf(
+                        AnimationState.WAVE,
+                        AnimationState.WALK,
+                        AnimationState.JUMP,
+                        AnimationState.EXCITED
+                    ).random()
+                    trigger(randomAction)
                 }
             }
         }
@@ -84,7 +113,7 @@ class AnimationEngine @Inject constructor() {
 
     fun destroy() {
         blinkJob?.cancel()
-        sleepJob?.cancel()
+        idleBehaviorJob?.cancel()
         returnToIdleJob?.cancel()
     }
 }

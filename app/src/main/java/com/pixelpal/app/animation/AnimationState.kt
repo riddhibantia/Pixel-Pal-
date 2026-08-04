@@ -2,27 +2,41 @@ package com.pixelpal.app.animation
 
 import android.content.Context
 
+/**
+ * Every visual state a companion can be in.
+ *
+ * The drawable lookup is fully data-driven:
+ *   PetType + AnimationState  →  R.drawable.pet_{type}_{state}
+ *
+ * Adding a new state only requires:
+ *   1. Add the enum entry here
+ *   2. Drop a vector drawable named pet_{type}_{state}.xml into res/drawable
+ */
 enum class AnimationState(
-    val drawableResName: String,
+    val stateName: String,
     val durationMs: Long,
     val loops: Boolean,
     val nextState: AnimationState?
 ) {
     IDLE("idle", Long.MAX_VALUE, true, null),
     BLINK("blink", 400L, false, IDLE),
-    WALK("walk", 2000L, true, IDLE),
+    HAPPY("happy", 2000L, false, IDLE),
+    SAD("sad", 3000L, true, IDLE),
+    SLEEP("sleep", Long.MAX_VALUE, true, null),
+    THINKING("thinking", Long.MAX_VALUE, true, null),
     WAVE("wave", 1500L, false, IDLE),
     JUMP("jump", 800L, false, IDLE),
-    SLEEP("sleep", Long.MAX_VALUE, true, null),
-    HAPPY("happy", 2000L, false, IDLE),
-    EAT("eat", 2000L, false, HAPPY),
-    THINKING("thinking", Long.MAX_VALUE, true, null),
-    SAD("sad", 3000L, true, IDLE),
     EXCITED("excited", 2500L, false, HAPPY),
-    CURIOUS("curious", 2000L, false, IDLE);
+    CELEBRATE("celebrate", 3000L, false, HAPPY),
+    EAT("eat", 2000L, false, HAPPY),
+    WALK("walk", 2000L, true, IDLE);
 
+    /**
+     * Resolves the drawable resource for this state and the given pet type.
+     * Returns 0 if no matching drawable exists (caller should fall back to IDLE).
+     */
     fun getDrawableResId(petType: String, context: Context): Int {
-        val name = "pet_${petType.lowercase()}_${drawableResName}"
+        val name = "pet_${petType.lowercase()}_$stateName"
         return context.resources.getIdentifier(name, "drawable", context.packageName)
     }
 }

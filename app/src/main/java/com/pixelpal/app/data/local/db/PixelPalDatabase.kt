@@ -18,7 +18,7 @@ import com.pixelpal.app.data.local.db.entity.ReminderEntity
         PersonalityEntity::class,
         CompanionEntity::class
     ],
-    version = 1,
+    version = 3,
     exportSchema = false
 )
 abstract class PixelPalDatabase : RoomDatabase() {

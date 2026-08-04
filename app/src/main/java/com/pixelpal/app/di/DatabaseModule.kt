@@ -28,7 +28,10 @@ object DatabaseModule {
             context,
             PixelPalDatabase::class.java,
             Constants.DATABASE_NAME
-        ).build()
+        )
+        .fallbackToDestructiveMigration()
+        .fallbackToDestructiveMigrationOnDowngrade()
+        .build()
     }
 
     @Provides

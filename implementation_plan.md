@@ -2,6 +2,60 @@
 
 ---
 
+# Fix Keyboard Overlap (Keyboard Dodge)
+
+The user wants the pixel pet (overlay) to automatically push upwards when the soft keyboard is opened, so it doesn't get hidden behind the keyboard.
+
+## Background Context
+Since the pixel pet is drawn using a `TYPE_APPLICATION_OVERLAY` window with `FLAG_NOT_FOCUSABLE`, the Android OS strictly isolates it from system window insets (like the soft keyboard). Standard tricks like `OnApplyWindowInsetsListener` or `SOFT_INPUT_ADJUST_RESIZE` on a hidden background window do not work reliably on Android 11+ for non-focused overlays.
+
+The only reliable, system-wide way to detect the keyboard height and position in modern Android without stealing focus from the user's active app (e.g. WhatsApp) is via an **Accessibility Service**.
+
+> [!WARNING]
+> **User Review Required**
+> Using an Accessibility Service means that after installing the update, you will have to manually go to your phone's **Settings -> Accessibility -> Downloaded Apps -> PixelPal** and turn it ON. If you are okay with this extra step, I will proceed with this implementation.
+
+## Proposed Changes
+
+### 1. Create Keyboard State Manager
+A simple singleton class to hold the keyboard height state, allowing the Accessibility Service to communicate with the `OverlayManager`.
+
+#### [NEW] `app/src/main/java/com/pixelpal/app/util/KeyboardStateManager.kt`
+- Create a singleton or Hilt-injected manager with a `MutableStateFlow<Int>` for the keyboard height.
+
+### 2. Create Accessibility Service
+#### [NEW] `app/src/main/java/com/pixelpal/app/service/KeyboardAccessibilityService.kt`
+- Create a service extending `AccessibilityService`.
+- Listen for `TYPE_WINDOW_STATE_CHANGED`.
+- Iterate through `rootInActiveWindow` or `windows` to find windows of type `AccessibilityWindowInfo.TYPE_INPUT_METHOD`.
+- Calculate the height of the keyboard using `getBoundsInScreen()`.
+- Update `KeyboardStateManager` with the new height (0 if closed).
+
+#### [NEW] `app/src/main/res/xml/accessibility_service_config.xml`
+- Configuration XML for the service, requesting `flagRetrieveInteractiveWindows`.
+
+### 3. Update Android Manifest
+#### [MODIFY] `app/src/main/AndroidManifest.xml`
+- Declare the new `KeyboardAccessibilityService`.
+- Add the `BIND_ACCESSIBILITY_SERVICE` permission and metadata.
+
+### 4. Update Overlay Manager
+#### [MODIFY] `app/src/main/java/com/pixelpal/app/overlay/OverlayManager.kt`
+- Remove the broken `keyboardDetectorView` hack.
+- Inject or observe `KeyboardStateManager`.
+- When the keyboard height changes (and > 0), calculate the intersection with the pet's current Y coordinate.
+- If the pet is blocked, animate its Y position upwards. When the keyboard closes, animate it back to its original position.
+
+## Verification Plan
+1. Build and install the app.
+2. Manually enable the Accessibility Service in Android Settings.
+3. Turn on the pixel pet overlay.
+4. Drag the pet to the bottom half of the screen.
+5. Open an app like Messages or WhatsApp and tap a text field.
+6. Verify the pet smoothly animates upward to sit on top of the keyboard.
+
+---
+
 ## Current Project State Audit
 
 The project skeleton already exists at `c:\Users\Nikki\Desktop\Pixel Pet`. Here's exactly what's built vs. what's a stub:
@@ -316,6 +370,58 @@ class OverlayService : Service() {
 Purpose: Manages WindowManager — adds/removes/positions the floating views.
 
 ```kotlin
+# Fix Keyboard Overlap (Keyboard Dodge)
+
+The user wants the pixel pet (overlay) to automatically push upwards when the soft keyboard is opened, so it doesn't get hidden behind the keyboard.
+
+## Background Context
+Since the pixel pet is drawn using a `TYPE_APPLICATION_OVERLAY` window with `FLAG_NOT_FOCUSABLE`, the Android OS strictly isolates it from system window insets (like the soft keyboard). Standard tricks like `OnApplyWindowInsetsListener` or `SOFT_INPUT_ADJUST_RESIZE` on a hidden background window do not work reliably on Android 11+ for non-focused overlays.
+
+The only reliable, system-wide way to detect the keyboard height and position in modern Android without stealing focus from the user's active app (e.g. WhatsApp) is via an **Accessibility Service**.
+
+> [!WARNING]
+> **User Review Required**
+> Using an Accessibility Service means that after installing the update, you will have to manually go to your phone's **Settings -> Accessibility -> Downloaded Apps -> PixelPal** and turn it ON. If you are okay with this extra step, I will proceed with this implementation.
+
+## Proposed Changes
+
+### 1. Create Keyboard State Manager
+A simple singleton class to hold the keyboard height state, allowing the Accessibility Service to communicate with the `OverlayManager`.
+
+#### [NEW] `app/src/main/java/com/pixelpal/app/util/KeyboardStateManager.kt`
+- Create a singleton or Hilt-injected manager with a `MutableStateFlow<Int>` for the keyboard height.
+
+### 2. Create Accessibility Service
+#### [NEW] `app/src/main/java/com/pixelpal/app/service/KeyboardAccessibilityService.kt`
+- Create a service extending `AccessibilityService`.
+- Listen for `TYPE_WINDOW_STATE_CHANGED`.
+- Iterate through `rootInActiveWindow` or `windows` to find windows of type `AccessibilityWindowInfo.TYPE_INPUT_METHOD`.
+- Calculate the height of the keyboard using `getBoundsInScreen()`.
+- Update `KeyboardStateManager` with the new height (0 if closed).
+
+#### [NEW] `app/src/main/res/xml/accessibility_service_config.xml`
+- Configuration XML for the service, requesting `flagRetrieveInteractiveWindows`.
+
+### 3. Update Android Manifest
+#### [MODIFY] `app/src/main/AndroidManifest.xml`
+- Declare the new `KeyboardAccessibilityService`.
+- Add the `BIND_ACCESSIBILITY_SERVICE` permission and metadata.
+
+### 4. Update Overlay Manager
+#### [MODIFY] `app/src/main/java/com/pixelpal/app/overlay/OverlayManager.kt`
+- Remove the broken `keyboardDetectorView` hack.
+- Inject or observe `KeyboardStateManager`.
+- When the keyboard height changes (and > 0), calculate the intersection with the pet's current Y coordinate.
+- If the pet is blocked, animate its Y position upwards. When the keyboard closes, animate it back to its original position.
+
+## Verification Plan
+1. Build and install the app.
+2. Manually enable the Accessibility Service in Android Settings.
+3. Turn on the pixel pet overlay.
+4. Drag the pet to the bottom half of the screen.
+5. Open an app like Messages or WhatsApp and tap a text field.
+6. Verify the pet smoothly animates upward to sit on top of the keyboard.
+
 @Singleton
 class OverlayManager @Inject constructor(
     @ApplicationContext private val context: Context,

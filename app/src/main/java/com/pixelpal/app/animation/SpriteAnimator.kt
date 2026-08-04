@@ -42,6 +42,12 @@ class SpriteAnimator @Inject constructor(
         val resId = state.getDrawableResId(currentPetType, context)
         if (resId != 0) {
             _currentDrawableRes.value = resId
+        } else if (state != AnimationState.IDLE) {
+            // Fallback: if the requested state has no drawable, use IDLE
+            val fallback = AnimationState.IDLE.getDrawableResId(currentPetType, context)
+            if (fallback != 0) {
+                _currentDrawableRes.value = fallback
+            }
         }
     }
 }

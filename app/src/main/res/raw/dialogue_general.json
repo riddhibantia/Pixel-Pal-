@@ -17,6 +17,78 @@
       "minBond": 5,
       "maxBond": 100,
       "personality": null
+    },
+    {
+      "id": "gen_idle_03",
+      "text": "You're doing great today, {user_name}!",
+      "emotion": "happy",
+      "context": "idle_chatter",
+      "minBond": 0,
+      "maxBond": 100,
+      "personality": null
+    },
+    {
+      "id": "gen_idle_04",
+      "text": "I believe in you!",
+      "emotion": "happy",
+      "context": "idle_chatter",
+      "minBond": 0,
+      "maxBond": 100,
+      "personality": null
+    },
+    {
+      "id": "gen_idle_05",
+      "text": "Remember to take a break, {user_name}!",
+      "emotion": "calm",
+      "context": "idle_chatter",
+      "minBond": 5,
+      "maxBond": 100,
+      "personality": null
+    },
+    {
+      "id": "gen_idle_06",
+      "text": "I'm always here if you need me.",
+      "emotion": "calm",
+      "context": "idle_chatter",
+      "minBond": 0,
+      "maxBond": 100,
+      "personality": null
+    },
+    {
+      "id": "gen_idle_07",
+      "text": "*stretches and yawns* What a life!",
+      "emotion": "calm",
+      "context": "idle_chatter",
+      "minBond": 0,
+      "maxBond": 100,
+      "personality": null
+    },
+    {
+      "id": "gen_idle_08",
+      "text": "This is my favorite screen to sit on!",
+      "emotion": "happy",
+      "context": "idle_chatter",
+      "minBond": 0,
+      "maxBond": 100,
+      "personality": null
+    },
+    {
+      "id": "gen_idle_09",
+      "text": "Thanks for keeping me around, {user_name}!",
+      "emotion": "happy",
+      "context": "idle_chatter",
+      "minBond": 10,
+      "maxBond": 100,
+      "personality": null
+    },
+    {
+      "id": "gen_idle_10",
+      "text": "Life's good when you've got a great human!",
+      "emotion": "happy",
+      "context": "idle_chatter",
+      "minBond": 15,
+      "maxBond": 100,
+      "personality": null
     }
   ]
 }

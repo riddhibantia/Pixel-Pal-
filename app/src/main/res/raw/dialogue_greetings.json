@@ -10,11 +10,83 @@
       "personality": null
     },
     {
+      "id": "greet_morning_02",
+      "text": "Rise and shine, {user_name}! I missed you!",
+      "emotion": "happy",
+      "context": "greeting_morning",
+      "minBond": 0,
+      "maxBond": 100,
+      "personality": null
+    },
+    {
+      "id": "greet_morning_03",
+      "text": "Morning! Let's make today awesome!",
+      "emotion": "excited",
+      "context": "greeting_morning",
+      "minBond": 5,
+      "maxBond": 100,
+      "personality": null
+    },
+    {
+      "id": "greet_afternoon_01",
+      "text": "Hey {user_name}! How's your day going?",
+      "emotion": "happy",
+      "context": "greeting_afternoon",
+      "minBond": 0,
+      "maxBond": 100,
+      "personality": null
+    },
+    {
+      "id": "greet_afternoon_02",
+      "text": "Good afternoon! Don't forget to hydrate!",
+      "emotion": "calm",
+      "context": "greeting_afternoon",
+      "minBond": 0,
+      "maxBond": 100,
+      "personality": null
+    },
+    {
+      "id": "greet_evening_01",
+      "text": "Hey {user_name}! Winding down for the day?",
+      "emotion": "calm",
+      "context": "greeting_evening",
+      "minBond": 0,
+      "maxBond": 100,
+      "personality": null
+    },
+    {
+      "id": "greet_evening_02",
+      "text": "Evening! You've worked hard today!",
+      "emotion": "happy",
+      "context": "greeting_evening",
+      "minBond": 0,
+      "maxBond": 100,
+      "personality": null
+    },
+    {
       "id": "greet_night_01",
       "text": "*yawns* Staying up late, {user_name}?",
       "emotion": "sleepy",
       "context": "greeting_night",
       "minBond": 0,
+      "maxBond": 100,
+      "personality": null
+    },
+    {
+      "id": "greet_night_02",
+      "text": "Good night, {user_name}! Sleep well!",
+      "emotion": "sleepy",
+      "context": "greeting_night",
+      "minBond": 0,
+      "maxBond": 100,
+      "personality": null
+    },
+    {
+      "id": "greet_night_03",
+      "text": "*snuggles up* Time for bed, {user_name}...",
+      "emotion": "sleepy",
+      "context": "greeting_night",
+      "minBond": 10,
       "maxBond": 100,
       "personality": null
     }

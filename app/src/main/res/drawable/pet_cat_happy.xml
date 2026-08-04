@@ -1,14 +1,21 @@
-<?xml version="1.0" encoding="utf-8"?>
 <vector xmlns:android="http://schemas.android.com/apk/res/android"
-    android:width="64dp"
-    android:height="64dp"
-    android:viewportWidth="64"
-    android:viewportHeight="64">
-    <path android:fillColor="#E17055" android:pathData="M16,20h32v28h-32z"/>
-    <path android:fillColor="#D63031" android:pathData="M16,10h8v10h-8z M40,10h8v10h-8z"/>
-    <!-- Happy '^' Eyes -->
-    <path android:fillColor="#1A1A2E" android:pathData="M22,28h4v2h-4z M38,28h4v2h-4z M20,30h2v2h-2z M42,30h2v2h-2z"/>
-    <path android:fillColor="#FAB1A0" android:pathData="M30,35h4v3h-4z"/>
-    <!-- Smile -->
-    <path android:fillColor="#1A1A2E" android:pathData="M28,40h8v2h-8z"/>
+    android:width="120dp"
+    android:height="120dp"
+    android:viewportWidth="120"
+    android:viewportHeight="120">
+
+    <group android:translateY="-2">
+        <path android:fillColor="#D32F2F" android:pathData="M 30,15 L 45,15 L 45,30 L 30,30 Z" />
+        <path android:fillColor="#D32F2F" android:pathData="M 75,15 L 90,15 L 90,30 L 75,30 Z" />
+
+        <path android:fillColor="#DE6F53" android:pathData="M 30,30 L 90,30 L 90,90 L 30,90 Z" />
+
+        <!-- Happy ^ ^ eyes -->
+        <path android:fillColor="#18181D" android:pathData="M 42,55 L 46,51 L 50,55 L 48,57 L 46,55 L 44,57 Z" />
+        <path android:fillColor="#18181D" android:pathData="M 70,55 L 74,51 L 78,55 L 76,57 L 74,55 L 72,57 Z" />
+
+        <path android:fillColor="#F3A696" android:pathData="M 32,64 L 40,64 L 40,68 L 32,68 Z" />
+        <path android:fillColor="#F3A696" android:pathData="M 80,64 L 88,64 L 88,68 L 80,68 Z" />
+        <path android:fillColor="#F3A696" android:pathData="M 57,66 L 63,66 L 63,70 L 57,70 Z" />
+    </group>
 </vector>

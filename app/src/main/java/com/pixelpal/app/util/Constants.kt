@@ -26,6 +26,7 @@ object Constants {
     const val OVERLAY_SIZE_DP = 64f
     const val OVERLAY_OFFSET_X_DP = 80f
     const val OVERLAY_OFFSET_Y_DP = 200f
+    const val OVERLAY_PILL_TOP_DP = 32f
 
     // Default values
     const val DEFAULT_OVERLAY_ENABLED = true
@@ -45,6 +46,6 @@ object Constants {
     const val ACTION_SNOOZE_REMINDER = "com.pixelpal.app.action.SNOOZE_REMINDER"
 
     // Room database
-    const val DATABASE_NAME = "pixelpal_database"
-    const val DATABASE_VERSION = 1
+    const val DATABASE_NAME = "pixelpal_database_v2"
+    const val DATABASE_VERSION = 3
 }

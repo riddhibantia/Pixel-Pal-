@@ -11,18 +11,10 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Home
-import androidx.compose.material.icons.filled.Notifications
-import androidx.compose.material.icons.filled.Palette
-import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.NavigationBar
-import androidx.compose.material3.NavigationBarItem
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
@@ -32,6 +24,7 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -40,6 +33,7 @@ import androidx.navigation.NavController
 import com.pixelpal.app.animation.AnimationState
 import com.pixelpal.app.domain.model.PetType
 import com.pixelpal.app.presentation.components.PetRenderer
+import com.pixelpal.app.presentation.components.PixelPalBottomBar
 import com.pixelpal.app.presentation.navigation.Screen
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -56,32 +50,7 @@ fun CustomizeScreen(
     Scaffold(
         topBar = { TopAppBar(title = { Text("Customize", fontWeight = FontWeight.Bold) }) },
         bottomBar = {
-            NavigationBar {
-                NavigationBarItem(
-                    selected = false,
-                    onClick = { navController.navigate(Screen.Home.route) },
-                    icon = { Icon(Icons.Default.Home, contentDescription = "Home") },
-                    label = { Text("Home") }
-                )
-                NavigationBarItem(
-                    selected = false,
-                    onClick = { navController.navigate(Screen.Reminders.route) },
-                    icon = { Icon(Icons.Default.Notifications, contentDescription = "Reminders") },
-                    label = { Text("Reminders") }
-                )
-                NavigationBarItem(
-                    selected = true,
-                    onClick = { },
-                    icon = { Icon(Icons.Default.Palette, contentDescription = "Customize") },
-                    label = { Text("Customize") }
-                )
-                NavigationBarItem(
-                    selected = false,
-                    onClick = { navController.navigate(Screen.Settings.route) },
-                    icon = { Icon(Icons.Default.Settings, contentDescription = "Settings") },
-                    label = { Text("Settings") }
-                )
-            }
+            PixelPalBottomBar(navController = navController, selected = Screen.Customize)
         }
     ) { innerPadding ->
         Column(
@@ -113,29 +82,40 @@ fun CustomizeScreen(
                 horizontalArrangement = Arrangement.spacedBy(12.dp)
             ) {
                 items(PetType.entries) { pet ->
+                    val hasArt = pet.hasFullAnimationSet
                     val isUnlocked = bond.level >= pet.unlockBondLevel
+                    val isSelectable = hasArt && isUnlocked
                     val isSelected = selectedPetId.equals(pet.id, ignoreCase = true)
 
                     Card(
                         colors = CardDefaults.cardColors(
-                            containerColor = if (isSelected) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.surface
+                            containerColor = if (isSelected && isSelectable) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.surface
                         ),
                         modifier = Modifier
-                            .clickable(enabled = isUnlocked) {
+                            .clickable(enabled = isSelectable) {
                                 viewModel.selectPet(pet)
                             }
+                            .then(if (!isSelectable) Modifier.alpha(0.5f) else Modifier)
                     ) {
                         Column(
                             modifier = Modifier.padding(16.dp),
                             horizontalAlignment = Alignment.CenterHorizontally
                         ) {
                             Text(
-                                text = if (isUnlocked) pet.displayName else "🔒 ${pet.displayName}",
+                                text = when {
+                                    !hasArt -> "🔒 ${pet.displayName}"
+                                    !isUnlocked -> "🔒 ${pet.displayName}"
+                                    else -> pet.displayName
+                                },
                                 fontWeight = FontWeight.Bold
                             )
                             Spacer(modifier = Modifier.height(4.dp))
                             Text(
-                                text = if (isUnlocked) "Unlocked" else "Bond Lvl ${pet.unlockBondLevel}",
+                                text = when {
+                                    !hasArt -> "Coming Soon"
+                                    !isUnlocked -> "Bond Lvl ${pet.unlockBondLevel}"
+                                    else -> "Unlocked"
+                                },
                                 fontSize = 12.sp,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant
                             )

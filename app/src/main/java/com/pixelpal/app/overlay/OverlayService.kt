@@ -47,6 +47,8 @@ class OverlayService : Service() {
         createNotificationChannel()
         registerScreenStateReceiver()
 
+        startForeground(Constants.FOREGROUND_SERVICE_ID, buildNotification(Constants.DEFAULT_PET_NAME))
+
         scope.launch {
             val petName = preferencesManager.petName.first()
             val petType = preferencesManager.selectedPetType.first()
@@ -54,7 +56,8 @@ class OverlayService : Service() {
             spriteAnimator.setPetType(petType)
             animationEngine.initialize()
 
-            startForeground(Constants.FOREGROUND_SERVICE_ID, buildNotification(petName))
+            val notificationManager = getSystemService(NotificationManager::class.java)
+            notificationManager?.notify(Constants.FOREGROUND_SERVICE_ID, buildNotification(petName))
 
             if (!Settings.canDrawOverlays(this@OverlayService)) {
                 Timber.w("SYSTEM_ALERT_WINDOW permission not granted, skipping overlay")
@@ -93,8 +96,13 @@ class OverlayService : Service() {
 
     private fun registerScreenStateReceiver() {
         screenStateReceiver = ScreenStateReceiver(
-            onScreenOn = { animationEngine.initialize() },
-            onScreenOff = { /* timers pause automatically */ }
+            onScreenOn = {
+                animationEngine.setScreenOn(true)
+                animationEngine.initialize()
+            },
+            onScreenOff = {
+                animationEngine.setScreenOn(false)
+            }
         )
         val filter = IntentFilter().apply {
             addAction(Intent.ACTION_SCREEN_OFF)
@@ -140,7 +148,7 @@ class OverlayService : Service() {
         return NotificationCompat.Builder(this, Constants.CHANNEL_COMPANION)
             .setContentTitle(petName)
             .setContentText("$petName is hanging out with you 🐱")
-            .setSmallIcon(R.drawable.pet_cat_idle)
+            .setSmallIcon(R.drawable.ic_stat_companion)
             .setContentIntent(pendingIntent)
             .setOngoing(true)
             .setPriority(NotificationCompat.PRIORITY_LOW)

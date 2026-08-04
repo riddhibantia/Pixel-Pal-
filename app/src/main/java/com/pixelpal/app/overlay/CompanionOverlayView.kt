@@ -3,7 +3,6 @@ package com.pixelpal.app.overlay
 import android.content.Context
 import android.widget.FrameLayout
 import android.widget.ImageView
-import coil.load
 import com.pixelpal.app.util.Constants
 
 class CompanionOverlayView(context: Context) : FrameLayout(context) {
@@ -20,9 +19,7 @@ class CompanionOverlayView(context: Context) : FrameLayout(context) {
 
     fun updateSprite(drawableRes: Int) {
         if (drawableRes != 0) {
-            imageView.load(drawableRes) {
-                crossfade(true)
-            }
+            imageView.setImageResource(drawableRes)
         }
     }
 }

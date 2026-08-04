@@ -32,7 +32,7 @@ class EmotionEngine @Inject constructor(
         val targetAnimation = when (emotion) {
             Emotion.HAPPY -> AnimationState.HAPPY
             Emotion.EXCITED -> AnimationState.EXCITED
-            Emotion.CURIOUS -> AnimationState.CURIOUS
+            Emotion.CURIOUS -> AnimationState.WALK
             Emotion.SLEEPY -> AnimationState.SLEEP
             Emotion.HUNGRY -> AnimationState.EAT
             Emotion.LONELY -> AnimationState.SAD
@@ -46,6 +46,7 @@ class EmotionEngine @Inject constructor(
             decayJob = scope.launch {
                 delay(durationMs)
                 _currentEmotion.value = Emotion.CALM
+                animationEngine.trigger(AnimationState.IDLE)
             }
         }
     }

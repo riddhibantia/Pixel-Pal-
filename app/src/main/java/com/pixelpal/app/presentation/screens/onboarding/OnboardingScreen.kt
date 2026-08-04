@@ -164,7 +164,7 @@ private fun PageNamePet(petName: String, onNameChange: (String) -> Unit) {
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Center
     ) {
-        PetRenderer(petType = "cat", animationState = AnimationState.CURIOUS, size = 150.dp)
+        PetRenderer(petType = "cat", animationState = AnimationState.EXCITED, size = 150.dp)
         Spacer(modifier = Modifier.height(24.dp))
         Text(
             text = "Name Your Companion",

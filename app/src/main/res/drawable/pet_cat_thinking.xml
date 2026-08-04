@@ -1,13 +1,22 @@
-<?xml version="1.0" encoding="utf-8"?>
 <vector xmlns:android="http://schemas.android.com/apk/res/android"
-    android:width="64dp"
-    android:height="64dp"
-    android:viewportWidth="64"
-    android:viewportHeight="64">
-    <path android:fillColor="#E17055" android:pathData="M16,20h32v28h-32z"/>
-    <path android:fillColor="#D63031" android:pathData="M16,12h8v8h-8z M40,12h8v8h-8z"/>
-    <!-- Looking Up Eyes -->
-    <path android:fillColor="#1A1A2E" android:pathData="M22,26h4v4h-4z M38,26h4v4h-4z"/>
-    <!-- Thought bubble dot -->
-    <path android:fillColor="#00D4AA" android:pathData="M48,16h4v4h-4z M52,10h6v6h-6z"/>
+    android:width="120dp"
+    android:height="120dp"
+    android:viewportWidth="120"
+    android:viewportHeight="120">
+
+    <path android:fillColor="#D32F2F" android:pathData="M 30,15 L 45,15 L 45,30 L 30,30 Z" />
+    <path android:fillColor="#D32F2F" android:pathData="M 75,15 L 90,15 L 90,30 L 75,30 Z" />
+
+    <path android:fillColor="#DE6F53" android:pathData="M 30,30 L 90,30 L 90,90 L 30,90 Z" />
+
+    <!-- Big open eyes -->
+    <path android:fillColor="#18181D" android:pathData="M 42,54 A 4,6 0 1,1 50,54 A 4,6 0 1,1 42,54 Z" />
+    <path android:fillColor="#FFFFFF" android:pathData="M 44,51 A 1.5,2 0 1,1 47,51 A 1.5,2 0 1,1 44,51 Z" />
+    <path android:fillColor="#18181D" android:pathData="M 70,54 A 4,6 0 1,1 78,54 A 4,6 0 1,1 70,54 Z" />
+    <path android:fillColor="#FFFFFF" android:pathData="M 72,51 A 1.5,2 0 1,1 75,51 A 1.5,2 0 1,1 72,51 Z" />
+
+    <path android:fillColor="#F3A696" android:pathData="M 32,64 L 40,64 L 40,68 L 32,68 Z" />
+    <path android:fillColor="#F3A696" android:pathData="M 80,64 L 88,64 L 88,68 L 80,68 Z" />
+
+    <path android:fillColor="#F3A696" android:pathData="M 57,66 L 63,66 L 63,70 L 57,70 Z" />
 </vector>

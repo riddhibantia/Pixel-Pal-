@@ -6,11 +6,11 @@ import androidx.lifecycle.viewModelScope
 import com.pixelpal.app.animation.AnimationEngine
 import com.pixelpal.app.animation.AnimationState
 import com.pixelpal.app.data.local.datastore.PreferencesManager
-import com.pixelpal.app.domain.engine.CompanionEngine
 import com.pixelpal.app.domain.model.Bond
 import com.pixelpal.app.domain.model.Emotion
+import com.pixelpal.app.domain.usecase.companion.FeedCompanionUseCase
 import com.pixelpal.app.domain.usecase.companion.GetCompanionStateUseCase
-import android.provider.Settings
+import com.pixelpal.app.domain.usecase.companion.TapCompanionUseCase
 import com.pixelpal.app.overlay.OverlayService
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.SharingStarted
@@ -23,7 +23,8 @@ import javax.inject.Inject
 class HomeViewModel @Inject constructor(
     private val preferencesManager: PreferencesManager,
     private val animationEngine: AnimationEngine,
-    private val companionEngine: CompanionEngine,
+    private val tapCompanionUseCase: TapCompanionUseCase,
+    private val feedCompanionUseCase: FeedCompanionUseCase,
     getCompanionStateUseCase: GetCompanionStateUseCase
 ) : ViewModel() {
 
@@ -58,10 +59,10 @@ class HomeViewModel @Inject constructor(
     }
 
     fun tapPet() {
-        companionEngine.onTap()
+        tapCompanionUseCase()
     }
 
     fun feedPet() {
-        companionEngine.onFeed()
+        feedCompanionUseCase()
     }
 }
