@@ -10,6 +10,7 @@ import android.content.Intent
 import android.content.IntentFilter
 import android.os.Build
 import android.os.IBinder
+import android.os.PowerManager
 import android.provider.Settings
 import androidx.core.app.NotificationCompat
 import com.pixelpal.app.R
@@ -54,6 +55,8 @@ class OverlayService : Service() {
             val petType = preferencesManager.selectedPetType.first()
 
             spriteAnimator.setPetType(petType)
+            val powerManager = getSystemService(PowerManager::class.java)
+            animationEngine.setScreenOn(powerManager?.isInteractive == true)
             animationEngine.initialize()
 
             val notificationManager = getSystemService(NotificationManager::class.java)

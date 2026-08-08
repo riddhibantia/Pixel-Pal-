@@ -38,11 +38,12 @@ class OverlayManager @Inject constructor(
 
     private var currentX: Int = 0
     private var currentY: Int = 0
+    private var homeX: Int = 0
+    private var homeY: Int = 0
     private var autoDismissJob: Job? = null
     private var keyboardElevationJob: Job? = null
-    private var savedX: Int = 0
-    private var savedY: Int = 0
     private var isElevatedForKeyboard = false
+    private var currentKeyboardHeight = 0
 
 
     fun showCompanion(
@@ -70,6 +71,8 @@ class OverlayManager @Inject constructor(
             val (x, y) = preferencesManager.overlayPosition.first()
             currentX = x.toInt()
             currentY = y.toInt()
+            homeX = currentX
+            homeY = currentY
             params.x = currentX
             params.y = currentY
 
@@ -82,6 +85,9 @@ class OverlayManager @Inject constructor(
                     scope.launch {
                         preferencesManager.updateOverlayPosition(finalX, finalY)
                     }
+                    homeX = finalX.toInt()
+                    homeY = finalY.toInt()
+                    applyKeyboardDodge()
                 }
             )
             view.setOnTouchListener(touchHandler)
@@ -101,22 +107,41 @@ class OverlayManager @Inject constructor(
         keyboardElevationJob?.cancel()
         keyboardElevationJob = scope.launch {
             keyboardStateManager.keyboardHeight.collect { height ->
-                companionView?.let {
-                    if (height > 0 && !isElevatedForKeyboard) {
-                        savedX = currentX
-                        savedY = currentY
-                        isElevatedForKeyboard = true
-                        val density = context.resources.displayMetrics.density
-                        val screenHeight = context.resources.displayMetrics.heightPixels
-                        val petSize = (Constants.OVERLAY_SIZE_DP * density).toInt()
-                        val newY = screenHeight - height - petSize - (12 * density).toInt()
-                        updatePosition(currentX, newY.coerceAtLeast(0))
-                    } else if (height == 0 && isElevatedForKeyboard) {
-                        isElevatedForKeyboard = false
-                        updatePosition(savedX, savedY)
-                    }
-                }
+                currentKeyboardHeight = height
+                applyKeyboardDodge()
             }
+        }
+    }
+
+    /**
+     * Lifts the pet above the keyboard ONLY if it is currently sitting in the
+     * keyboard area. If the pet is already above the keyboard region it stays put.
+     */
+    private fun applyKeyboardDodge() {
+        companionView ?: return
+
+        val density = context.resources.displayMetrics.density
+        val threshold = (Constants.KEYBOARD_DODGE_THRESHOLD_DP * density).toInt()
+        val screenHeight = context.resources.displayMetrics.heightPixels
+        val petSize = (Constants.OVERLAY_SIZE_DP * density).toInt()
+
+        val keyboardOpen = currentKeyboardHeight > threshold
+        if (keyboardOpen) {
+            val keyboardTop = screenHeight - currentKeyboardHeight
+            val petBottom = homeY + petSize
+            val overlapsKeyboard = petBottom > keyboardTop
+
+            if (overlapsKeyboard && !isElevatedForKeyboard) {
+                isElevatedForKeyboard = true
+                val newY = screenHeight - currentKeyboardHeight - petSize - (12 * density).toInt()
+                updatePosition(homeX, newY.coerceAtLeast(0))
+            } else if (!overlapsKeyboard && isElevatedForKeyboard) {
+                isElevatedForKeyboard = false
+                updatePosition(homeX, homeY)
+            }
+        } else if (isElevatedForKeyboard) {
+            isElevatedForKeyboard = false
+            updatePosition(homeX, homeY)
         }
     }
 

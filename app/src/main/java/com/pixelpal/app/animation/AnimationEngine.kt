@@ -30,8 +30,12 @@ class AnimationEngine @Inject constructor() {
 
     fun setScreenOn(isOn: Boolean) {
         isScreenOn = isOn
-        if (isOn && _currentState.value == AnimationState.SLEEP) {
-            trigger(AnimationState.IDLE)
+        if (isOn) {
+            if (_currentState.value == AnimationState.SLEEP) {
+                trigger(AnimationState.IDLE)
+            }
+        } else if (_currentState.value != AnimationState.SLEEP) {
+            _currentState.value = AnimationState.SLEEP
         }
     }
 
@@ -79,18 +83,18 @@ class AnimationEngine @Inject constructor() {
                     AnimationConfig.IDLE_ANIMATION_MAX_INTERVAL_MS
                 )
                 delay(delayMs)
-                
-                val inactiveMs = System.currentTimeMillis() - lastInteractionTime
-                
-                // Sleep only when the screen is off (do NOT auto-sleep at night while idle on-screen).
-                if (inactiveMs >= AnimationConfig.SLEEP_TIMEOUT_MS && !isScreenOn) {
-                    if (_currentState.value == AnimationState.IDLE) {
-                        _currentState.value = AnimationState.SLEEP
-                    }
+
+                // Safety: the screen is ON, so the pet must never stay asleep
+                // (covers missed SCREEN_ON broadcasts / stale screen state).
+                if (_currentState.value == AnimationState.SLEEP && isScreenOn) {
+                    trigger(AnimationState.IDLE)
                     continue
                 }
-                
-                // If we get here, the screen is ON. Do micro-animations if idle
+
+                // Screen is OFF -> the pet stays asleep, no micro-animations.
+                if (!isScreenOn) continue
+
+                // Screen is ON and the pet is idle -> do a random micro-animation.
                 if (_currentState.value == AnimationState.IDLE) {
                     val randomAction = listOf(
                         AnimationState.WAVE,

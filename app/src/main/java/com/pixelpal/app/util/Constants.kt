@@ -27,6 +27,7 @@ object Constants {
     const val OVERLAY_OFFSET_X_DP = 80f
     const val OVERLAY_OFFSET_Y_DP = 200f
     const val OVERLAY_PILL_TOP_DP = 32f
+    const val KEYBOARD_DODGE_THRESHOLD_DP = 100f
 
     // Default values
     const val DEFAULT_OVERLAY_ENABLED = true
