@@ -33,6 +33,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
+import com.pixelpal.app.BuildConfig
 import com.pixelpal.app.presentation.components.PixelPalBottomBar
 import com.pixelpal.app.presentation.navigation.Screen
 
@@ -115,8 +116,10 @@ fun SettingsScreen(
             Spacer(modifier = Modifier.height(16.dp))
             
             Button(
-                onClick = { 
-                    com.pixelpal.app.util.PermissionHelper.requestIgnoreBatteryOptimizations(context as android.app.Activity) 
+                onClick = {
+                    (context as? android.app.Activity)?.let {
+                        com.pixelpal.app.util.PermissionHelper.requestIgnoreBatteryOptimizations(it)
+                    }
                 },
                 modifier = Modifier.fillMaxWidth(),
                 colors = androidx.compose.material3.ButtonDefaults.buttonColors(
@@ -130,7 +133,7 @@ fun SettingsScreen(
             Spacer(modifier = Modifier.height(32.dp))
 
             Text(
-                text = "PixelPal v1.0.0",
+                text = "PixelPal v${BuildConfig.VERSION_NAME}",
                 fontSize = 12.sp,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )

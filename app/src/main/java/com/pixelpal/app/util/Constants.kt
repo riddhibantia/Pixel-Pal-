@@ -26,7 +26,7 @@ object Constants {
     const val OVERLAY_SIZE_DP = 64f
     const val OVERLAY_OFFSET_X_DP = 80f
     const val OVERLAY_OFFSET_Y_DP = 200f
-    const val OVERLAY_PILL_TOP_DP = 32f
+    const val OVERLAY_ISLAND_TOP_DP = 6f
     const val KEYBOARD_DODGE_THRESHOLD_DP = 100f
 
     // Default values
@@ -48,5 +48,5 @@ object Constants {
 
     // Room database
     const val DATABASE_NAME = "pixelpal_database_v2"
-    const val DATABASE_VERSION = 3
+    const val DATABASE_VERSION = 4
 }

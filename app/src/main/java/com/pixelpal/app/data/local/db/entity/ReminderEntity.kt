@@ -1,5 +1,6 @@
 package com.pixelpal.app.data.local.db.entity
 
+import androidx.room.ColumnInfo
 import androidx.room.Entity
 import androidx.room.PrimaryKey
 
@@ -9,8 +10,10 @@ data class ReminderEntity(
     val title: String,
     val message: String? = null,
     val triggerTime: Long,
-    val hour: Int = 0,
-    val minute: Int = 0,
+    // Defaults must stay in sync with DatabaseMigrations; ALTER TABLE cannot add
+    // a NOT NULL column without a DEFAULT, so the schema declares them too.
+    @ColumnInfo(defaultValue = "0") val hour: Int = 0,
+    @ColumnInfo(defaultValue = "0") val minute: Int = 0,
     val soundUri: String? = null,
     val recurrence: String = "ONCE",       // ONCE, DAILY, WEEKLY, MONTHLY
     val recurrenceInterval: Long? = null,

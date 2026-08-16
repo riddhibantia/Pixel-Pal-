@@ -185,50 +185,6 @@ class SpeechBubbleOverlayView(context: Context) : FrameLayout(context) {
         actionRow.addView(doneBtn)
     }
 
-    /**
-     * Renders a reminder as a compact, tappable "pill" header showing the title and note.
-     * Tapping the pill expands it into Accept / Deny actions.
-     */
-    fun showReminderPill(
-        title: String,
-        note: String?,
-        onAccept: () -> Unit,
-        onDeny: () -> Unit
-    ) {
-        headerRow.visibility = View.GONE
-        typewriterRunnable?.let { handler.removeCallbacks(it) }
-
-        val pillText = buildString {
-            append(title)
-            if (!note.isNullOrBlank()) {
-                append("\n")
-                append(note)
-            }
-        }
-        textView.setText(pillText)
-        textView.gravity = Gravity.CENTER
-        textView.setTextSize(TypedValue.COMPLEX_UNIT_SP, if (note.isNullOrBlank()) 15f else 13f)
-
-        container.isClickable = true
-        container.setOnClickListener {
-            container.setOnClickListener(null)
-            revealReminderActions(onAccept, onDeny)
-        }
-
-        animateIn()
-    }
-
-    private fun revealReminderActions(onAccept: () -> Unit, onDeny: () -> Unit) {
-        actionRow.removeAllViews()
-        actionRow.visibility = View.VISIBLE
-
-        val acceptBtn = createStyledButton("Accept", accentGreen) { onAccept() }
-        val denyBtn = createStyledButton("Deny", accentRed) { onDeny() }
-
-        actionRow.addView(denyBtn)
-        actionRow.addView(acceptBtn)
-    }
-
     fun hideActions() {
         actionRow.visibility = View.GONE
     }

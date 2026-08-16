@@ -24,10 +24,12 @@ espresso = "3.5.1"
 composeUiTest = "1.3.0"
 composeUiTooling = "1.3.0"
 composeUiToolingPreview = "1.3.0"
+coreSplashscreen = "1.0.1"
 
 [libraries]
 # Android Gradle Plugin
 androidx-core-ktx = { module = "androidx.core:core-ktx", version.ref = "coreKtx" }
+androidx-core-splashscreen = { module = "androidx.core:core-splashscreen", version.ref = "coreSplashscreen" }
 androidx-activity-compose = { module = "androidx.activity:activity-compose", version.ref = "activityCompose" }
 androidx-lifecycle-runtime-ktx = { module = "androidx.lifecycle:lifecycle-runtime-ktx", version.ref = "lifecycle" }
 androidx-lifecycle-viewmodel-compose = { module = "androidx.lifecycle:lifecycle-viewmodel-compose", version.ref = "lifecycle" }

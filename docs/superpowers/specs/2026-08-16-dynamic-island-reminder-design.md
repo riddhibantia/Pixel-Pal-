@@ -19,8 +19,13 @@ compacts to a small island after a few seconds, and is dismissed by sliding it r
   close the island, cancel the system notification, pet reacts happy.
 - Swipe **left** = snooze 10 minutes (reuses `SnoozeReminderUseCase`).
 - Tap toggles compact/expanded. No Accept/Deny buttons — gestures + hint text only.
-- Ringtone and system notification stay in `AlarmReceiver`; overlays cannot draw over
-  the lock screen, so the notification covers that case.
+- **No system notification** (updated 2026-08-16 per user): the island is the sole
+  reminder UI. `AlarmReceiver` keeps only the ringtone; the notification code was
+  removed. Tradeoff: if the screen is locked or the overlay is off, only the ringtone
+  plays — nothing is visible until the screen is unlocked.
+- Island is pinned to the **physical top of the screen** (`FLAG_LAYOUT_IN_SCREEN`,
+  ~6dp offset) so it overlaps the status bar / camera cutout like the iOS island,
+  instead of sitting below the status bar inset.
 
 ## Components
 
@@ -53,21 +58,21 @@ The view never touches the window; the manager owns position and lifecycle.
 
 - Removes any bubble/island first (same replace semantics as today).
 - Window: TYPE_APPLICATION_OVERLAY, WRAP_CONTENT, FLAG_NOT_FOCUSABLE |
-  FLAG_NOT_TOUCH_MODAL, gravity TOP | CENTER_HORIZONTAL, y = island top offset +
-  status bar inset. x offset = 0 while at rest; drag updates it.
+  FLAG_NOT_TOUCH_MODAL | FLAG_LAYOUT_IN_SCREEN, gravity TOP | CENTER_HORIZONTAL,
+  y = small top offset from the physical screen edge (draws over the status bar /
+  camera cutout). x offset = 0 while at rest; drag updates it.
 - Commit animations slide the window off-screen (±screen width) then remove the view
   and invoke the callback; spring-back animates x → 0.
 - `hideCompanion()` hides the island too.
 
 ### `CompanionEngine.onReminderTriggered` changes
 
-- Injects `@ApplicationContext` (cancel notification) and `SnoozeReminderUseCase`.
-- onComplete: cancel notification; if recurring (`recurrence != "ONCE"` or a positive
+- Injects `SnoozeReminderUseCase`.
+- onComplete: if recurring (`recurrence != "ONCE"` or a positive
   `recurrenceInterval`) just record the bond completion — `AlarmReceiver.advanceSchedule`
   already re-armed the next occurrence; else `reminderRepository.complete(id)` +
   bond completion. Trigger HAPPY emotion either way.
-- onSnooze: cancel notification; `snoozeReminderUseCase(id, 10)`; THINKING emotion
-  briefly.
+- onSnooze: `snoozeReminderUseCase(id, 10)`; THINKING emotion briefly.
 
 ### Removals
 

@@ -3,6 +3,7 @@ package com.pixelpal.app.di
 import android.content.Context
 import androidx.room.Room
 import com.pixelpal.app.data.local.db.PixelPalDatabase
+import com.pixelpal.app.data.local.db.DatabaseMigrations
 import com.pixelpal.app.data.local.db.dao.BondDao
 import com.pixelpal.app.data.local.db.dao.CompanionDao
 import com.pixelpal.app.data.local.db.dao.PersonalityDao
@@ -29,7 +30,12 @@ object DatabaseModule {
             PixelPalDatabase::class.java,
             Constants.DATABASE_NAME
         )
-        .fallbackToDestructiveMigration()
+        .addMigrations(
+            DatabaseMigrations.MIGRATION_1_3,
+            DatabaseMigrations.MIGRATION_2_3,
+            DatabaseMigrations.MIGRATION_3_4
+        )
+        // Dev builds may move between versions freely; wiping on downgrade beats crashing.
         .fallbackToDestructiveMigrationOnDowngrade()
         .build()
     }

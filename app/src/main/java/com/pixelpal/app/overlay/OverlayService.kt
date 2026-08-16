@@ -13,6 +13,7 @@ import android.os.IBinder
 import android.os.PowerManager
 import android.provider.Settings
 import androidx.core.app.NotificationCompat
+import androidx.core.content.ContextCompat
 import com.pixelpal.app.R
 import com.pixelpal.app.animation.AnimationEngine
 import com.pixelpal.app.animation.SpriteAnimator
@@ -27,6 +28,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.cancel
 import timber.log.Timber
 import javax.inject.Inject
 
@@ -90,6 +92,7 @@ class OverlayService : Service() {
     override fun onDestroy() {
         super.onDestroy()
         Timber.d("OverlayService destroyed")
+        scope.cancel()
         unregisterScreenStateReceiver()
         animationEngine.destroy()
         overlayManager.hideCompanion()
@@ -98,7 +101,7 @@ class OverlayService : Service() {
     override fun onBind(intent: Intent?): IBinder? = null
 
     private fun registerScreenStateReceiver() {
-        screenStateReceiver = ScreenStateReceiver(
+        val receiver = ScreenStateReceiver(
             onScreenOn = {
                 animationEngine.setScreenOn(true)
                 animationEngine.initialize()
@@ -107,11 +110,13 @@ class OverlayService : Service() {
                 animationEngine.setScreenOn(false)
             }
         )
+        screenStateReceiver = receiver
         val filter = IntentFilter().apply {
             addAction(Intent.ACTION_SCREEN_OFF)
             addAction(Intent.ACTION_SCREEN_ON)
         }
-        registerReceiver(screenStateReceiver, filter)
+        // SCREEN_ON/OFF are protected system broadcasts; NOT_EXPORTED is still delivered.
+        ContextCompat.registerReceiver(this, receiver, filter, ContextCompat.RECEIVER_NOT_EXPORTED)
     }
 
     private fun unregisterScreenStateReceiver() {

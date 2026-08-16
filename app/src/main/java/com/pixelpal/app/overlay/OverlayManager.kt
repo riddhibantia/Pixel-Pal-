@@ -16,10 +16,10 @@ import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 import javax.inject.Singleton
+import android.animation.Animator
+import android.animation.AnimatorListenerAdapter
 import android.animation.ValueAnimator
 import android.view.animation.OvershootInterpolator
-import androidx.core.view.ViewCompat
-import androidx.core.view.WindowInsetsCompat
 import com.pixelpal.app.util.Constants
 
 @Singleton
@@ -33,8 +33,11 @@ class OverlayManager @Inject constructor(
 
     private var companionView: CompanionOverlayView? = null
     private var speechBubbleView: SpeechBubbleOverlayView? = null
+    private var islandView: DynamicIslandView? = null
     private var layoutParams: WindowManager.LayoutParams? = null
     private var bubbleLayoutParams: WindowManager.LayoutParams? = null
+    private var islandLayoutParams: WindowManager.LayoutParams? = null
+    private var islandXAnimator: ValueAnimator? = null
 
     private var currentX: Int = 0
     private var currentY: Int = 0
@@ -151,6 +154,7 @@ class OverlayManager @Inject constructor(
         keyboardElevationJob?.cancel()
         keyboardElevationJob = null
         hideSpeechBubble()
+        hideDynamicIsland()
         companionView?.let { view ->
             try { windowManager.removeView(view) } catch (e: Exception) {}
             companionView = null
@@ -181,6 +185,7 @@ class OverlayManager @Inject constructor(
         onDismiss: (() -> Unit)? = null
     ) {
         autoDismissJob?.cancel()
+        removeDynamicIsland()
         // Remove any existing bubble synchronously — do NOT use hideSpeechBubble() here
         // because animateOut is async and its callback would null the NEW speechBubbleView.
         speechBubbleView?.let { oldView ->
@@ -237,52 +242,141 @@ class OverlayManager @Inject constructor(
         }
     }
 
-    fun showReminderPill(
+    /**
+     * Shows the Dynamic Island reminder at the top-center of the screen. The island
+     * owns its own gesture detection but forwards drags here — the window position
+     * (params.x around the horizontal center) is managed exclusively by this class.
+     */
+    fun showDynamicIsland(
         title: String,
+        timeLabel: String,
         note: String?,
-        onAccept: () -> Unit,
-        onDeny: () -> Unit
+        onComplete: () -> Unit,
+        onSnooze: () -> Unit
     ) {
         autoDismissJob?.cancel()
         speechBubbleView?.let { oldView ->
             try { windowManager.removeView(oldView) } catch (_: Exception) {}
         }
         speechBubbleView = null
+        removeDynamicIsland()
 
-        val view = SpeechBubbleOverlayView(context)
-        speechBubbleView = view
+        val view = DynamicIslandView(
+            context = context,
+            onDragDelta = { dx -> moveIslandBy(dx) },
+            onRelease = { dx, velocity -> resolveIslandSwipe(dx, velocity, onComplete, onSnooze) }
+        )
+        islandView = view
 
         val density = context.resources.displayMetrics.density
         val params = WindowManager.LayoutParams(
             WindowManager.LayoutParams.WRAP_CONTENT,
             WindowManager.LayoutParams.WRAP_CONTENT,
             WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY,
-            WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE or WindowManager.LayoutParams.FLAG_NOT_TOUCH_MODAL,
+            WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE or
+                WindowManager.LayoutParams.FLAG_NOT_TOUCH_MODAL or
+                WindowManager.LayoutParams.FLAG_LAYOUT_IN_SCREEN,
             PixelFormat.TRANSLUCENT
         ).apply {
             gravity = Gravity.TOP or Gravity.CENTER_HORIZONTAL
-            y = (Constants.OVERLAY_PILL_TOP_DP * density).toInt()
+            x = 0
+            // FLAG_LAYOUT_IN_SCREEN + a tiny y offset makes the island hug the
+            // physical top edge over the status bar / camera cutout, like the
+            // iOS Dynamic Island.
+            y = (Constants.OVERLAY_ISLAND_TOP_DP * density).toInt()
         }
-        bubbleLayoutParams = params
+        islandLayoutParams = params
 
-        view.showReminderPill(
+        view.showReminder(
             title = title,
-            note = note,
-            onAccept = {
-                hideSpeechBubble()
-                onAccept()
-            },
-            onDeny = {
-                hideSpeechBubble()
-                onDeny()
-            }
+            timeLabel = timeLabel,
+            note = note
         )
 
         try {
             windowManager.addView(view, params)
         } catch (e: Exception) {
-            speechBubbleView = null
+            islandView = null
+            islandLayoutParams = null
         }
+    }
+
+    private fun moveIslandBy(dx: Int) {
+        val params = islandLayoutParams ?: return
+        val view = islandView ?: return
+        islandXAnimator?.cancel()
+        params.x = dx
+        try {
+            windowManager.updateViewLayout(view, params)
+        } catch (e: Exception) {
+            // ignore
+        }
+    }
+
+    private fun resolveIslandSwipe(dx: Int, velocityX: Float, onComplete: () -> Unit, onSnooze: () -> Unit) {
+        val view = islandView ?: return
+        val threshold = view.width.coerceAtLeast(1) * 0.35f
+        val flingVelocity = 2000f * context.resources.displayMetrics.density
+        when {
+            dx > threshold || velocityX > flingVelocity ->
+                animateIslandOffscreen(direction = 1, onDone = onComplete)
+            dx < -threshold || velocityX < -flingVelocity ->
+                animateIslandOffscreen(direction = -1, onDone = onSnooze)
+            else -> animateIslandBackToCenter()
+        }
+    }
+
+    private fun animateIslandOffscreen(direction: Int, onDone: () -> Unit) {
+        val params = islandLayoutParams ?: return onDone()
+        val target = direction * context.resources.displayMetrics.widthPixels
+        animateIslandX(params.x, target) {
+            removeDynamicIsland()
+            onDone()
+        }
+    }
+
+    private fun animateIslandBackToCenter() {
+        val params = islandLayoutParams ?: return
+        animateIslandX(params.x, 0, spring = true)
+    }
+
+    private fun animateIslandX(from: Int, to: Int, spring: Boolean = false, onEnd: () -> Unit = {}) {
+        val params = islandLayoutParams ?: return onEnd()
+        islandXAnimator?.cancel()
+        islandXAnimator = ValueAnimator.ofInt(from, to).apply {
+            duration = if (spring) 260 else 200
+            if (spring) interpolator = OvershootInterpolator(1.2f)
+            addUpdateListener {
+                val view = islandView ?: return@addUpdateListener
+                params.x = it.animatedValue as Int
+                try {
+                    windowManager.updateViewLayout(view, params)
+                } catch (e: Exception) {
+                    // ignore
+                }
+            }
+            addListener(object : AnimatorListenerAdapter() {
+                override fun onAnimationEnd(animation: Animator) {
+                    onEnd()
+                }
+            })
+            start()
+        }
+    }
+
+    fun hideDynamicIsland() {
+        removeDynamicIsland()
+    }
+
+    private fun removeDynamicIsland() {
+        islandXAnimator?.cancel()
+        islandXAnimator = null
+        islandView?.let { view ->
+            try { windowManager.removeView(view) } catch (e: Exception) {}
+            view.destroy()
+        }
+        islandView = null
+        islandLayoutParams = null
     }
 
     fun hideSpeechBubble() {

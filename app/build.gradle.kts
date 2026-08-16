@@ -15,11 +15,23 @@ android {
         applicationId = "com.pixelpal.app"
         minSdk = 26
         targetSdk = 35
-        versionCode = 1
-        versionName = "1.0"
+        versionCode = 2
+        versionName = "1.1.0"
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         vectorDrawables {
             useSupportLibrary = true
+        }
+    }
+
+    signingConfigs {
+        create("release") {
+            val keystorePath = providers.gradleProperty("RELEASE_STORE_FILE")
+            if (keystorePath.isPresent && keystorePath.get().isNotBlank()) {
+                storeFile = file(keystorePath.get())
+                storePassword = providers.gradleProperty("RELEASE_STORE_PASSWORD").getOrElse("")
+                keyAlias = providers.gradleProperty("RELEASE_KEY_ALIAS").getOrElse("")
+                keyPassword = providers.gradleProperty("RELEASE_KEY_PASSWORD").getOrElse("")
+            }
         }
     }
 
@@ -41,8 +53,18 @@ android {
 
     buildTypes {
         release {
-            isMinifyEnabled = false
-            proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
+            isMinifyEnabled = true
+            isShrinkResources = true
+            proguardFiles(
+                getDefaultProguardFile("proguard-android-optimize.txt"),
+                "proguard-rules.pro"
+            )
+            val hasReleaseStore = providers.gradleProperty("RELEASE_STORE_FILE")
+                .map { it.isNotBlank() }
+                .getOrElse(false)
+            if (hasReleaseStore) {
+                signingConfig = signingConfigs.getByName("release")
+            }
         }
         debug {
             isDebuggable = true
@@ -54,11 +76,16 @@ android {
         viewBinding = true
         buildConfig = true
     }
+
+    sourceSets {
+        getByName("androidTest").assets.srcDir("$projectDir/schemas")
+    }
 }
 
 dependencies {
     // AndroidX Core & Activity
     implementation(libs.androidx.core.ktx)
+    implementation(libs.androidx.core.splashscreen)
     implementation(libs.androidx.activity.compose)
     implementation(libs.androidx.lifecycle.runtime.ktx)
     implementation(libs.androidx.lifecycle.viewmodel.compose)
@@ -114,6 +141,9 @@ dependencies {
 
 kapt {
     correctErrorTypes = true
+    arguments {
+        arg("room.schemaLocation", "$projectDir/schemas")
+    }
 }
 
 tasks.withType<org.jetbrains.kotlin.gradle.tasks.KotlinCompile>().configureEach {

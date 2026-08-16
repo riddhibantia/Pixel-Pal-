@@ -11,6 +11,7 @@ import com.pixelpal.app.receiver.AlarmReceiver
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.flow.first
 import timber.log.Timber
+import java.util.Calendar
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -84,10 +85,55 @@ class ReminderScheduler @Inject constructor(
 
     suspend fun rescheduleAll() {
         val pendingReminders = reminderRepository.getPendingReminders().first()
+        val now = System.currentTimeMillis()
         for (reminder in pendingReminders) {
-            if (reminder.triggerTime > System.currentTimeMillis()) {
+            if (reminder.triggerTime > now) {
                 scheduleReminder(reminder)
+            } else {
+                // Past due: advance recurring reminders to their next occurrence so a
+                // missed period doesn't pause the schedule forever.
+                val next = nextTriggerTime(reminder, now)
+                if (next != null) {
+                    val updated = reminder.copy(triggerTime = next, snoozeCount = 0)
+                    reminderRepository.update(updated)
+                    scheduleReminder(updated)
+                }
             }
+        }
+    }
+
+    /**
+     * Next trigger time for a recurring reminder after [from], or null for one-shot
+     * (ONCE) reminders. Rolls the original trigger time forward by whole periods so
+     * the schedule stays anchored to the time the user picked.
+     */
+    fun nextTriggerTime(reminder: Reminder, from: Long = System.currentTimeMillis()): Long? {
+        val interval = reminder.recurrenceInterval
+        return when {
+            interval != null && interval > 0 -> {
+                var next = reminder.triggerTime
+                while (next <= from) next += interval
+                next
+            }
+            reminder.recurrence == "DAILY" || reminder.recurrence == "WEEKLY" || reminder.recurrence == "MONTHLY" -> {
+                val calendar = Calendar.getInstance().apply {
+                    timeInMillis = reminder.triggerTime
+                    if (reminder.hour > 0 || reminder.minute > 0) {
+                        set(Calendar.HOUR_OF_DAY, reminder.hour)
+                        set(Calendar.MINUTE, reminder.minute)
+                        set(Calendar.SECOND, 0)
+                        set(Calendar.MILLISECOND, 0)
+                    }
+                }
+                val step = when (reminder.recurrence) {
+                    "DAILY" -> Calendar.DAY_OF_YEAR
+                    "WEEKLY" -> Calendar.WEEK_OF_YEAR
+                    else -> Calendar.MONTH
+                }
+                while (calendar.timeInMillis <= from) calendar.add(step, 1)
+                calendar.timeInMillis
+            }
+            else -> null
         }
     }
 }

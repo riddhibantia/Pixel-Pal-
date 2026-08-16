@@ -5,6 +5,7 @@ import com.pixelpal.app.data.local.datastore.PreferencesManager
 import com.pixelpal.app.domain.model.Emotion
 import com.pixelpal.app.domain.model.Reminder
 import com.pixelpal.app.domain.repository.ReminderRepository
+import com.pixelpal.app.domain.usecase.reminder.SnoozeReminderUseCase
 import com.pixelpal.app.overlay.OverlayManager
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -22,7 +23,8 @@ class CompanionEngine @Inject constructor(
     private val dialogueLoader: DialogueLoader,
     private val overlayManager: OverlayManager,
     private val preferencesManager: PreferencesManager,
-    private val reminderRepository: ReminderRepository
+    private val reminderRepository: ReminderRepository,
+    private val snoozeReminderUseCase: SnoozeReminderUseCase
 ) {
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Main)
 
@@ -96,24 +98,42 @@ class CompanionEngine @Inject constructor(
         scope.launch {
             emotionEngine.triggerEmotion(Emotion.THINKING, durationMs = 60_000L)
 
-            if (overlayManager.isShowing()) {
-                overlayManager.showReminderPill(
-                    title = reminder.title,
-                    note = reminder.message,
-                    onAccept = {
-                        scope.launch {
+            if (!overlayManager.isShowing()) return@launch
+
+            // Recurring reminders were already re-armed for their next occurrence when
+            // the alarm fired; completing one records the win without killing the schedule.
+            val isRecurring =
+                reminder.recurrence != "ONCE" || (reminder.recurrenceInterval ?: 0L) > 0L
+
+            overlayManager.showDynamicIsland(
+                title = reminder.title,
+                timeLabel = formatTime(reminder.triggerTime),
+                note = reminder.message,
+                onComplete = {
+                    scope.launch {
+                        if (!isRecurring) {
                             reminderRepository.complete(reminder.id)
-                            bondEngine.recordReminderCompleted()
-                            emotionEngine.triggerEmotion(Emotion.HAPPY)
                         }
-                    },
-                    onDeny = {
-                        scope.launch {
-                            emotionEngine.triggerEmotion(Emotion.SAD, durationMs = 10_000L)
-                        }
+                        bondEngine.recordReminderCompleted()
+                        emotionEngine.triggerEmotion(Emotion.HAPPY)
                     }
-                )
-            }
+                },
+                onSnooze = {
+                    scope.launch {
+                        snoozeReminderUseCase(reminder.id, minutes = 10)
+                        emotionEngine.triggerEmotion(Emotion.THINKING, durationMs = 10_000L)
+                    }
+                }
+            )
         }
+    }
+
+    private fun formatTime(triggerTime: Long): String {
+        val cal = java.util.Calendar.getInstance().apply { timeInMillis = triggerTime }
+        val hour = cal.get(java.util.Calendar.HOUR_OF_DAY)
+        val minute = cal.get(java.util.Calendar.MINUTE)
+        val amPm = if (hour < 12) "AM" else "PM"
+        val h12 = if (hour % 12 == 0) 12 else hour % 12
+        return String.format("%d:%02d %s", h12, minute, amPm)
     }
 }

@@ -18,8 +18,8 @@ import com.pixelpal.app.data.local.db.entity.ReminderEntity
         PersonalityEntity::class,
         CompanionEntity::class
     ],
-    version = 3,
-    exportSchema = false
+    version = 4,
+    exportSchema = true
 )
 abstract class PixelPalDatabase : RoomDatabase() {
     abstract fun reminderDao(): ReminderDao
