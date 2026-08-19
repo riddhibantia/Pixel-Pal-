@@ -7,55 +7,65 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Notifications
-import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.SegmentedButton
+import androidx.compose.material3.SegmentedButtonDefaults
+import androidx.compose.material3.SingleChoiceSegmentedButtonRow
 import androidx.compose.material3.Text
-import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
+import com.pixelpal.app.presentation.components.AppTopBar
+import com.pixelpal.app.presentation.components.EmptyState
 import com.pixelpal.app.presentation.components.PixelPalBottomBar
+import com.pixelpal.app.presentation.components.PrimaryButton
 import com.pixelpal.app.presentation.components.ReminderCard
 import com.pixelpal.app.presentation.navigation.Screen
+import com.pixelpal.app.presentation.theme.Spacing
 
-@OptIn(ExperimentalMaterial3Api::class)
+private enum class ReminderFilter { UPCOMING, COMPLETED }
+
 @Composable
 fun ReminderListScreen(
     navController: NavController,
     viewModel: ReminderViewModel = hiltViewModel()
 ) {
     val pendingReminders by viewModel.pendingReminders.collectAsState()
+    val completedReminders by viewModel.completedReminders.collectAsState()
+    var filter by remember { mutableStateOf(ReminderFilter.UPCOMING) }
 
     val permissionLauncher = androidx.activity.compose.rememberLauncherForActivityResult(
         androidx.activity.result.contract.ActivityResultContracts.RequestPermission()
-    ) { isGranted ->
-        // ignore
-    }
-    
+    ) { }
+
     androidx.compose.runtime.LaunchedEffect(Unit) {
         if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.TIRAMISU) {
             permissionLauncher.launch(android.Manifest.permission.POST_NOTIFICATIONS)
         }
     }
 
+    val reminders = when (filter) {
+        ReminderFilter.UPCOMING -> pendingReminders
+        ReminderFilter.COMPLETED -> completedReminders
+    }
+
     Scaffold(
-        topBar = { TopAppBar(title = { Text("Reminders", fontWeight = FontWeight.Bold) }) },
         floatingActionButton = {
             FloatingActionButton(
                 onClick = { navController.navigate(Screen.CreateReminder.route) }
@@ -67,55 +77,78 @@ fun ReminderListScreen(
             PixelPalBottomBar(navController = navController, selected = Screen.Reminders)
         }
     ) { innerPadding ->
-        if (pendingReminders.isEmpty()) {
-            Box(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(innerPadding),
-                contentAlignment = Alignment.Center
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(innerPadding)
+        ) {
+            AppTopBar(title = "Reminders")
+
+            SingleChoiceSegmentedButtonRow(
+                modifier = Modifier.padding(horizontal = Spacing.screenHorizontal)
             ) {
-                Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                    androidx.compose.material3.Surface(
-                        shape = androidx.compose.foundation.shape.CircleShape,
-                        color = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.5f),
-                        modifier = Modifier.padding(16.dp)
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.Notifications,
-                            contentDescription = null,
-                            tint = MaterialTheme.colorScheme.primary,
-                            modifier = Modifier.padding(24.dp).size(48.dp)
-                        )
-                    }
-                    Spacer(modifier = Modifier.height(16.dp))
-                    Text(
-                        text = "No pending reminders",
-                        fontSize = 20.sp,
-                        fontWeight = FontWeight.Bold,
-                        color = MaterialTheme.colorScheme.onSurface
-                    )
-                    Spacer(modifier = Modifier.height(8.dp))
-                    Text(
-                        text = "Tap + to set a new one",
-                        fontSize = 16.sp,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
+                SegmentedButton(
+                    selected = filter == ReminderFilter.UPCOMING,
+                    onClick = { filter = ReminderFilter.UPCOMING },
+                    shape = SegmentedButtonDefaults.itemShape(index = 0, count = 2)
+                ) {
+                    Text("Upcoming")
+                }
+                SegmentedButton(
+                    selected = filter == ReminderFilter.COMPLETED,
+                    onClick = { filter = ReminderFilter.COMPLETED },
+                    shape = SegmentedButtonDefaults.itemShape(index = 1, count = 2)
+                ) {
+                    Text("Completed")
                 }
             }
-        } else {
-            LazyColumn(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(innerPadding),
-                contentPadding = PaddingValues(16.dp)
-            ) {
-                items(pendingReminders, key = { it.id }) { reminder ->
-                    ReminderCard(
-                        reminder = reminder,
-                        onComplete = { viewModel.completeReminder(reminder.id) },
-                        onDelete = { viewModel.deleteReminder(reminder) }
-                    )
-                    Spacer(modifier = Modifier.height(12.dp))
+
+            if (reminders.isEmpty()) {
+                Box(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(bottom = 96.dp),
+                    contentAlignment = Alignment.Center
+                ) {
+                    if (filter == ReminderFilter.UPCOMING) {
+                        EmptyState(
+                            title = "Nothing planned yet",
+                            message = "Create a reminder and Pixel will help you remember.",
+                            icon = Icons.Default.Notifications,
+                            content = {
+                                PrimaryButton(
+                                    text = "Create Reminder",
+                                    onClick = { navController.navigate(Screen.CreateReminder.route) }
+                                )
+                            }
+                        )
+                    } else {
+                        EmptyState(
+                            title = "No completed reminders",
+                            message = "Reminders you complete will show up here.",
+                            icon = Icons.Default.Notifications
+                        )
+                    }
+                }
+            } else {
+                LazyColumn(
+                    modifier = Modifier.fillMaxSize(),
+                    contentPadding = PaddingValues(
+                        start = Spacing.screenHorizontal,
+                        end = Spacing.screenHorizontal,
+                        top = Spacing.md,
+                        bottom = 96.dp
+                    ),
+                    verticalArrangement = androidx.compose.foundation.layout.Arrangement.spacedBy(Spacing.sm)
+                ) {
+                    items(reminders, key = { it.id }) { reminder ->
+                        ReminderCard(
+                            reminder = reminder,
+                            onComplete = { viewModel.completeReminder(reminder.id) },
+                            onDelete = { viewModel.deleteReminder(reminder) }
+                        )
+                        Spacer(modifier = Modifier.height(Spacing.sm))
+                    }
                 }
             }
         }

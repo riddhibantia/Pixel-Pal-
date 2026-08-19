@@ -13,6 +13,8 @@ object Constants {
     const val KEY_SELECTED_PET_TYPE = "selected_pet_type"
     const val KEY_PET_NAME = "pet_name"
     const val KEY_USER_NAME = "user_name"
+    const val KEY_USER_EMAIL = "user_email"
+    const val KEY_AVATAR_SEED = "avatar_seed"
     const val KEY_IS_FIRST_LAUNCH = "is_first_launch"
     const val KEY_CURRENT_THEME = "current_theme"
 
@@ -34,6 +36,8 @@ object Constants {
     const val DEFAULT_SELECTED_PET_TYPE = "cat"
     const val DEFAULT_PET_NAME = "PixelPal"
     const val DEFAULT_USER_NAME = ""
+    const val DEFAULT_USER_EMAIL = ""
+    const val DEFAULT_AVATAR_SEED = "pixelpal"
     const val DEFAULT_IS_FIRST_LAUNCH = true
     const val DEFAULT_CURRENT_THEME = "dark"
 

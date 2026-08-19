@@ -10,36 +10,71 @@ import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.FlowRow
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Event
 import androidx.compose.material.icons.filled.Keyboard
-import androidx.compose.material.icons.filled.Label
 import androidx.compose.material.icons.filled.MusicNote
 import androidx.compose.material.icons.filled.Schedule
-import androidx.compose.material3.*
-import androidx.compose.runtime.*
+import androidx.compose.material3.DatePicker
+import androidx.compose.material3.DatePickerDialog
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.FilterChip
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.SegmentedButton
+import androidx.compose.material3.SegmentedButtonDefaults
+import androidx.compose.material3.SingleChoiceSegmentedButtonRow
+import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
+import androidx.compose.material3.TimeInput
+import androidx.compose.material3.TimePicker
+import androidx.compose.material3.rememberDatePickerState
+import androidx.compose.material3.rememberTimePickerState
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
+import com.pixelpal.app.presentation.components.AppTextField
+import com.pixelpal.app.presentation.components.AppTopBar
+import com.pixelpal.app.presentation.components.GroupDivider
+import com.pixelpal.app.presentation.components.PrimaryButton
+import com.pixelpal.app.presentation.components.SectionHeader
+import com.pixelpal.app.presentation.components.SettingsGroup
+import com.pixelpal.app.presentation.components.SettingsRow
+import com.pixelpal.app.presentation.theme.Radius
+import com.pixelpal.app.presentation.theme.Spacing
 import com.pixelpal.app.util.PermissionHelper
 import java.text.SimpleDateFormat
 import java.util.Calendar
 import java.util.Date
 import java.util.Locale
 import java.util.TimeZone
-enum class TimeMode { QUICK, DATE_TIME, TIME_OF_DAY }
+
+private enum class TimeMode { QUICK, CLOCK, DATE_TIME }
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
 @Composable
@@ -50,7 +85,7 @@ fun CreateReminderScreen(
     var title by remember { mutableStateOf("") }
     val context = LocalContext.current
 
-    var selectedMode by remember { mutableStateOf(TimeMode.TIME_OF_DAY) }
+    var selectedMode by remember { mutableStateOf(TimeMode.QUICK) }
     var selectedQuickMinutes by remember { mutableStateOf(60L) }
 
     val currentTime = Calendar.getInstance()
@@ -117,7 +152,7 @@ fun CreateReminderScreen(
                 val dateMillis = datePickerState.selectedDateMillis ?: System.currentTimeMillis()
                 combineDateAndTime(dateMillis, timePickerState.hour, timePickerState.minute)
             }
-            TimeMode.TIME_OF_DAY -> {
+            TimeMode.CLOCK -> {
                 val calendar = Calendar.getInstance().apply {
                     set(Calendar.HOUR_OF_DAY, timePickerState.hour)
                     set(Calendar.MINUTE, timePickerState.minute)
@@ -147,325 +182,213 @@ fun CreateReminderScreen(
         }
     }
 
-    // Defined after saveReminder() because local functions can't be forward-referenced.
     val exactAlarmLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.StartActivityForResult()
     ) {
         saveReminder()
     }
 
-    Scaffold(
-        topBar = {
-            TopAppBar(
-                title = { Text("New Reminder", fontWeight = FontWeight.Bold) },
-                navigationIcon = {
-                    IconButton(onClick = { navController.popBackStack() }) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
-                    }
-                }
+    fun onSavePressed() {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S &&
+            !PermissionHelper.canScheduleExactAlarms(context)
+        ) {
+            val intent = Intent(
+                Settings.ACTION_REQUEST_SCHEDULE_EXACT_ALARM,
+                Uri.parse("package:${context.packageName}")
             )
-        },
-        floatingActionButton = {
-            ExtendedFloatingActionButton(
-                onClick = {
-                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S &&
-                        !PermissionHelper.canScheduleExactAlarms(context)
-                    ) {
-                        val intent = Intent(
-                            Settings.ACTION_REQUEST_SCHEDULE_EXACT_ALARM,
-                            Uri.parse("package:${context.packageName}")
-                        )
-                        exactAlarmLauncher.launch(intent)
-                    } else {
-                        saveReminder()
-                    }
-                },
-                expanded = true,
-                icon = { Icon(Icons.Default.Check, contentDescription = "Save") },
-                text = { Text("Save Reminder", fontWeight = FontWeight.Bold) },
-                containerColor = MaterialTheme.colorScheme.primary,
-                contentColor = MaterialTheme.colorScheme.onPrimary,
-                elevation = FloatingActionButtonDefaults.elevation(4.dp)
-            )
-        },
-        floatingActionButtonPosition = FabPosition.Center
-    ) { innerPadding ->
-        LaunchedEffect(Unit) {
-            viewModel.reminderCreated.collect {
-                navController.popBackStack()
-            }
+            exactAlarmLauncher.launch(intent)
+        } else {
+            saveReminder()
         }
+    }
+
+    LaunchedEffect(Unit) {
+        viewModel.reminderCreated.collect {
+            navController.popBackStack()
+        }
+    }
+
+    Column(modifier = Modifier.fillMaxSize()) {
+        AppTopBar(title = "New Reminder", onBack = { navController.popBackStack() })
 
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(innerPadding)
                 .verticalScroll(rememberScrollState())
-                .padding(horizontal = 24.dp, vertical = 16.dp),
-            horizontalAlignment = Alignment.CenterHorizontally
+                .padding(horizontal = Spacing.screenHorizontal)
+                .padding(bottom = Spacing.xl)
         ) {
-            // Label Section
-            Card(
-                modifier = Modifier.fillMaxWidth(),
-                shape = RoundedCornerShape(20.dp),
-                colors = CardDefaults.cardColors(
-                    containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
-                ),
-                elevation = CardDefaults.cardElevation(0.dp)
-            ) {
-                Column(modifier = Modifier.padding(16.dp)) {
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        Icon(
-                            imageVector = Icons.Default.Label,
-                            contentDescription = null,
-                            tint = MaterialTheme.colorScheme.primary,
-                            modifier = Modifier.size(20.dp)
-                        )
-                        Spacer(modifier = Modifier.width(8.dp))
-                        Text("Label", fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.primary)
-                    }
-                    Spacer(modifier = Modifier.height(8.dp))
-                    OutlinedTextField(
-                        value = title,
-                        onValueChange = { title = it },
-                        placeholder = { Text("What do you want to be reminded of?") },
-                        modifier = Modifier.fillMaxWidth(),
-                        singleLine = true,
-                        shape = RoundedCornerShape(12.dp),
-                        colors = OutlinedTextFieldDefaults.colors(
-                            focusedBorderColor = MaterialTheme.colorScheme.primary,
-                            unfocusedBorderColor = MaterialTheme.colorScheme.outline.copy(alpha = 0.3f),
-                            unfocusedContainerColor = MaterialTheme.colorScheme.surface,
-                            focusedContainerColor = MaterialTheme.colorScheme.surface
-                        )
-                    )
+            // ── WHAT ──
+            SectionHeader(title = "What")
+            AppTextField(
+                value = title,
+                onValueChange = { title = it },
+                label = "Reminder",
+                placeholder = "What do you want to be reminded of?"
+            )
+
+            // ── WHEN ──
+            SectionHeader(title = "When")
+            SingleChoiceSegmentedButtonRow(modifier = Modifier.fillMaxWidth()) {
+                SegmentedButton(
+                    selected = selectedMode == TimeMode.QUICK,
+                    onClick = { selectedMode = TimeMode.QUICK },
+                    shape = SegmentedButtonDefaults.itemShape(index = 0, count = 3)
+                ) {
+                    Text("Quick")
+                }
+                SegmentedButton(
+                    selected = selectedMode == TimeMode.CLOCK,
+                    onClick = { selectedMode = TimeMode.CLOCK },
+                    shape = SegmentedButtonDefaults.itemShape(index = 1, count = 3)
+                ) {
+                    Text("Clock")
+                }
+                SegmentedButton(
+                    selected = selectedMode == TimeMode.DATE_TIME,
+                    onClick = { selectedMode = TimeMode.DATE_TIME },
+                    shape = SegmentedButtonDefaults.itemShape(index = 2, count = 3)
+                ) {
+                    Text("Date & Time")
                 }
             }
 
-            Spacer(modifier = Modifier.height(24.dp))
+            Spacer(modifier = Modifier.height(Spacing.md))
 
-            // Time Section
-            Card(
-                modifier = Modifier.fillMaxWidth(),
-                shape = RoundedCornerShape(20.dp),
-                colors = CardDefaults.cardColors(
-                    containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
-                ),
-                elevation = CardDefaults.cardElevation(0.dp)
-            ) {
-                Column(
-                    modifier = Modifier.padding(16.dp),
-                    horizontalAlignment = Alignment.CenterHorizontally
-                ) {
-                    Row(
+            when (selectedMode) {
+                TimeMode.QUICK -> {
+                    Text(
+                        text = "Remind me in:",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                    Spacer(modifier = Modifier.height(Spacing.sm))
+                    val quickOptions = listOf(
+                        15L to "15 min",
+                        30L to "30 min",
+                        60L to "1 hour",
+                        180L to "3 hours",
+                        360L to "6 hours",
+                        720L to "12 hours",
+                        1440L to "1 day"
+                    )
+                    FlowRow(
                         modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
+                        verticalArrangement = Arrangement.spacedBy(Spacing.sm)
+                    ) {
+                        quickOptions.forEach { (minutes, label) ->
+                            FilterChip(
+                                selected = selectedQuickMinutes == minutes,
+                                onClick = { selectedQuickMinutes = minutes },
+                                label = { Text(label) }
+                            )
+                        }
+                    }
+                }
+
+                TimeMode.CLOCK -> {
+                    // Toggle between analog clock and digital input
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        IconButton(onClick = { useClockPicker = true }) {
+                            Icon(
+                                imageVector = Icons.Default.Schedule,
+                                contentDescription = "Analog clock",
+                                tint = if (useClockPicker) MaterialTheme.colorScheme.primary
+                                else MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
+                        IconButton(onClick = { useClockPicker = false }) {
+                            Icon(
+                                imageVector = Icons.Default.Keyboard,
+                                contentDescription = "Digital input",
+                                tint = if (!useClockPicker) MaterialTheme.colorScheme.primary
+                                else MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
+                    }
+                    Spacer(modifier = Modifier.height(Spacing.sm))
+                    if (useClockPicker) {
+                        TimePicker(state = timePickerState)
+                    } else {
+                        TimeInput(state = timePickerState)
+                    }
+                }
+
+                TimeMode.DATE_TIME -> {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clip(RoundedCornerShape(Radius.medium))
+                            .background(MaterialTheme.colorScheme.surface, RoundedCornerShape(Radius.medium))
+                            .clickable { showDatePicker = true }
+                            .padding(horizontal = Spacing.md, vertical = Spacing.md),
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         Icon(
-                            imageVector = Icons.Default.Schedule,
+                            imageVector = Icons.Default.Event,
                             contentDescription = null,
-                            tint = MaterialTheme.colorScheme.primary,
-                            modifier = Modifier.size(20.dp)
+                            tint = MaterialTheme.colorScheme.primary
                         )
-                        Spacer(modifier = Modifier.width(8.dp))
-                        Text("Set Time", fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.primary)
+                        Spacer(modifier = Modifier.width(Spacing.md))
+                        Text(
+                            text = datePickerState.selectedDateMillis?.let {
+                                dateFormatter.format(Date(it + TimeZone.getDefault().getOffset(it)))
+                            } ?: "Select date",
+                            style = MaterialTheme.typography.bodyLarge,
+                            color = MaterialTheme.colorScheme.onSurface
+                        )
                     }
-                    Spacer(modifier = Modifier.height(16.dp))
 
-                    SingleChoiceSegmentedButtonRow(modifier = Modifier.fillMaxWidth()) {
-                        SegmentedButton(
-                            selected = selectedMode == TimeMode.QUICK,
-                            onClick = { selectedMode = TimeMode.QUICK },
-                            shape = SegmentedButtonDefaults.itemShape(index = 0, count = 3),
-                            colors = SegmentedButtonDefaults.colors()
+                    if (showDatePicker) {
+                        DatePickerDialog(
+                            onDismissRequest = { showDatePicker = false },
+                            confirmButton = {
+                                TextButton(onClick = { showDatePicker = false }) {
+                                    Text("OK")
+                                }
+                            },
+                            dismissButton = {
+                                TextButton(onClick = { showDatePicker = false }) {
+                                    Text("Cancel")
+                                }
+                            }
                         ) {
-                            Text("Quick", fontSize = 13.sp)
-                        }
-                        SegmentedButton(
-                            selected = selectedMode == TimeMode.DATE_TIME,
-                            onClick = { selectedMode = TimeMode.DATE_TIME },
-                            shape = SegmentedButtonDefaults.itemShape(index = 1, count = 3),
-                            colors = SegmentedButtonDefaults.colors()
-                        ) {
-                            Text("Date & Time", fontSize = 13.sp)
-                        }
-                        SegmentedButton(
-                            selected = selectedMode == TimeMode.TIME_OF_DAY,
-                            onClick = { selectedMode = TimeMode.TIME_OF_DAY },
-                            shape = SegmentedButtonDefaults.itemShape(index = 2, count = 3),
-                            colors = SegmentedButtonDefaults.colors()
-                        ) {
-                            Text("Clock", fontSize = 13.sp)
+                            DatePicker(state = datePickerState)
                         }
                     }
 
-                    Spacer(modifier = Modifier.height(24.dp))
-
-                    when (selectedMode) {
-                        TimeMode.QUICK -> {
-                            Text(
-                                "Remind me in:",
-                                style = MaterialTheme.typography.bodyMedium,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant
-                            )
-                            Spacer(modifier = Modifier.height(12.dp))
-                            val quickOptions = listOf(
-                                15L to "15 min",
-                                30L to "30 min",
-                                60L to "1 hour",
-                                180L to "3 hours",
-                                360L to "6 hours",
-                                720L to "12 hours",
-                                1440L to "1 day"
-                            )
-                            FlowRow(
-                                modifier = Modifier.fillMaxWidth(),
-                                horizontalArrangement = Arrangement.spacedBy(8.dp),
-                                verticalArrangement = Arrangement.spacedBy(8.dp)
-                            ) {
-                                quickOptions.forEach { (minutes, label) ->
-                                    FilterChip(
-                                        selected = selectedQuickMinutes == minutes,
-                                        onClick = { selectedQuickMinutes = minutes },
-                                        label = { Text(label) }
-                                    )
-                                }
-                            }
-                        }
-
-                        TimeMode.DATE_TIME -> {
-                            Row(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .clip(RoundedCornerShape(12.dp))
-                                    .background(MaterialTheme.colorScheme.surface, RoundedCornerShape(12.dp))
-                                    .clickable { showDatePicker = true }
-                                    .padding(horizontal = 16.dp, vertical = 12.dp),
-                                verticalAlignment = Alignment.CenterVertically
-                            ) {
-                                Icon(
-                                    imageVector = Icons.Default.Event,
-                                    contentDescription = null,
-                                    tint = MaterialTheme.colorScheme.primary
-                                )
-                                Spacer(modifier = Modifier.width(12.dp))
-                                Text(
-                                    text = datePickerState.selectedDateMillis?.let {
-                                        dateFormatter.format(Date(it + TimeZone.getDefault().getOffset(it)))
-                                    } ?: "Select date",
-                                    style = MaterialTheme.typography.bodyLarge
-                                )
-                            }
-
-                            if (showDatePicker) {
-                                DatePickerDialog(
-                                    onDismissRequest = { showDatePicker = false },
-                                    confirmButton = {
-                                        TextButton(onClick = { showDatePicker = false }) {
-                                            Text("OK")
-                                        }
-                                    },
-                                    dismissButton = {
-                                        TextButton(onClick = { showDatePicker = false }) {
-                                            Text("Cancel")
-                                        }
-                                    }
-                                ) {
-                                    DatePicker(state = datePickerState)
-                                }
-                            }
-
-                            Spacer(modifier = Modifier.height(20.dp))
-                            TimeInput(state = timePickerState)
-                        }
-
-                        TimeMode.TIME_OF_DAY -> {
-                            // Toggle between analog clock and digital input
-                            Row(verticalAlignment = Alignment.CenterVertically) {
-                                IconButton(onClick = { useClockPicker = true }) {
-                                    Icon(
-                                        imageVector = Icons.Default.Schedule,
-                                        contentDescription = "Analog clock",
-                                        tint = if (useClockPicker) MaterialTheme.colorScheme.primary
-                                        else MaterialTheme.colorScheme.onSurfaceVariant
-                                    )
-                                }
-                                IconButton(onClick = { useClockPicker = false }) {
-                                    Icon(
-                                        imageVector = Icons.Default.Keyboard,
-                                        contentDescription = "Digital input",
-                                        tint = if (!useClockPicker) MaterialTheme.colorScheme.primary
-                                        else MaterialTheme.colorScheme.onSurfaceVariant
-                                    )
-                                }
-                            }
-                            Spacer(modifier = Modifier.height(12.dp))
-
-                            if (useClockPicker) {
-                                TimePicker(state = timePickerState)
-                            } else {
-                                TimeInput(state = timePickerState)
-                            }
-                        }
-                    }
-
-                    Spacer(modifier = Modifier.height(8.dp))
+                    Spacer(modifier = Modifier.height(Spacing.md))
+                    TimeInput(state = timePickerState)
                 }
             }
 
-            Spacer(modifier = Modifier.height(24.dp))
-
-            // Sound Section
-            Card(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .clip(RoundedCornerShape(20.dp))
-                    .clickable {
+            // ── NOTIFICATION ──
+            SectionHeader(title = "Notification")
+            SettingsGroup {
+                SettingsRow(
+                    title = "Notification Sound",
+                    description = "The sound Pixel plays when the reminder fires",
+                    value = soundName,
+                    icon = Icons.Default.MusicNote,
+                    onClick = {
                         val intent = Intent(RingtoneManager.ACTION_RINGTONE_PICKER).apply {
                             putExtra(RingtoneManager.EXTRA_RINGTONE_TYPE, RingtoneManager.TYPE_ALARM)
                             putExtra(RingtoneManager.EXTRA_RINGTONE_SHOW_DEFAULT, true)
                             putExtra(RingtoneManager.EXTRA_RINGTONE_SHOW_SILENT, true)
                         }
                         ringtoneLauncher.launch(intent)
-                    },
-                shape = RoundedCornerShape(20.dp),
-                colors = CardDefaults.cardColors(
-                    containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
-                ),
-                elevation = CardDefaults.cardElevation(0.dp)
-            ) {
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(16.dp),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Box(
-                        modifier = Modifier
-                            .size(40.dp)
-                            .background(
-                                MaterialTheme.colorScheme.primary.copy(alpha = 0.15f),
-                                RoundedCornerShape(12.dp)
-                            ),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.MusicNote,
-                            contentDescription = null,
-                            tint = MaterialTheme.colorScheme.primary
-                        )
                     }
-                    Spacer(modifier = Modifier.width(16.dp))
-                    Column {
-                        Text("Notification Sound", fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurface)
-                        Spacer(modifier = Modifier.height(4.dp))
-                        Text(soundName, fontSize = 14.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                    }
-                }
+                )
             }
 
-            // Bottom padding for FAB
-            Spacer(modifier = Modifier.height(100.dp))
+            Spacer(modifier = Modifier.height(Spacing.lg))
+
+            PrimaryButton(
+                text = "Save Reminder",
+                enabled = title.isNotBlank(),
+                onClick = { onSavePressed() }
+            )
         }
     }
 }

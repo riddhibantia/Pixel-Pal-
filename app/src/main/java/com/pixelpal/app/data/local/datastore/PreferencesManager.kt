@@ -8,6 +8,7 @@ import androidx.datastore.preferences.core.floatPreferencesKey
 import androidx.datastore.preferences.core.stringPreferencesKey
 import com.pixelpal.app.util.Constants
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -22,6 +23,8 @@ class PreferencesManager @Inject constructor(
         val OVERLAY_ENABLED = booleanPreferencesKey(Constants.KEY_OVERLAY_ENABLED)
         val PET_NAME = stringPreferencesKey(Constants.KEY_PET_NAME)
         val USER_NAME = stringPreferencesKey(Constants.KEY_USER_NAME)
+        val USER_EMAIL = stringPreferencesKey(Constants.KEY_USER_EMAIL)
+        val AVATAR_SEED = stringPreferencesKey(Constants.KEY_AVATAR_SEED)
         val SELECTED_PET_TYPE = stringPreferencesKey(Constants.KEY_SELECTED_PET_TYPE)
         val IS_FIRST_LAUNCH = booleanPreferencesKey(Constants.KEY_IS_FIRST_LAUNCH)
         val CURRENT_THEME = stringPreferencesKey(Constants.KEY_CURRENT_THEME)
@@ -43,6 +46,14 @@ class PreferencesManager @Inject constructor(
 
     val userName: Flow<String> = dataStore.data.map { preferences ->
         preferences[Keys.USER_NAME] ?: Constants.DEFAULT_USER_NAME
+    }
+
+    val userEmail: Flow<String> = dataStore.data.map { preferences ->
+        preferences[Keys.USER_EMAIL] ?: Constants.DEFAULT_USER_EMAIL
+    }
+
+    val avatarSeed: Flow<String> = dataStore.data.map { preferences ->
+        preferences[Keys.AVATAR_SEED] ?: Constants.DEFAULT_AVATAR_SEED
     }
 
     val selectedPetType: Flow<String> = dataStore.data.map { preferences ->
@@ -79,6 +90,24 @@ class PreferencesManager @Inject constructor(
     suspend fun setUserName(name: String) {
         dataStore.edit { preferences ->
             preferences[Keys.USER_NAME] = name
+        }
+    }
+
+    suspend fun getUserName(): String = dataStore.data.first()[Keys.USER_NAME] ?: Constants.DEFAULT_USER_NAME
+
+    suspend fun getUserEmail(): String = dataStore.data.first()[Keys.USER_EMAIL] ?: Constants.DEFAULT_USER_EMAIL
+
+    suspend fun getAvatarSeed(): String = dataStore.data.first()[Keys.AVATAR_SEED] ?: Constants.DEFAULT_AVATAR_SEED
+
+    suspend fun setUserEmail(email: String) {
+        dataStore.edit { preferences ->
+            preferences[Keys.USER_EMAIL] = email
+        }
+    }
+
+    suspend fun setAvatarSeed(seed: String) {
+        dataStore.edit { preferences ->
+            preferences[Keys.AVATAR_SEED] = seed
         }
     }
 

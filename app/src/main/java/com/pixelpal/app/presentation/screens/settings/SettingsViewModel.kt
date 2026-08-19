@@ -21,16 +21,18 @@ class SettingsViewModel @Inject constructor(
     val overlayEnabled: StateFlow<Boolean> = preferencesManager.overlayEnabled
         .stateIn(viewModelScope, SharingStarted.Lazily, true)
 
-    val petName: StateFlow<String> = preferencesManager.petName
-        .stateIn(viewModelScope, SharingStarted.Lazily, "Pixel")
-
     val userName: StateFlow<String> = preferencesManager.userName
         .stateIn(viewModelScope, SharingStarted.Lazily, "")
 
+    val avatarSeed: StateFlow<String> = preferencesManager.avatarSeed
+        .stateIn(viewModelScope, SharingStarted.Lazily, "pixelpal")
+
+    val currentTheme: StateFlow<String> = preferencesManager.currentTheme
+        .stateIn(viewModelScope, SharingStarted.Lazily, "dark")
+
     fun toggleOverlay(context: Context) {
         viewModelScope.launch {
-            val current = overlayEnabled.value
-            val next = !current
+            val next = !overlayEnabled.value
             preferencesManager.setOverlayEnabled(next)
             if (next) {
                 OverlayService.start(context)
@@ -46,15 +48,9 @@ class SettingsViewModel @Inject constructor(
         }
     }
 
-    fun updatePetName(name: String) {
+    fun selectTheme(theme: String) {
         viewModelScope.launch {
-            preferencesManager.setPetName(name)
-        }
-    }
-
-    fun updateUserName(name: String) {
-        viewModelScope.launch {
-            preferencesManager.setUserName(name)
+            preferencesManager.setCurrentTheme(theme)
         }
     }
 }

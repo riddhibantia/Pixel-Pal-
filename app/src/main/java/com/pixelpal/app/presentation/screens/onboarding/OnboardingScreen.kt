@@ -3,7 +3,6 @@ package com.pixelpal.app.presentation.screens.onboarding
 import android.app.Activity
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -11,11 +10,11 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.rememberPagerState
-import androidx.compose.material3.Button
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -28,11 +27,14 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.pixelpal.app.animation.AnimationState
 import com.pixelpal.app.overlay.OverlayService
+import com.pixelpal.app.presentation.components.AppTextField
 import com.pixelpal.app.presentation.components.PetRenderer
+import com.pixelpal.app.presentation.components.PrimaryButton
+import com.pixelpal.app.presentation.components.SecondaryButton
+import com.pixelpal.app.presentation.theme.Spacing
 import com.pixelpal.app.util.PermissionHelper
 import kotlinx.coroutines.launch
 
@@ -53,7 +55,7 @@ fun OnboardingScreen(
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .padding(24.dp),
+            .padding(Spacing.screenHorizontal),
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.SpaceBetween
     ) {
@@ -72,35 +74,38 @@ fun OnboardingScreen(
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(vertical = 16.dp),
-            horizontalArrangement = Arrangement.SpaceBetween,
+                .padding(vertical = Spacing.md),
+            horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
             verticalAlignment = Alignment.CenterVertically
         ) {
             if (pagerState.currentPage > 0) {
-                TextButton(onClick = {
-                    scope.launch { pagerState.animateScrollToPage(pagerState.currentPage - 1) }
-                }) {
-                    Text("Back")
-                }
-            } else {
-                Spacer(modifier = Modifier.height(1.dp))
+                SecondaryButton(
+                    text = "Back",
+                    onClick = {
+                        scope.launch { pagerState.animateScrollToPage(pagerState.currentPage - 1) }
+                    },
+                    modifier = Modifier.weight(1f)
+                )
             }
 
             if (pagerState.currentPage < 3) {
-                Button(onClick = {
-                    scope.launch { pagerState.animateScrollToPage(pagerState.currentPage + 1) }
-                }) {
-                    Text("Next")
-                }
+                PrimaryButton(
+                    text = "Next",
+                    onClick = {
+                        scope.launch { pagerState.animateScrollToPage(pagerState.currentPage + 1) }
+                    },
+                    modifier = if (pagerState.currentPage > 0) Modifier.weight(1f) else Modifier.fillMaxWidth()
+                )
             } else {
-                Button(onClick = {
-                    if (PermissionHelper.canDrawOverlays(context)) {
-                        OverlayService.start(context)
+                PrimaryButton(
+                    text = "Let's Go!",
+                    onClick = {
+                        if (PermissionHelper.canDrawOverlays(context)) {
+                            OverlayService.start(context)
+                        }
+                        viewModel.saveAndComplete(onOnboardingComplete)
                     }
-                    viewModel.saveAndComplete(onOnboardingComplete)
-                }) {
-                    Text("Let's Go!")
-                }
+                )
             }
         }
     }
@@ -114,17 +119,18 @@ private fun PageWelcome() {
         verticalArrangement = Arrangement.Center
     ) {
         PetRenderer(petType = "cat", animationState = AnimationState.IDLE, size = 180.dp)
-        Spacer(modifier = Modifier.height(32.dp))
+        Spacer(modifier = Modifier.height(Spacing.xl))
         Text(
             text = "Welcome to PixelPal",
-            fontSize = 28.sp,
+            style = MaterialTheme.typography.headlineMedium,
             fontWeight = FontWeight.Bold,
+            textAlign = TextAlign.Center,
             color = MaterialTheme.colorScheme.primary
         )
-        Spacer(modifier = Modifier.height(12.dp))
+        Spacer(modifier = Modifier.height(Spacing.md))
         Text(
             text = "Your tiny companion is waiting to meet you.",
-            fontSize = 16.sp,
+            style = MaterialTheme.typography.bodyLarge,
             textAlign = TextAlign.Center,
             color = MaterialTheme.colorScheme.onBackground
         )
@@ -140,17 +146,24 @@ private fun PageChoosePet(selectedType: String) {
     ) {
         Text(
             text = "Choose Your Companion",
-            fontSize = 24.sp,
-            fontWeight = FontWeight.Bold
+            style = MaterialTheme.typography.headlineMedium,
+            fontWeight = FontWeight.Bold,
+            textAlign = TextAlign.Center,
+            color = MaterialTheme.colorScheme.onSurface
         )
-        Spacer(modifier = Modifier.height(24.dp))
-        PetRenderer(petType = "cat", animationState = AnimationState.HAPPY, size = 180.dp)
-        Spacer(modifier = Modifier.height(16.dp))
-        Text(text = "Cat (Unlocked)", fontSize = 18.sp, fontWeight = FontWeight.SemiBold)
-        Spacer(modifier = Modifier.height(8.dp))
+        Spacer(modifier = Modifier.height(Spacing.lg))
+        PetRenderer(petType = selectedType.ifBlank { "cat" }, animationState = AnimationState.HAPPY, size = 180.dp)
+        Spacer(modifier = Modifier.height(Spacing.md))
+        Text(
+            text = "Cat (Unlocked)",
+            style = MaterialTheme.typography.titleLarge,
+            fontWeight = FontWeight.SemiBold,
+            color = MaterialTheme.colorScheme.onSurface
+        )
+        Spacer(modifier = Modifier.height(Spacing.sm))
         Text(
             text = "Dog, Bunny, Fox, and Axolotl unlock as your bond grows!",
-            fontSize = 14.sp,
+            style = MaterialTheme.typography.bodyMedium,
             textAlign = TextAlign.Center,
             color = MaterialTheme.colorScheme.onSurfaceVariant
         )
@@ -165,19 +178,20 @@ private fun PageNamePet(petName: String, onNameChange: (String) -> Unit) {
         verticalArrangement = Arrangement.Center
     ) {
         PetRenderer(petType = "cat", animationState = AnimationState.EXCITED, size = 150.dp)
-        Spacer(modifier = Modifier.height(24.dp))
+        Spacer(modifier = Modifier.height(Spacing.lg))
         Text(
             text = "Name Your Companion",
-            fontSize = 24.sp,
-            fontWeight = FontWeight.Bold
+            style = MaterialTheme.typography.headlineMedium,
+            fontWeight = FontWeight.Bold,
+            textAlign = TextAlign.Center,
+            color = MaterialTheme.colorScheme.onSurface
         )
-        Spacer(modifier = Modifier.height(16.dp))
-        OutlinedTextField(
+        Spacer(modifier = Modifier.height(Spacing.md))
+        AppTextField(
             value = petName,
             onValueChange = { if (it.length <= 20) onNameChange(it) },
-            label = { Text("Companion Name") },
-            singleLine = true,
-            modifier = Modifier.fillMaxWidth(0.8f)
+            label = "Companion Name",
+            modifier = Modifier.fillMaxWidth(0.85f)
         )
     }
 }
@@ -194,20 +208,25 @@ private fun PageEnableOverlay(petName: String, activity: Activity?) {
     ) {
         Text(
             text = "Let $petName Join You!",
-            fontSize = 24.sp,
-            fontWeight = FontWeight.Bold
+            style = MaterialTheme.typography.headlineMedium,
+            fontWeight = FontWeight.Bold,
+            textAlign = TextAlign.Center,
+            color = MaterialTheme.colorScheme.onSurface
         )
-        Spacer(modifier = Modifier.height(16.dp))
+        Spacer(modifier = Modifier.height(Spacing.md))
         Text(
             text = "$petName lives on your phone screen as a tiny pixel pet overlay.",
-            fontSize = 15.sp,
-            textAlign = TextAlign.Center
+            style = MaterialTheme.typography.bodyMedium,
+            textAlign = TextAlign.Center,
+            color = MaterialTheme.colorScheme.onSurfaceVariant
         )
-        Spacer(modifier = Modifier.height(32.dp))
-        Button(onClick = {
-            activity?.let { PermissionHelper.requestOverlayPermission(it) }
-        }) {
-            Text(if (hasPermission) "Permission Granted ✓" else "Enable Screen Overlay")
-        }
+        Spacer(modifier = Modifier.height(Spacing.lg))
+        PrimaryButton(
+            text = if (hasPermission) "Permission Granted" else "Enable Screen Overlay",
+            modifier = Modifier.fillMaxWidth(0.85f),
+            onClick = {
+                activity?.let { PermissionHelper.requestOverlayPermission(it) }
+            }
+        )
     }
 }
