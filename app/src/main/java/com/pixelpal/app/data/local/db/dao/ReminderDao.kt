@@ -14,6 +14,9 @@ interface ReminderDao {
     @Query("SELECT * FROM reminders WHERE status = 'PENDING' ORDER BY triggerTime ASC")
     fun getPendingReminders(): Flow<List<ReminderEntity>>
 
+    @Query("SELECT * FROM reminders WHERE status = 'PENDING' AND companionId = :companionId ORDER BY triggerTime ASC")
+    fun getPendingForCompanion(companionId: Long): Flow<List<ReminderEntity>>
+
     @Query("SELECT * FROM reminders WHERE status = 'COMPLETED' ORDER BY completedAt DESC")
     fun getCompletedReminders(): Flow<List<ReminderEntity>>
 

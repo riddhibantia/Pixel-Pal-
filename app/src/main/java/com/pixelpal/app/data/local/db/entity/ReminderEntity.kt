@@ -2,9 +2,22 @@ package com.pixelpal.app.data.local.db.entity
 
 import androidx.room.ColumnInfo
 import androidx.room.Entity
+import androidx.room.ForeignKey
+import androidx.room.Index
 import androidx.room.PrimaryKey
 
-@Entity(tableName = "reminders")
+@Entity(
+    tableName = "reminders",
+    foreignKeys = [
+        ForeignKey(
+            entity = CompanionEntity::class,
+            parentColumns = ["id"],
+            childColumns = ["companionId"],
+            onDelete = ForeignKey.SET_NULL
+        )
+    ],
+    indices = [Index("companionId")]
+)
 data class ReminderEntity(
     @PrimaryKey(autoGenerate = true) val id: Long = 0,
     val title: String,
@@ -21,5 +34,6 @@ data class ReminderEntity(
     val status: String = "PENDING",        // PENDING, TRIGGERED, COMPLETED, SNOOZED, DISMISSED
     val snoozeCount: Int = 0,
     val createdAt: Long = System.currentTimeMillis(),
-    val completedAt: Long? = null
+    val completedAt: Long? = null,
+    val companionId: Long? = null
 )

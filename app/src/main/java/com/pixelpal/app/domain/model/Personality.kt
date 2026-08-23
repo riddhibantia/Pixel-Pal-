@@ -1,7 +1,7 @@
 package com.pixelpal.app.domain.model
 
 data class Personality(
-    val id: Int = 1,
+    val companionId: Long = 0,
     val friendliness: Float = 0.5f,
     val curiosity: Float = 0.5f,
     val playfulness: Float = 0.5f,

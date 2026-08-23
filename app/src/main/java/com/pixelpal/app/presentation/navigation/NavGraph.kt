@@ -7,8 +7,14 @@ import androidx.compose.animation.slideInHorizontally
 import androidx.compose.animation.slideOutHorizontally
 import androidx.compose.runtime.Composable
 import androidx.navigation.NavHostController
+import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
+import androidx.navigation.navArgument
+import com.pixelpal.app.presentation.screens.activity.ActivityCenterScreen
+import com.pixelpal.app.presentation.screens.companions.CompanionsScreen
+import com.pixelpal.app.presentation.screens.companions.CompanionWorkspaceScreen
+import com.pixelpal.app.presentation.screens.companions.CreateCompanionScreen
 import com.pixelpal.app.presentation.screens.customize.CustomizeScreen
 import com.pixelpal.app.presentation.screens.home.HomeScreen
 import com.pixelpal.app.presentation.screens.onboarding.OnboardingScreen
@@ -24,13 +30,25 @@ sealed class Screen(val route: String) {
     object Onboarding : Screen("onboarding")
     object Home : Screen("home")
     object Reminders : Screen("reminders")
-    object CreateReminder : Screen("create_reminder")
+    object CreateReminder : Screen("create_reminder?companionId={companionId}")
     object Customize : Screen("customize")
     object Settings : Screen("settings")
     object Profile : Screen("profile")
     object OverlaySettings : Screen("overlay_settings")
     object About : Screen("about")
     object Permissions : Screen("permissions")
+    object Companions : Screen("companions")
+    object CreateCompanion : Screen("create_companion")
+    object CompanionWorkspace : Screen("workspace/{companionId}")
+    object ActivityCenter : Screen("activity_center")
+
+    companion object {
+        fun companionWorkspace(companionId: Long): String = "workspace/$companionId"
+
+        /** Opens reminder creation with a specific companion preselected ("Who" seed). */
+        fun reminderForCompanion(companionId: Long): String =
+            "create_reminder?companionId=$companionId"
+    }
 }
 
 @Composable
@@ -67,7 +85,13 @@ fun PixelPalNavGraph(
         composable(Screen.Reminders.route) {
             ReminderListScreen(navController = navController)
         }
-        composable(Screen.CreateReminder.route) {
+        composable(
+            route = Screen.CreateReminder.route,
+            arguments = listOf(navArgument("companionId") {
+                type = NavType.LongType
+                defaultValue = -1L
+            })
+        ) {
             CreateReminderScreen(navController = navController)
         }
         composable(Screen.Customize.route) {
@@ -85,8 +109,20 @@ fun PixelPalNavGraph(
         composable(Screen.About.route) {
             AboutScreen(navController = navController)
         }
-        composable(Screen.Permissions.route) {
-            PermissionsScreen(navController = navController)
+        composable(Screen.Companions.route) {
+            CompanionsScreen(navController = navController)
+        }
+        composable(Screen.ActivityCenter.route) {
+            ActivityCenterScreen(navController = navController)
+        }
+        composable(Screen.CreateCompanion.route) {
+            CreateCompanionScreen(navController = navController)
+        }
+        composable(
+            route = Screen.CompanionWorkspace.route,
+            arguments = listOf(navArgument("companionId") { type = NavType.LongType })
+        ) { backStackEntry ->
+            CompanionWorkspaceScreen(navController = navController)
         }
     }
 }

@@ -20,6 +20,8 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
+import androidx.compose.material.icons.filled.Archive
+import androidx.compose.material.icons.filled.Groups
 import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.Layers
 import androidx.compose.material.icons.filled.Mail
@@ -165,6 +167,20 @@ fun SettingsScreen(
                 // ── COMPANION ──
                 SectionHeader(title = "Companion")
                 SettingsGroup {
+                    SettingsRow(
+                        title = "Manage Companions",
+                        description = "Create, switch and archive companions",
+                        icon = Icons.Default.Groups,
+                        onClick = { navController.navigate(Screen.Companions.route) }
+                    )
+                    GroupDivider()
+                    SettingsRow(
+                        title = "Archived Companions",
+                        description = "Restore or view archived companions",
+                        icon = Icons.Default.Archive,
+                        onClick = { navController.navigate(Screen.Companions.route) }
+                    )
+                    GroupDivider()
                     SettingsRow(
                         title = "Screen Companion Overlay",
                         description = "Show Pixel on top of other apps",

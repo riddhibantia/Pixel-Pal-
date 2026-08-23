@@ -18,6 +18,10 @@ class ReminderRepositoryImpl @Inject constructor(
         return dao.getPendingReminders().map { list -> list.map { it.toDomain() } }
     }
 
+    override fun getPendingForCompanion(companionId: Long): Flow<List<Reminder>> {
+        return dao.getPendingForCompanion(companionId).map { list -> list.map { it.toDomain() } }
+    }
+
     override fun getCompletedReminders(): Flow<List<Reminder>> {
         return dao.getCompletedReminders().map { list -> list.map { it.toDomain() } }
     }
@@ -64,7 +68,8 @@ class ReminderRepositoryImpl @Inject constructor(
         status = status,
         snoozeCount = snoozeCount,
         createdAt = createdAt,
-        completedAt = completedAt
+        completedAt = completedAt,
+        companionId = companionId
     )
 
     private fun Reminder.toEntity() = ReminderEntity(
@@ -81,6 +86,7 @@ class ReminderRepositoryImpl @Inject constructor(
         status = status,
         snoozeCount = snoozeCount,
         createdAt = createdAt,
-        completedAt = completedAt
+        completedAt = completedAt,
+        companionId = companionId
     )
 }

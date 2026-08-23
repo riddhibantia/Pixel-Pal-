@@ -6,7 +6,11 @@ import javax.inject.Inject
 class TapCompanionUseCase @Inject constructor(
     private val companionEngine: CompanionEngine
 ) {
-    operator fun invoke() {
-        companionEngine.onTap()
+    /** Interacts with a specific companion (falls back to the active one when null). */
+    suspend operator fun invoke(companionId: Long? = null) {
+        val id = companionId
+            ?: companionEngine.resolveActiveCompanionId()
+            ?: return
+        companionEngine.onTap(id)
     }
 }

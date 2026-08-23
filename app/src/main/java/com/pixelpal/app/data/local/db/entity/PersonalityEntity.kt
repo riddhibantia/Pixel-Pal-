@@ -1,11 +1,22 @@
 package com.pixelpal.app.data.local.db.entity
 
 import androidx.room.Entity
+import androidx.room.ForeignKey
 import androidx.room.PrimaryKey
 
-@Entity(tableName = "personality")
+@Entity(
+    tableName = "personality",
+    foreignKeys = [
+        ForeignKey(
+            entity = CompanionEntity::class,
+            parentColumns = ["id"],
+            childColumns = ["companionId"],
+            onDelete = ForeignKey.CASCADE
+        )
+    ]
+)
 data class PersonalityEntity(
-    @PrimaryKey val id: Int = 1,
+    @PrimaryKey val companionId: Long,
     val friendliness: Float = 0.5f,
     val curiosity: Float = 0.5f,
     val playfulness: Float = 0.5f,

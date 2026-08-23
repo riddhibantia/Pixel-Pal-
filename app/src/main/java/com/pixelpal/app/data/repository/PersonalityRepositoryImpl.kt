@@ -14,22 +14,28 @@ class PersonalityRepositoryImpl @Inject constructor(
     private val dao: PersonalityDao
 ) : PersonalityRepository {
 
-    override fun getPersonality(): Flow<Personality> {
-        return dao.getPersonality().map { entity ->
-            entity?.toDomain() ?: Personality()
+    override fun getPersonality(companionId: Long): Flow<Personality> {
+        return dao.getPersonality(companionId).map { entity ->
+            entity?.toDomain() ?: Personality(companionId = companionId)
         }
     }
 
-    override suspend fun getPersonalityDirect(): Personality {
-        return dao.getPersonalityDirect()?.toDomain() ?: Personality()
+    override suspend fun getPersonalityDirect(companionId: Long): Personality {
+        return dao.getPersonalityDirect(companionId)?.toDomain() ?: Personality(companionId = companionId)
     }
 
     override suspend fun updatePersonality(personality: Personality) {
         dao.insertOrUpdate(personality.toEntity())
     }
 
+    override suspend fun ensureExists(companionId: Long) {
+        if (dao.getPersonalityDirect(companionId) == null) {
+            dao.insertOrUpdate(PersonalityEntity(companionId = companionId))
+        }
+    }
+
     private fun PersonalityEntity.toDomain() = Personality(
-        id = id,
+        companionId = companionId,
         friendliness = friendliness,
         curiosity = curiosity,
         playfulness = playfulness,
@@ -40,7 +46,7 @@ class PersonalityRepositoryImpl @Inject constructor(
     )
 
     private fun Personality.toEntity() = PersonalityEntity(
-        id = id,
+        companionId = companionId,
         friendliness = friendliness,
         curiosity = curiosity,
         playfulness = playfulness,

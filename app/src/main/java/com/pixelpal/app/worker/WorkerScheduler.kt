@@ -1,9 +1,13 @@
 package com.pixelpal.app.worker
 
 import android.content.Context
+import androidx.work.Constraints
 import androidx.work.ExistingPeriodicWorkPolicy
+import androidx.work.NetworkType
 import androidx.work.PeriodicWorkRequestBuilder
 import androidx.work.WorkManager
+import androidx.work.workDataOf
+import com.pixelpal.app.util.Constants
 import dagger.hilt.android.qualifiers.ApplicationContext
 import java.util.concurrent.TimeUnit
 import javax.inject.Inject
@@ -30,6 +34,35 @@ class WorkerScheduler @Inject constructor(
             personalityRequest
         )
     }
+
+    /**
+     * Unique periodic polling for one agent companion. Network-constrained and
+     * keyed by companion id so re-saving config never duplicates work.
+     */
+    fun scheduleAgentPolling(companionId: Long, intervalMinutes: Long) {
+        // WorkManager enforces a ~15-minute minimum for periodic work.
+        val interval = intervalMinutes.coerceAtLeast(Constants.DEFAULT_AGENT_POLL_INTERVAL_MIN)
+        val request = PeriodicWorkRequestBuilder<AgentStatusWorker>(interval, TimeUnit.MINUTES)
+            .setConstraints(
+                Constraints.Builder()
+                    .setRequiredNetworkType(NetworkType.CONNECTED)
+                    .build()
+            )
+            .setInputData(workDataOf("companion_id" to companionId))
+            .build()
+
+        WorkManager.getInstance(context).enqueueUniquePeriodicWork(
+            agentWorkName(companionId),
+            ExistingPeriodicWorkPolicy.UPDATE,
+            request
+        )
+    }
+
+    fun cancelAgentPolling(companionId: Long) {
+        WorkManager.getInstance(context).cancelUniqueWork(agentWorkName(companionId))
+    }
+
+    private fun agentWorkName(companionId: Long) = Constants.AGENT_WORK_PREFIX + companionId
 
     companion object {
         private const val BOND_DECAY_WORK_NAME = "pixelpal_bond_decay"

@@ -1,16 +1,15 @@
 package com.pixelpal.app.domain.engine
 
-import com.pixelpal.app.data.dialogue.DialogueLoader
-import com.pixelpal.app.data.local.datastore.PreferencesManager
+import com.pixelpal.app.domain.model.ActivityType
 import com.pixelpal.app.domain.model.Emotion
 import com.pixelpal.app.domain.model.Reminder
+import com.pixelpal.app.domain.repository.ActivityEventRepository
 import com.pixelpal.app.domain.repository.ReminderRepository
 import com.pixelpal.app.domain.usecase.reminder.SnoozeReminderUseCase
 import com.pixelpal.app.overlay.OverlayManager
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
-import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -19,78 +18,60 @@ import javax.inject.Singleton
 class CompanionEngine @Inject constructor(
     private val emotionEngine: EmotionEngine,
     private val bondEngine: BondEngine,
-    private val personalityEngine: PersonalityEngine,
-    private val dialogueLoader: DialogueLoader,
+    private val reactionProvider: CompanionReactionProvider,
     private val overlayManager: OverlayManager,
-    private val preferencesManager: PreferencesManager,
+    private val activeCompanionManager: ActiveCompanionManager,
+    private val activityEventRepository: ActivityEventRepository,
     private val reminderRepository: ReminderRepository,
     private val snoozeReminderUseCase: SnoozeReminderUseCase
 ) {
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Main)
 
-    fun onTap() {
+    /**
+     * Ordinary taps/feeds intentionally do NOT create ActivityEvents — they
+     * only mutate bond/emotion and trigger a reaction. Meaningful events are
+     * recorded elsewhere (bond milestones, tasks, reminders, agent changes).
+     */
+    fun onTap(companionId: Long) {
         scope.launch {
-            bondEngine.recordTap()
+            bondEngine.recordTap(companionId)
             emotionEngine.triggerEmotion(Emotion.HAPPY)
-
-            val petName = preferencesManager.petName.first()
-            val userName = preferencesManager.userName.first().ifEmpty { "friend" }
-            val bond = bondEngine.bond.first()
-
-            val text = dialogueLoader.getLine(
-                contextStr = "tap_response",
-                emotion = Emotion.HAPPY,
-                bondLevel = bond.level,
-                variables = mapOf("pet_name" to petName, "user_name" to userName)
-            )
-
-            if (text != null && overlayManager.isShowing()) {
-                overlayManager.showSpeechBubble(text)
-            }
+            speakInteraction(companionId, CompanionReactionProvider.Interaction.TAP)
         }
     }
 
-    fun onDoubleTap() {
+    fun onDoubleTap(companionId: Long) {
         scope.launch {
-            bondEngine.recordTap()
+            bondEngine.recordTap(companionId)
             emotionEngine.triggerEmotion(Emotion.EXCITED)
-
-            val petName = preferencesManager.petName.first()
-            val userName = preferencesManager.userName.first().ifEmpty { "friend" }
-            val bond = bondEngine.bond.first()
-
-            val text = dialogueLoader.getLine(
-                contextStr = "double_tap_response",
-                emotion = Emotion.EXCITED,
-                bondLevel = bond.level,
-                variables = mapOf("pet_name" to petName, "user_name" to userName)
-            )
-
-            if (text != null && overlayManager.isShowing()) {
-                overlayManager.showSpeechBubble(text)
-            }
+            speakInteraction(companionId, CompanionReactionProvider.Interaction.DOUBLE_TAP)
         }
     }
 
-    fun onFeed() {
+    fun onFeed(companionId: Long) {
         scope.launch {
-            bondEngine.recordFeed()
+            bondEngine.recordFeed(companionId)
             emotionEngine.triggerEmotion(Emotion.HAPPY)
+            speakInteraction(companionId, CompanionReactionProvider.Interaction.FEED)
+        }
+    }
 
-            val petName = preferencesManager.petName.first()
-            val userName = preferencesManager.userName.first().ifEmpty { "friend" }
-            val bond = bondEngine.bond.first()
+    /** Convenience for callers that genuinely mean "whoever is active". */
+    suspend fun resolveActiveCompanionId(): Long? =
+        activeCompanionManager.getActiveCompanionIdDirect()
 
-            val text = dialogueLoader.getLine(
-                contextStr = "feed_response",
-                emotion = Emotion.HAPPY,
-                bondLevel = bond.level,
-                variables = mapOf("pet_name" to petName, "user_name" to userName)
-            )
+    private suspend fun speakInteraction(
+        companionId: Long,
+        interaction: CompanionReactionProvider.Interaction
+    ) {
+        if (!overlayManager.isShowing(companionId)) return
 
-            if (text != null && overlayManager.isShowing()) {
-                overlayManager.showSpeechBubble(text)
-            }
+        val companion = activeCompanionManager.companionById(companionId) ?: return
+        val bond = bondEngine.getBondDirect(companionId)
+        val text = reactionProvider.interactionMessage(companion, bond.level, interaction)
+
+        if (text != null) {
+            overlayManager.showSpeechBubble(companionId, text)
         }
     }
 
@@ -114,7 +95,16 @@ class CompanionEngine @Inject constructor(
                         if (!isRecurring) {
                             reminderRepository.complete(reminder.id)
                         }
-                        bondEngine.recordReminderCompleted()
+                        val companionId = reminder.companionId
+                            ?: activeCompanionManager.getActiveCompanionIdDirect()
+                        if (companionId != null) {
+                            bondEngine.recordReminderCompleted(companionId)
+                            activityEventRepository.record(
+                                companionId,
+                                ActivityType.REMINDER_COMPLETED,
+                                "Completed reminder \"${reminder.title}\""
+                            )
+                        }
                         emotionEngine.triggerEmotion(Emotion.HAPPY)
                     }
                 },

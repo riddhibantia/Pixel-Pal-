@@ -7,82 +7,129 @@ import android.app.PendingIntent
 import android.app.Service
 import android.content.Context
 import android.content.Intent
-import android.content.IntentFilter
 import android.os.Build
 import android.os.IBinder
-import android.os.PowerManager
 import android.provider.Settings
 import androidx.core.app.NotificationCompat
 import androidx.core.content.ContextCompat
 import com.pixelpal.app.R
-import com.pixelpal.app.animation.AnimationEngine
-import com.pixelpal.app.animation.SpriteAnimator
 import com.pixelpal.app.data.local.datastore.PreferencesManager
 import com.pixelpal.app.domain.engine.CompanionEngine
+import com.pixelpal.app.domain.repository.CompanionRepository
 import com.pixelpal.app.presentation.MainActivity
-import com.pixelpal.app.receiver.ScreenStateReceiver
 import com.pixelpal.app.util.Constants
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
-import kotlinx.coroutines.flow.first
-import kotlinx.coroutines.launch
 import kotlinx.coroutines.cancel
+import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.launch
 import timber.log.Timber
 import javax.inject.Inject
 
+/**
+ * Foreground host for overlay sessions. Owns NO companion identity itself:
+ * it resolves the desired set of on-screen companions
+ * (master toggle + user selection, defaulting to the active companion) and
+ * syncs [OverlayManager] sessions to it. Each session knows its own companion.
+ */
 @AndroidEntryPoint
 class OverlayService : Service() {
 
     @Inject lateinit var overlayManager: OverlayManager
-    @Inject lateinit var animationEngine: AnimationEngine
-    @Inject lateinit var spriteAnimator: SpriteAnimator
     @Inject lateinit var companionEngine: CompanionEngine
     @Inject lateinit var preferencesManager: PreferencesManager
+    @Inject lateinit var companionRepository: CompanionRepository
 
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Main)
-    private var screenStateReceiver: ScreenStateReceiver? = null
 
     override fun onCreate() {
         super.onCreate()
         Timber.d("OverlayService created")
         createNotificationChannel()
-        registerScreenStateReceiver()
-
         startForeground(Constants.FOREGROUND_SERVICE_ID, buildNotification(Constants.DEFAULT_PET_NAME))
 
         scope.launch {
-            val petName = preferencesManager.petName.first()
-            val petType = preferencesManager.selectedPetType.first()
-
-            spriteAnimator.setPetType(petType)
-            val powerManager = getSystemService(PowerManager::class.java)
-            animationEngine.setScreenOn(powerManager?.isInteractive == true)
-            animationEngine.initialize()
-
-            val notificationManager = getSystemService(NotificationManager::class.java)
-            notificationManager?.notify(Constants.FOREGROUND_SERVICE_ID, buildNotification(petName))
-
             if (!Settings.canDrawOverlays(this@OverlayService)) {
-                Timber.w("SYSTEM_ALERT_WINDOW permission not granted, skipping overlay")
+                Timber.w("SYSTEM_ALERT_WINDOW permission not granted, skipping overlays")
+                stopSelf()
                 return@launch
             }
 
-            overlayManager.showCompanion(
-                onTap = { companionEngine.onTap() },
-                onDoubleTap = { companionEngine.onDoubleTap() },
-                onLongPress = { companionEngine.onFeed() }
-            )
-
-            launch {
-                spriteAnimator.currentDrawableRes.collect { resId ->
-                    if (resId != 0) {
-                        overlayManager.updateSprite(resId)
+            combine(
+                preferencesManager.overlayEnabled,
+                preferencesManager.overlayCompanionIds,
+                companionRepository.getAllActive()
+            ) { enabled, selectedIds, companions -> Triple(enabled, selectedIds, companions) }
+                .collect { (enabled, selectedIds, companions) ->
+                    val desired =
+                        resolveDesiredCompanions(enabled, selectedIds, companions)
+                    syncSessions(desired)
+                    val names = desired.mapNotNull { id ->
+                        companions.firstOrNull { it.id == id }?.name
+                    }
+                    if (names.isNotEmpty()) {
+                        notifyForeground(names.joinToString(", "))
                     }
                 }
+        }
+    }
+
+    /**
+     * Desired overlay set:
+     *  - master off → none;
+     *  - explicit selection (capped at MAX_SIMULTANEOUS_OVERLAYS);
+     *  - no selection yet → the ACTIVE companion only (approved default).
+     */
+    private suspend fun resolveDesiredCompanions(
+        enabled: Boolean,
+        selectedIds: Set<String>,
+        companions: List<com.pixelpal.app.domain.model.Companion>
+    ): List<Long> {
+        if (!enabled) return emptyList()
+        val activeIds = companions.map { it.id }.toSet()
+
+        val explicit = selectedIds.mapNotNull { it.toLongOrNull() }.filter { it in activeIds }
+        if (explicit.isNotEmpty()) {
+            return explicit.distinct().take(Constants.MAX_SIMULTANEOUS_OVERLAYS)
+        }
+
+        val activeId = preferencesManager.getActiveCompanionId()
+        val fallback = activeId?.takeIf { id -> companions.any { it.id == id } }
+            ?: companions.firstOrNull()?.id
+            ?: return emptyList()
+        return listOf(fallback)
+    }
+
+    private suspend fun syncSessions(desiredIds: List<Long>) {
+        // Stop sessions no longer wanted.
+        overlayManager.activeCompanionIds().filter { it !in desiredIds }.forEach {
+            overlayManager.hideCompanionFor(it)
+        }
+        // Start/refresh wanted ones.
+        desiredIds.forEach { id ->
+            val companion = companionRepository.getByIdDirect(id) ?: return@forEach
+            if (!overlayManager.isShowing(id)) {
+                overlayManager.showCompanionFor(
+                    companionId = companion.id,
+                    petType = companion.petType,
+                    onTap = { cid -> companionEngine.onTap(cid) },
+                    onDoubleTap = { cid -> companionEngine.onDoubleTap(cid) },
+                    onLongPress = { cid -> companionEngine.onFeed(cid) }
+                )
+            } else {
+                // Keep sprite in sync if the pet type changed (Customize).
+                overlayManager.updatePetTypeFor(id, companion.petType)
             }
         }
+    }
+
+    private fun notifyForeground(petNames: String) {
+        getSystemService(NotificationManager::class.java)?.notify(
+            Constants.FOREGROUND_SERVICE_ID,
+            buildNotification(petNames)
+        )
     }
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
@@ -93,41 +140,10 @@ class OverlayService : Service() {
         super.onDestroy()
         Timber.d("OverlayService destroyed")
         scope.cancel()
-        unregisterScreenStateReceiver()
-        animationEngine.destroy()
-        overlayManager.hideCompanion()
+        overlayManager.stopAllOverlays()
     }
 
     override fun onBind(intent: Intent?): IBinder? = null
-
-    private fun registerScreenStateReceiver() {
-        val receiver = ScreenStateReceiver(
-            onScreenOn = {
-                animationEngine.setScreenOn(true)
-                animationEngine.initialize()
-            },
-            onScreenOff = {
-                animationEngine.setScreenOn(false)
-            }
-        )
-        screenStateReceiver = receiver
-        val filter = IntentFilter().apply {
-            addAction(Intent.ACTION_SCREEN_OFF)
-            addAction(Intent.ACTION_SCREEN_ON)
-        }
-        // SCREEN_ON/OFF are protected system broadcasts; NOT_EXPORTED is still delivered.
-        ContextCompat.registerReceiver(this, receiver, filter, ContextCompat.RECEIVER_NOT_EXPORTED)
-    }
-
-    private fun unregisterScreenStateReceiver() {
-        screenStateReceiver?.let {
-            try {
-                unregisterReceiver(it)
-            } catch (e: Exception) {
-                // ignore if already unregistered
-            }
-        }
-    }
 
     private fun createNotificationChannel() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
@@ -136,7 +152,7 @@ class OverlayService : Service() {
                 Constants.CHANNEL_COMPANION_NAME,
                 NotificationManager.IMPORTANCE_LOW
             ).apply {
-                description = "Keeps your pixel companion active on screen"
+                description = "Keeps your pixel companions active on screen"
                 setShowBadge(false)
             }
             val manager = getSystemService(NotificationManager::class.java)
@@ -144,7 +160,7 @@ class OverlayService : Service() {
         }
     }
 
-    private fun buildNotification(petName: String): Notification {
+    private fun buildNotification(petNames: String): Notification {
         val intent = Intent(this, MainActivity::class.java).apply {
             flags = Intent.FLAG_ACTIVITY_SINGLE_TOP
         }
@@ -154,8 +170,8 @@ class OverlayService : Service() {
         )
 
         return NotificationCompat.Builder(this, Constants.CHANNEL_COMPANION)
-            .setContentTitle(petName)
-            .setContentText("$petName is hanging out with you 🐱")
+            .setContentTitle(petNames.ifBlank { "PixelPal" })
+            .setContentText("$petNames ${if (petNames.contains(',')) "are" else "is"} hanging out with you 🐱")
             .setSmallIcon(R.drawable.ic_stat_companion)
             .setContentIntent(pendingIntent)
             .setOngoing(true)
@@ -167,7 +183,7 @@ class OverlayService : Service() {
         fun start(context: Context) {
             val intent = Intent(context, OverlayService::class.java)
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-                context.startForegroundService(intent)
+                ContextCompat.startForegroundService(context, intent)
             } else {
                 context.startService(intent)
             }

@@ -7,7 +7,7 @@ import javax.inject.Inject
 class RecalculatePersonalityUseCase @Inject constructor(
     private val personalityEngine: PersonalityEngine
 ) {
-    suspend operator fun invoke(stats: DailyInteractionStats) {
-        personalityEngine.recalculateDaily(stats)
+    suspend operator fun invoke(companionId: Long, stats: DailyInteractionStats) {
+        personalityEngine.recalculateDaily(companionId, stats)
     }
 }

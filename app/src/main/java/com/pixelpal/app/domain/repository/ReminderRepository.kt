@@ -5,6 +5,7 @@ import kotlinx.coroutines.flow.Flow
 
 interface ReminderRepository {
     fun getPendingReminders(): Flow<List<Reminder>>
+    fun getPendingForCompanion(companionId: Long): Flow<List<Reminder>>
     fun getCompletedReminders(): Flow<List<Reminder>>
     fun getAllReminders(): Flow<List<Reminder>>
     suspend fun getById(id: Long): Reminder?

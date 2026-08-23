@@ -1,7 +1,7 @@
 package com.pixelpal.app.domain.model
 
 data class Bond(
-    val id: Int = 1,
+    val companionId: Long = 0,
     val level: Int = 0,
     val totalInteractions: Int = 0,
     val tapsToday: Int = 0,

@@ -7,12 +7,19 @@ import android.view.View
 import kotlin.math.abs
 
 class OverlayTouchHandler(
-    private val overlayManager: OverlayManager,
+    private val overlayManager: Manager,
     private val onTap: () -> Unit,
     private val onDoubleTap: (() -> Unit)? = null,
     private val onLongPress: (() -> Unit)? = null,
     private val onDragEnd: ((x: Float, y: Float) -> Unit)? = null
 ) : View.OnTouchListener {
+
+    /** Minimal position provider — implemented by OverlayManager and by each OverlaySession. */
+    interface Manager {
+        fun getCurrentX(): Int
+        fun getCurrentY(): Int
+        fun updatePosition(x: Int, y: Int)
+    }
 
     private var initialX: Int = 0
     private var initialY: Int = 0

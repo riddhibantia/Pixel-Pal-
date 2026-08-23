@@ -9,11 +9,11 @@ import kotlinx.coroutines.flow.Flow
 
 @Dao
 interface PersonalityDao {
-    @Query("SELECT * FROM personality WHERE id = 1")
-    fun getPersonality(): Flow<PersonalityEntity?>
+    @Query("SELECT * FROM personality WHERE companionId = :companionId")
+    fun getPersonality(companionId: Long): Flow<PersonalityEntity?>
 
-    @Query("SELECT * FROM personality WHERE id = 1")
-    suspend fun getPersonalityDirect(): PersonalityEntity?
+    @Query("SELECT * FROM personality WHERE companionId = :companionId")
+    suspend fun getPersonalityDirect(companionId: Long): PersonalityEntity?
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertOrUpdate(personality: PersonalityEntity)

@@ -10,6 +10,7 @@ object Constants {
     const val KEY_OVERLAY_X = "overlay_x"
     const val KEY_OVERLAY_Y = "overlay_y"
     const val KEY_OVERLAY_ENABLED = "overlay_enabled"
+    const val KEY_OVERLAY_COMPANION_IDS = "overlay_companion_ids"
     const val KEY_SELECTED_PET_TYPE = "selected_pet_type"
     const val KEY_PET_NAME = "pet_name"
     const val KEY_USER_NAME = "user_name"
@@ -17,12 +18,16 @@ object Constants {
     const val KEY_AVATAR_SEED = "avatar_seed"
     const val KEY_IS_FIRST_LAUNCH = "is_first_launch"
     const val KEY_CURRENT_THEME = "current_theme"
+    const val KEY_ACTIVE_COMPANION_ID = "active_companion_id"
+    const val KEY_COMPANION_BOOTSTRAP_DONE = "companion_bootstrap_done"
 
     // Notification channels
     const val CHANNEL_COMPANION = "companion_channel"
     const val CHANNEL_REMINDER = "reminder_channel"
+    const val CHANNEL_AGENT = "agent_channel"
     const val CHANNEL_COMPANION_NAME = "Companion"
     const val CHANNEL_REMINDER_NAME = "Reminders"
+    const val CHANNEL_AGENT_NAME = "AI Agents"
 
     // Overlay defaults
     const val OVERLAY_SIZE_DP = 64f
@@ -45,6 +50,14 @@ object Constants {
     const val FOREGROUND_SERVICE_ID = 1001
     const val NOTIFICATION_ID_COMPANION = 1002
     const val NOTIFICATION_ID_REMINDER = 1003
+    const val NOTIFICATION_ID_AGENT = 1004
+
+    // Companion limits & agent polling
+    const val MAX_ACTIVE_COMPANIONS = 3
+    const val MAX_SIMULTANEOUS_OVERLAYS = 2
+    const val MAX_BOND_LEVEL = 100
+    const val DEFAULT_AGENT_POLL_INTERVAL_MIN = 15L
+    const val AGENT_WORK_PREFIX = "agent_poll_"
 
     // Notification action intents
     const val ACTION_COMPLETE_REMINDER = "com.pixelpal.app.action.COMPLETE_REMINDER"
@@ -52,5 +65,5 @@ object Constants {
 
     // Room database
     const val DATABASE_NAME = "pixelpal_database_v2"
-    const val DATABASE_VERSION = 4
+    const val DATABASE_VERSION = 6
 }

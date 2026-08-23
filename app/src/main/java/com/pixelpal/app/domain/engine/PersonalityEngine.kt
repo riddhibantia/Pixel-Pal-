@@ -19,18 +19,19 @@ data class DailyInteractionStats(
 class PersonalityEngine @Inject constructor(
     private val personalityRepository: PersonalityRepository
 ) {
-    val personality: Flow<Personality> = personalityRepository.getPersonality()
+    fun getPersonality(companionId: Long): Flow<Personality> =
+        personalityRepository.getPersonality(companionId)
 
-    suspend fun getPersonalityDirect(): Personality {
-        return personalityRepository.getPersonalityDirect()
+    suspend fun getPersonalityDirect(companionId: Long): Personality {
+        return personalityRepository.getPersonalityDirect(companionId)
     }
 
     suspend fun updatePersonality(personality: Personality) {
         personalityRepository.updatePersonality(personality)
     }
 
-    suspend fun recalculateDaily(stats: DailyInteractionStats) {
-        val current = getPersonalityDirect()
+    suspend fun recalculateDaily(companionId: Long, stats: DailyInteractionStats) {
+        val current = getPersonalityDirect(companionId)
 
         var newFriendliness = current.friendliness
         var newCuriosity = current.curiosity
@@ -71,7 +72,7 @@ class PersonalityEngine @Inject constructor(
         }
 
         val updated = Personality(
-            id = 1,
+            companionId = companionId,
             friendliness = newFriendliness.coerceIn(0.0f, 1.0f),
             curiosity = newCuriosity.coerceIn(0.0f, 1.0f),
             playfulness = newPlayfulness.coerceIn(0.0f, 1.0f),

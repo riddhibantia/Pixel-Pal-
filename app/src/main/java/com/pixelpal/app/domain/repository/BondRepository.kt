@@ -4,10 +4,10 @@ import com.pixelpal.app.domain.model.Bond
 import kotlinx.coroutines.flow.Flow
 
 interface BondRepository {
-    fun getBond(): Flow<Bond>
-    suspend fun getBondDirect(): Bond
+    fun getBond(companionId: Long): Flow<Bond>
+    suspend fun getBondDirect(companionId: Long): Bond
+    suspend fun getAllDirect(): List<Bond>
     suspend fun updateBond(bond: Bond)
-    suspend fun recordTap()
-    suspend fun recordFeed()
-    suspend fun resetDailyCounts()
+    /** Creates a default bond row for the companion if one does not exist. */
+    suspend fun ensureExists(companionId: Long)
 }

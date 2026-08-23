@@ -14,5 +14,6 @@ data class Reminder(
     val status: String = "PENDING",
     val snoozeCount: Int = 0,
     val createdAt: Long = System.currentTimeMillis(),
-    val completedAt: Long? = null
+    val completedAt: Long? = null,
+    val companionId: Long? = null
 )

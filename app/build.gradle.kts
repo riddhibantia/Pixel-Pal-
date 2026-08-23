@@ -125,6 +125,9 @@ dependencies {
     // Kotlinx Serialization
     implementation(libs.kotlinx.serialization.json)
 
+    // OkHttp (agent connector)
+    implementation(libs.okhttp)
+
     // WorkManager
     implementation(libs.androidx.work.runtime.ktx)
 

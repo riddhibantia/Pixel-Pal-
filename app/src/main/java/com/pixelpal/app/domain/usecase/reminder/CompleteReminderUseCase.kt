@@ -12,7 +12,8 @@ class CompleteReminderUseCase @Inject constructor(
 ) {
     suspend operator fun invoke(id: Long) {
         reminderScheduler.cancelReminder(id)
+        val reminder = reminderRepository.getById(id)
         reminderRepository.complete(id)
-        bondEngine.recordReminderCompleted()
+        reminder?.companionId?.let { bondEngine.recordReminderCompleted(it) }
     }
 }

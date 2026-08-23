@@ -7,9 +7,12 @@ import com.pixelpal.app.data.local.datastore.PreferencesManager
 import com.pixelpal.app.domain.engine.BondEngine
 import com.pixelpal.app.domain.model.Bond
 import com.pixelpal.app.domain.model.PetType
+import com.pixelpal.app.domain.usecase.companion.GetActiveCompanionUseCase
+import com.pixelpal.app.domain.usecase.companion.UpdateCompanionUseCase
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import javax.inject.Inject
@@ -18,31 +21,40 @@ import javax.inject.Inject
 class CustomizeViewModel @Inject constructor(
     private val preferencesManager: PreferencesManager,
     private val spriteAnimator: SpriteAnimator,
+    getActiveCompanionUseCase: GetActiveCompanionUseCase,
+    private val updateCompanionUseCase: UpdateCompanionUseCase,
     bondEngine: BondEngine
 ) : ViewModel() {
 
-    val selectedPetType: StateFlow<String> = preferencesManager.selectedPetType
+    private val activeCompanion = getActiveCompanionUseCase.activeCompanion
+        .stateIn(viewModelScope, SharingStarted.Lazily, null)
+
+    val selectedPetType: StateFlow<String> = activeCompanion
+        .map { it?.petType ?: "cat" }
         .stateIn(viewModelScope, SharingStarted.Lazily, "cat")
 
-    val petName: StateFlow<String> = preferencesManager.petName
+    val petName: StateFlow<String> = activeCompanion
+        .map { it?.name ?: "Pixel" }
         .stateIn(viewModelScope, SharingStarted.Lazily, "Pixel")
 
     val currentTheme: StateFlow<String> = preferencesManager.currentTheme
         .stateIn(viewModelScope, SharingStarted.Lazily, "dark")
 
     val bond: StateFlow<Bond> = bondEngine.bond
-        .stateIn(viewModelScope, SharingStarted.Lazily, Bond())
+        .stateIn(viewModelScope, SharingStarted.Lazily, Bond(companionId = -1))
 
     fun selectPet(petType: PetType) {
         viewModelScope.launch {
-            preferencesManager.setSelectedPetType(petType.id)
+            val companion = activeCompanion.value ?: return@launch
+            updateCompanionUseCase(companion.copy(petType = petType.id))
             spriteAnimator.setPetType(petType.id)
         }
     }
 
     fun updatePetName(name: String) {
         viewModelScope.launch {
-            preferencesManager.setPetName(name)
+            val companion = activeCompanion.value ?: return@launch
+            updateCompanionUseCase(companion.copy(name = name))
         }
     }
 

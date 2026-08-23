@@ -14,34 +14,30 @@ class BondRepositoryImpl @Inject constructor(
     private val dao: BondDao
 ) : BondRepository {
 
-    override fun getBond(): Flow<Bond> {
-        return dao.getBond().map { entity ->
-            entity?.toDomain() ?: Bond()
+    override fun getBond(companionId: Long): Flow<Bond> {
+        return dao.getBond(companionId).map { entity ->
+            entity?.toDomain() ?: Bond(companionId = companionId)
         }
     }
 
-    override suspend fun getBondDirect(): Bond {
-        return dao.getBondDirect()?.toDomain() ?: Bond()
+    override suspend fun getBondDirect(companionId: Long): Bond {
+        return dao.getBondDirect(companionId)?.toDomain() ?: Bond(companionId = companionId)
     }
+
+    override suspend fun getAllDirect(): List<Bond> = dao.getAllDirect().map { it.toDomain() }
 
     override suspend fun updateBond(bond: Bond) {
         dao.insertOrUpdate(bond.toEntity())
     }
 
-    override suspend fun recordTap() {
-        dao.recordTap()
-    }
-
-    override suspend fun recordFeed() {
-        dao.recordFeed()
-    }
-
-    override suspend fun resetDailyCounts() {
-        dao.resetDailyCounts()
+    override suspend fun ensureExists(companionId: Long) {
+        if (dao.getBondDirect(companionId) == null) {
+            dao.insertOrUpdate(BondEntity(companionId = companionId))
+        }
     }
 
     private fun BondEntity.toDomain() = Bond(
-        id = id,
+        companionId = companionId,
         level = level,
         totalInteractions = totalInteractions,
         tapsToday = tapsToday,
@@ -52,7 +48,7 @@ class BondRepositoryImpl @Inject constructor(
     )
 
     private fun Bond.toEntity() = BondEntity(
-        id = id,
+        companionId = companionId,
         level = level,
         totalInteractions = totalInteractions,
         tapsToday = tapsToday,
