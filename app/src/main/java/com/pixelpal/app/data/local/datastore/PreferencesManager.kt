@@ -33,6 +33,7 @@ class PreferencesManager @Inject constructor(
         val CURRENT_THEME = stringPreferencesKey(Constants.KEY_CURRENT_THEME)
         val ACTIVE_COMPANION_ID = longPreferencesKey(Constants.KEY_ACTIVE_COMPANION_ID)
         val COMPANION_BOOTSTRAP_DONE = booleanPreferencesKey(Constants.KEY_COMPANION_BOOTSTRAP_DONE)
+        val SINGLE_COMPANION_FOLD_DONE = booleanPreferencesKey(Constants.KEY_SINGLE_COMPANION_FOLD_DONE)
 
         /** Per-companion overlay positions: overlay_x_<id> / overlay_y_<id>. */
         fun overlayX(companionId: Long) = floatPreferencesKey("${Constants.KEY_OVERLAY_X}_$companionId")
@@ -166,6 +167,15 @@ class PreferencesManager @Inject constructor(
 
     suspend fun isCompanionBootstrapDone(): Boolean =
         dataStore.data.first()[Keys.COMPANION_BOOTSTRAP_DONE] ?: false
+
+    suspend fun isSingleCompanionFoldDone(): Boolean =
+        dataStore.data.first()[Keys.SINGLE_COMPANION_FOLD_DONE] ?: false
+
+    suspend fun setSingleCompanionFoldDone(done: Boolean) {
+        dataStore.edit { preferences ->
+            preferences[Keys.SINGLE_COMPANION_FOLD_DONE] = done
+        }
+    }
 
     suspend fun setUserEmail(email: String) {
         dataStore.edit { preferences ->

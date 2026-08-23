@@ -44,9 +44,7 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
 import com.pixelpal.app.animation.AnimationState
-import com.pixelpal.app.domain.model.AgentConfig
-import com.pixelpal.app.domain.model.AgentStatus
-import com.pixelpal.app.domain.model.CompanionRole
+import com.pixelpal.app.domain.model.AgentConnection
 import com.pixelpal.app.domain.model.Personality
 import com.pixelpal.app.domain.model.Task
 import com.pixelpal.app.presentation.components.AppTextField
@@ -73,8 +71,11 @@ fun CompanionWorkspaceScreen(
 
     val state = uiState
     if (state.loading || state.companion == null) {
-        Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-            CircularProgressIndicator()
+        Column(modifier = Modifier.fillMaxSize()) {
+            AppTopBar(title = "Workspace", onBack = { navController.popBackStack() })
+            Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                CircularProgressIndicator()
+            }
         }
         return
     }
@@ -91,61 +92,56 @@ fun CompanionWorkspaceScreen(
                 .padding(horizontal = Spacing.screenHorizontal)
                 .padding(bottom = Spacing.lg)
         ) {
-            HeaderCard(companion = companion, isActive = uiState.isActive, bond = uiState.bond, viewModel = viewModel)
+            // ── Profile ──
+            ProfileHeader(companion = companion, bond = state.bond, viewModel = viewModel)
+            Spacer(modifier = Modifier.height(Spacing.sm))
+            TextButton(onClick = { navController.navigate(Screen.Customize.route) }) {
+                Text("Customize Companion")
+            }
 
             Spacer(modifier = Modifier.height(Spacing.md))
 
-            // Role-aware sections: only what's relevant to this companion's role.
-            when (companion.role) {
-                CompanionRole.GENERAL -> {
-                    BondSection(bond = uiState.bond)
-                    Spacer(modifier = Modifier.height(Spacing.md))
-                    uiState.personality?.let { personality ->
-                        PersonalitySection(personality = personality)
-                        Spacer(modifier = Modifier.height(Spacing.md))
-                    }
-                }
-                CompanionRole.TASK -> {
-                    TasksSection(tasks = uiState.tasks, viewModel = viewModel)
-                    Spacer(modifier = Modifier.height(Spacing.md))
-                }
-                CompanionRole.REMINDER -> {
-                    RemindersSection(
-                        reminders = uiState.reminders,
-                        onAddReminder = {
-                            navController.navigate(Screen.reminderForCompanion(companion.id))
-                        }
-                    )
-                    Spacer(modifier = Modifier.height(Spacing.md))
-                }
-                CompanionRole.AI_AGENT -> {
-                    AgentSection(
-                        config = uiState.agentConfig,
-                        status = uiState.agentStatus,
-                        checking = checkingAgent,
-                        onSave = viewModel::saveAgentConfig,
-                        onCheckNow = viewModel::refreshAgentStatus
-                    )
-                    Spacer(modifier = Modifier.height(Spacing.md))
-                }
-                CompanionRole.CUSTOM -> {
-                    CustomNotesSection(
-                        description = companion.description,
-                        viewModel = viewModel
-                    )
-                    Spacer(modifier = Modifier.height(Spacing.md))
-                }
+            // ── Bond & progress ──
+            BondSection(bond = state.bond)
+
+            Spacer(modifier = Modifier.height(Spacing.md))
+
+            // ── Personality ──
+            state.personality?.let { personality ->
+                PersonalitySection(personality = personality)
+                Spacer(modifier = Modifier.height(Spacing.md))
             }
 
-            ActivitySection(activities = uiState.recentActivity)
+            // ── Tasks ──
+            TasksSection(tasks = state.tasks, viewModel = viewModel)
+            Spacer(modifier = Modifier.height(Spacing.md))
+
+            // ── Reminders ──
+            RemindersSection(
+                reminders = state.reminders,
+                onAddReminder = { navController.navigate(Screen.CreateReminder.route) }
+            )
+            Spacer(modifier = Modifier.height(Spacing.md))
+
+            // ── AI Agent Connection ──
+            AgentConnectionSection(
+                connection = state.agentConnection,
+                checking = checkingAgent,
+                onSave = viewModel::saveAgentConnection,
+                onCheckNow = viewModel::refreshAgentStatus,
+                onDisconnect = viewModel::disconnectAgent
+            )
+            Spacer(modifier = Modifier.height(Spacing.md))
+
+            // ── Activity ──
+            ActivitySection(activities = state.recentActivity)
         }
     }
 }
 
 @Composable
-private fun HeaderCard(
+private fun ProfileHeader(
     companion: com.pixelpal.app.domain.model.Companion,
-    isActive: Boolean,
     bond: com.pixelpal.app.domain.model.Bond?,
     viewModel: CompanionWorkspaceViewModel
 ) {
@@ -161,7 +157,7 @@ private fun HeaderCard(
         ) {
             Box(
                 modifier = Modifier
-                    .size(80.dp)
+                    .size(72.dp)
                     .background(
                         MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
                         RoundedCornerShape(Radius.large)
@@ -169,9 +165,9 @@ private fun HeaderCard(
                 contentAlignment = Alignment.Center
             ) {
                 PetRenderer(
-                    petType = companion.petType,
+                    petType = companion.effectiveSpecies,
                     animationState = AnimationState.HAPPY,
-                    size = 72.dp
+                    size = 64.dp
                 )
             }
 
@@ -198,34 +194,17 @@ private fun HeaderCard(
                     }
                 }
                 Text(
-                    text = "${companion.role.displayName} · ${petLabel(companion.petType)}" +
-                        (bond?.let { " · Bond Lvl ${it.level}" } ?: ""),
+                    text = "${speciesLabel(companion.effectiveSpecies)} Companion • Bond Level ${bond?.level ?: 0}",
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-                Spacer(modifier = Modifier.height(Spacing.xs))
-                if (isActive) {
-                    Text(
-                        text = "Active companion",
-                        style = MaterialTheme.typography.labelMedium,
-                        color = MaterialTheme.colorScheme.primary
-                    )
-                } else {
-                    TextButton(onClick = viewModel::setActive) {
-                        Text("Make active")
-                    }
-                }
-            }
-
-            TextButton(onClick = viewModel::archive) {
-                Text(
-                    text = "Archive",
-                    color = MaterialTheme.colorScheme.error
                 )
             }
         }
     }
 }
+
+private fun speciesLabel(species: String): String =
+    species.replaceFirstChar { it.uppercase() }
 
 @Composable
 private fun BondSection(bond: com.pixelpal.app.domain.model.Bond?) {
@@ -245,7 +224,7 @@ private fun BondSection(bond: com.pixelpal.app.domain.model.Bond?) {
                     fontWeight = FontWeight.SemiBold
                 )
                 Text(
-                    text = "${bond?.totalInteractions ?: 0} interactions",
+                    text = "${bond?.totalInteractions ?: 0} meaningful interactions",
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
@@ -257,7 +236,11 @@ private fun BondSection(bond: com.pixelpal.app.domain.model.Bond?) {
             )
             Spacer(modifier = Modifier.height(Spacing.sm))
             Text(
-                text = "${bond?.tapsToday ?: 0} taps · ${bond?.feedsToday ?: 0} feeds today · ${bond?.streakDays ?: 0}-day streak",
+                text = if ((bond?.level ?: 0) >= 100) {
+                    "Max Bond reached — ${bond?.streakDays ?: 0}-day streak"
+                } else {
+                    "${bond?.streakDays ?: 0}-day streak • keep completing tasks and reminders to grow your bond"
+                },
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
@@ -295,45 +278,6 @@ private fun PersonalitySection(personality: Personality) {
                     )
                 }
             }
-        }
-    }
-}
-
-@Composable
-private fun RemindersSection(
-    reminders: List<com.pixelpal.app.domain.model.Reminder>,
-    onAddReminder: () -> Unit
-) {
-    SectionHeader(title = "Reminders")
-    Card(
-        modifier = Modifier.fillMaxWidth(),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
-    ) {
-        Column(modifier = Modifier.padding(Spacing.md)) {
-            if (reminders.isEmpty()) {
-                Text(
-                    text = "No pending reminders for this companion.",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-            } else {
-                reminders.forEachIndexed { index, reminder ->
-                    if (index > 0) {
-                        HorizontalDivider(color = MaterialTheme.colorScheme.outline.copy(alpha = 0.2f))
-                        Spacer(modifier = Modifier.height(Spacing.sm))
-                    }
-                    Text(
-                        text = reminder.title,
-                        style = MaterialTheme.typography.bodyMedium
-                    )
-                }
-            }
-            Spacer(modifier = Modifier.height(Spacing.md))
-            PrimaryButton(
-                text = "Add Reminder",
-                onClick = onAddReminder,
-                modifier = Modifier.fillMaxWidth()
-            )
         }
     }
 }
@@ -408,24 +352,132 @@ private fun TasksSection(
 }
 
 @Composable
-private fun AgentSection(
-    config: AgentConfig?,
-    status: AgentStatus?,
-    checking: Boolean,
-    onSave: (Boolean, String, Long) -> Unit,
-    onCheckNow: () -> Unit
+private fun RemindersSection(
+    reminders: List<com.pixelpal.app.domain.model.Reminder>,
+    onAddReminder: () -> Unit
 ) {
-    SectionHeader(title = "AI Agent")
+    SectionHeader(title = "Reminders")
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
+    ) {
+        Column(modifier = Modifier.padding(Spacing.md)) {
+            if (reminders.isEmpty()) {
+                Text(
+                    text = "No pending reminders",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            } else {
+                reminders.forEachIndexed { index, reminder ->
+                    if (index > 0) {
+                        HorizontalDivider(color = MaterialTheme.colorScheme.outline.copy(alpha = 0.2f))
+                        Spacer(modifier = Modifier.height(Spacing.sm))
+                    }
+                    Text(
+                        text = reminder.title,
+                        style = MaterialTheme.typography.bodyMedium
+                    )
+                    Text(
+                        text = timeFormat.format(Date(reminder.triggerTime)),
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+            }
+            Spacer(modifier = Modifier.height(Spacing.md))
+            PrimaryButton(
+                text = "Add Reminder",
+                onClick = onAddReminder,
+                modifier = Modifier.fillMaxWidth()
+            )
+        }
+    }
+}
 
-    var endpoint by remember { mutableStateOf(config?.endpointUrl ?: "") }
-    var enabled by remember { mutableStateOf(config?.enabled ?: false) }
-    var interval by remember { mutableStateOf(config?.pollIntervalMinutes ?: 15L) }
+@Composable
+private fun AgentConnectionSection(
+    connection: AgentConnection?,
+    checking: Boolean,
+    onSave: (AgentConnection) -> Unit,
+    onCheckNow: () -> Unit,
+    onDisconnect: () -> Unit
+) {
+    SectionHeader(title = "AI Agent Connection")
+
+    var endpoint by remember(connection?.companionId) {
+        mutableStateOf(connection?.endpointUrl ?: "")
+    }
+    var agentName by remember(connection?.companionId) {
+        mutableStateOf(connection?.agentName ?: "")
+    }
+    var pollingEnabled by remember(connection?.companionId) {
+        mutableStateOf(connection?.pollingEnabled ?: false)
+    }
 
     Card(
         modifier = Modifier.fillMaxWidth(),
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
     ) {
         Column(modifier = Modifier.padding(Spacing.md)) {
+            // Status line
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Box(
+                    modifier = Modifier
+                        .size(10.dp)
+                        .background(
+                            color = statusColor(connection),
+                            shape = RoundedCornerShape(5.dp)
+                        )
+                )
+                Spacer(modifier = Modifier.width(Spacing.sm))
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(
+                        text = connectionStatusText(connection),
+                        style = MaterialTheme.typography.bodyMedium,
+                        fontWeight = FontWeight.SemiBold
+                    )
+                    connection?.currentTask?.let {
+                        Text(
+                            text = it,
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                }
+            }
+
+            connection?.progress?.let { progress ->
+                Spacer(modifier = Modifier.height(Spacing.sm))
+                LinearProgressIndicator(
+                    progress = { progress / 100f },
+                    modifier = Modifier.fillMaxWidth()
+                )
+                Text(
+                    text = "$progress% • ${connection.currentStatus.displayName}",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+
+            connection?.lastCheckedAt?.let {
+                Spacer(modifier = Modifier.height(Spacing.xs))
+                Text(
+                    text = "Last update: ${timeFormat.format(Date(it))}",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+
+            Spacer(modifier = Modifier.height(Spacing.md))
+
+            AppTextField(
+                value = agentName,
+                onValueChange = { agentName = it },
+                label = "Agent name",
+                placeholder = "e.g. OpenCode Development Agent"
+            )
+            Spacer(modifier = Modifier.height(Spacing.sm))
             AppTextField(
                 value = endpoint,
                 onValueChange = { endpoint = it },
@@ -441,101 +493,80 @@ private fun AgentSection(
                 Column(modifier = Modifier.weight(1f)) {
                     Text("Polling enabled", style = MaterialTheme.typography.bodyMedium)
                     Text(
-                        text = "Checks every $interval min",
+                        text = "Checks every ${connection?.pollingIntervalMinutes ?: 15} min",
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 }
                 Switch(
-                    checked = enabled,
-                    onCheckedChange = { enabled = it }
+                    checked = pollingEnabled,
+                    onCheckedChange = { pollingEnabled = it }
                 )
             }
 
             Spacer(modifier = Modifier.height(Spacing.sm))
 
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
+            Row {
                 TextButton(
                     onClick = {
-                        onSave(enabled, endpoint, interval)
+                        val companionId = connection?.companionId ?: return@TextButton
+                        onSave(
+                            (connection ?: AgentConnection(companionId = companionId)).copy(
+                                agentName = agentName.trim(),
+                                endpointUrl = endpoint.trim(),
+                                pollingEnabled = pollingEnabled
+                            )
+                        )
                     }
                 ) {
-                    Text("Save")
+                    Text(if (connection?.endpointUrl.isNullOrBlank()) "Connect" else "Save")
                 }
-                TextButton(
-                    onClick = onCheckNow,
-                    enabled = !checking
-                ) {
-                    Text(if (checking) "Checking…" else "Check now")
+                TextButton(onClick = onCheckNow, enabled = !checking && !connection?.endpointUrl.isNullOrBlank()) {
+                    Text(if (checking) "Checking…" else "Check Now")
+                }
+                if (!connection?.endpointUrl.isNullOrBlank()) {
+                    TextButton(onClick = onDisconnect) {
+                        Text("Disconnect", color = MaterialTheme.colorScheme.error)
+                    }
                 }
             }
 
-            status?.let {
-                Spacer(modifier = Modifier.height(Spacing.sm))
-                HorizontalDivider(color = MaterialTheme.colorScheme.outline.copy(alpha = 0.2f))
-                Spacer(modifier = Modifier.height(Spacing.sm))
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Box(
-                        modifier = Modifier
-                            .size(8.dp)
-                            .background(
-                                color = statusColor(status),
-                                shape = RoundedCornerShape(4.dp)
-                            )
-                    )
-                    Spacer(modifier = Modifier.width(Spacing.sm))
-                    Column {
-                        Text(
-                            text = status.state.displayName,
-                            style = MaterialTheme.typography.bodyMedium,
-                            fontWeight = FontWeight.SemiBold
-                        )
-                        status.message?.let {
-                            Text(
-                                text = it,
-                                style = MaterialTheme.typography.bodySmall,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant
-                            )
-                        }
-                    }
-                }
+            connection?.errorMessage?.let {
+                Spacer(modifier = Modifier.height(Spacing.xs))
+                Text(
+                    text = it,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.error
+                )
             }
         }
     }
 }
 
 @Composable
-private fun CustomNotesSection(
-    description: String?,
-    viewModel: CompanionWorkspaceViewModel
-) {
-    var notes by remember { mutableStateOf(description ?: "") }
-
-    SectionHeader(title = "Custom Purpose")
-    Card(
-        modifier = Modifier.fillMaxWidth(),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
-    ) {
-        Column(modifier = Modifier.padding(Spacing.md)) {
-            AppTextField(
-                value = notes,
-                onValueChange = { if (it.length <= 140) notes = it },
-                label = "What is this companion for?",
-                placeholder = "Describe its purpose or notes"
-            )
-            Spacer(modifier = Modifier.height(Spacing.sm))
-            TextButton(
-                onClick = { viewModel.setDescription(notes) },
-                enabled = notes != description
-            ) {
-                Text("Save notes")
-            }
-        }
+private fun statusColor(connection: AgentConnection?): androidx.compose.ui.graphics.Color =
+    when {
+        connection == null -> MaterialTheme.colorScheme.onSurfaceVariant
+        connection.connectionStatus == com.pixelpal.app.domain.model.ConnectionStatus.ERROR ->
+            MaterialTheme.colorScheme.error
+        connection.isConnected &&
+            connection.currentStatus in setOf(
+                com.pixelpal.app.domain.model.AgentState.WORKING,
+                com.pixelpal.app.domain.model.AgentState.ONLINE,
+                com.pixelpal.app.domain.model.AgentState.IDLE
+            ) -> MaterialTheme.colorScheme.primary
+        else -> MaterialTheme.colorScheme.onSurfaceVariant
     }
-}
+
+@Composable
+private fun connectionStatusText(connection: AgentConnection?): String =
+    when {
+        connection == null -> "Not connected"
+        connection.endpointUrl.isBlank() -> "Not connected"
+        connection.connectionStatus == com.pixelpal.app.domain.model.ConnectionStatus.ERROR ->
+            "Connection error"
+        else -> "● Connected — ${connection.currentStatus.displayName}"
+    }
 
 @Composable
 private fun ActivitySection(activities: List<com.pixelpal.app.domain.model.ActivityEvent>) {
@@ -582,12 +613,3 @@ private fun ActivitySection(activities: List<com.pixelpal.app.domain.model.Activ
         }
     }
 }
-
-@Composable
-private fun statusColor(status: AgentStatus): androidx.compose.ui.graphics.Color {
-    return if (status.state.needsAttention) MaterialTheme.colorScheme.error
-    else MaterialTheme.colorScheme.primary
-}
-
-private fun petLabel(petType: String): String =
-    com.pixelpal.app.domain.model.PetType.fromId(petType).displayName

@@ -4,19 +4,16 @@ import com.pixelpal.app.data.dialogue.DialogueLoader
 import com.pixelpal.app.data.local.datastore.PreferencesManager
 import com.pixelpal.app.domain.model.AgentState
 import com.pixelpal.app.domain.model.Companion
-import com.pixelpal.app.domain.model.CompanionRole
 import com.pixelpal.app.domain.model.Emotion
 import kotlinx.coroutines.flow.first
 import javax.inject.Inject
 import javax.inject.Singleton
 
 /**
- * Role- and personality-aware reaction layer. All companion speech goes
- * through here so no hard-coded strings scatter across UI or services.
- *
- * GENERAL companions delegate to the existing [DialogueLoader] packs (which
- * already filter by emotion/bond/personality); other roles draw from the
- * centralized phrase sets below, with light personalization.
+ * Contextual reaction layer for THE companion. Message categories are driven
+ * by live app state (tasks due, agent status, streaks) — never generic spam.
+ * GENERAL-style interactions still delegate to the [DialogueLoader] packs,
+ * which filter by emotion/bond/personality.
  */
 @Singleton
 class CompanionReactionProvider @Inject constructor(
@@ -26,10 +23,11 @@ class CompanionReactionProvider @Inject constructor(
 ) {
     enum class Interaction { TAP, DOUBLE_TAP, FEED }
 
-    /** Returns the message shown for a direct interaction, or null if none fits. */
+    /** Message shown when the user interacts (tap/feed) with the companion. */
     suspend fun interactionMessage(
         companion: Companion,
         bondLevel: Int,
+        pendingTaskCount: Int,
         interaction: Interaction
     ): String? {
         val userName = preferencesManager.userName.first().ifEmpty { "friend" }
@@ -40,41 +38,19 @@ class CompanionReactionProvider @Inject constructor(
             "user_name" to userName
         )
 
-        return when (companion.role) {
-            CompanionRole.GENERAL -> generalLine(companion, bondLevel, interaction, vars)
-            CompanionRole.TASK -> fill(TASK_LINES[interaction].orEmpty(), vars)
-            CompanionRole.REMINDER -> fill(REMINDER_LINES[interaction].orEmpty(), vars)
-            CompanionRole.AI_AGENT -> fill(AGENT_IDLE_TAP_LINES, vars)
-            CompanionRole.CUSTOM -> fill(CUSTOM_LINES[interaction].orEmpty(), vars)
+        // Occasionally weave in real state instead of a pure reaction.
+        if (interaction == Interaction.TAP && pendingTaskCount > 0 &&
+            listOf(0, 1).random() == 0
+        ) {
+            return fill(
+                listOf(
+                    "You still have $pendingTaskCount task${if (pendingTaskCount > 1) "s" else ""} left today.",
+                    "$pendingTaskCount tasks on the list, {user} — we've got this!"
+                ),
+                vars
+            )
         }
-    }
 
-    /**
-     * Message describing an AI-agent state change (used by overlays and the
-     * workspace "Check now" flow feedback).
-     */
-    suspend fun agentStateMessage(companion: Companion, state: AgentState): String {
-        val userName = preferencesManager.userName.first().ifEmpty { "friend" }
-        val vars = mapOf("name" to companion.name, "user" to userName)
-        val lines = when (state) {
-            AgentState.WORKING -> listOf("Still working…", "${companion.name} is busy processing.", "Working on it — check back soon.")
-            AgentState.WAITING_FOR_INPUT -> listOf("I need your input, {user}!", "Waiting for you — I'm blocked.", "Your turn, {user}!")
-            AgentState.COMPLETED -> listOf("Task complete!", "Done! Check the results.", "Finished what you asked for.")
-            AgentState.FAILED -> listOf("The check failed — is my endpoint okay?", "Couldn't reach home base.", "Something went wrong on my end.")
-            AgentState.OFFLINE -> listOf("I'm offline — check my connection settings.", "Can't reach the network right now.")
-            AgentState.CONNECTING -> listOf("Connecting…", "Reaching out to my endpoint.")
-            AgentState.IDLE -> listOf("Standing by.", "All quiet on my end.")
-            AgentState.STOPPED -> listOf("Stopped. Start me again anytime.")
-        }
-        return fill(lines, vars) ?: "${companion.name}: ${state.displayName}"
-    }
-
-    private suspend fun generalLine(
-        companion: Companion,
-        bondLevel: Int,
-        interaction: Interaction,
-        vars: Map<String, String>
-    ): String? {
         val personality = personalityEngine.getPersonalityDirect(companion.id)
         val emotion = when (interaction) {
             Interaction.DOUBLE_TAP -> Emotion.EXCITED
@@ -91,69 +67,41 @@ class CompanionReactionProvider @Inject constructor(
             bondLevel = bondLevel,
             personality = personality,
             variables = vars
-        )
+        ) ?: fallbackInteraction(interaction, vars)
     }
+
+    /** Agent-state-driven message (overlay/workspace feedback). */
+    suspend fun agentStateMessage(companion: Companion, state: AgentState): String {
+        val userName = preferencesManager.userName.first().ifEmpty { "friend" }
+        val vars = mapOf("name" to companion.name, "user" to userName)
+        val lines = when (state) {
+            AgentState.WORKING -> listOf("Your coding agent is working.", "${companion.name} sees your agent busy at work.", "Agent on it — check back soon.")
+            AgentState.WAITING_FOR_INPUT -> listOf("Your agent needs your input!", "The agent is waiting for you, {user}.")
+            AgentState.COMPLETED -> listOf("Great news! Your agent finished the task.", "Your agent completed its work.")
+            AgentState.ERROR -> listOf("Something went wrong with your agent.", "The build failed — your agent needs attention.")
+            AgentState.OFFLINE -> listOf("Your agent is unreachable right now.", "Can't reach your agent's endpoint.")
+            AgentState.CONNECTING -> listOf("Connecting to your agent…", "Reaching out to your coding agent.")
+            AgentState.ONLINE -> listOf("Your agent is online.", "Connected to your coding agent.")
+            AgentState.IDLE -> listOf("Your agent is idle and standing by.", "All quiet on the agent front.")
+            AgentState.DISCONNECTED -> listOf("No agent connected yet. Set one up in the workspace!")
+        }
+        return fill(lines, vars) ?: "${companion.name}: ${state.displayName}"
+    }
+
+    private fun fallbackInteraction(
+        interaction: Interaction,
+        vars: Map<String, String>
+    ): String? = fill(
+        when (interaction) {
+            Interaction.DOUBLE_TAP -> listOf("Yay! High five!", "Double the fun!")
+            Interaction.FEED -> listOf("That was tasty!", "Thanks, {user}!")
+            Interaction.TAP -> listOf("Hey, again?", "I'm here if you need me!")
+        },
+        vars
+    )
 
     private fun fill(lines: List<String>, vars: Map<String, String>): String? =
         lines.randomOrNull()?.let { line ->
             vars.entries.fold(line) { acc, (key, value) -> acc.replace("{$key}", value) }
         }
-
-    private val TASK_LINES = mapOf(
-        Interaction.TAP to listOf(
-            "Let's crush the next task, {user}!",
-            "Checklist time — what's next?",
-            "One step at a time. I'm on it!",
-            "Open your checklist whenever you're ready."
-        ),
-        Interaction.DOUBLE_TAP to listOf(
-            "Double motivation!",
-            "We're on a roll, {user}!",
-            "That's the spirit!"
-        ),
-        Interaction.FEED to listOf(
-            "Fuel up, then back to work!",
-            "Break earned. Back to the checklist after!",
-            "Recharging for the next task!"
-        )
-    )
-
-    private val REMINDER_LINES = mapOf(
-        Interaction.TAP to listOf(
-            "All reminders on track!",
-            "I'll keep watch on the clock, {user}.",
-            "Nothing slips past me.",
-            "Next reminder will pop up soon."
-        ),
-        Interaction.DOUBLE_TAP to listOf(
-            "Right on schedule!",
-            "Clockwork, {user}."
-        ),
-        Interaction.FEED to listOf(
-            "Thanks! I'll stay sharp for your reminders.",
-            "Quick snack, then back to guarding the clock."
-        )
-    )
-
-    private val AGENT_IDLE_TAP_LINES = listOf(
-        "Standing by.",
-        "All systems normal.",
-        "Ping me from my workspace for a status check."
-    )
-
-    private val CUSTOM_LINES = mapOf(
-        Interaction.TAP to listOf(
-            "At your service, {user}!",
-            "{name} reporting in.",
-            "Happy to help however you configured me!"
-        ),
-        Interaction.DOUBLE_TAP to listOf(
-            "Twice the hello!",
-            "You found my secret handshake."
-        ),
-        Interaction.FEED to listOf(
-            "Much appreciated!",
-            "A snack for good work."
-        )
-    )
 }

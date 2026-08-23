@@ -56,7 +56,7 @@ fun ActivityCenterScreen(
     viewModel: ActivityCenterViewModel = hiltViewModel()
 ) {
     val events by viewModel.events.collectAsState()
-    val companions by viewModel.companions.collectAsState()
+    val companion by viewModel.companion.collectAsState()
     val selectedFilter by viewModel.selectedFilter.collectAsState()
 
     Column(modifier = Modifier.fillMaxSize()) {
@@ -75,11 +75,11 @@ fun ActivityCenterScreen(
                 onClick = { viewModel.filterBy(null) },
                 label = { Text("All") }
             )
-            companions.forEach { companion ->
+            companion?.let { c ->
                 FilterChip(
-                    selected = selectedFilter == companion.id,
-                    onClick = { viewModel.filterBy(companion.id) },
-                    label = { Text(companion.name) }
+                    selected = selectedFilter == c.id,
+                    onClick = { viewModel.filterBy(c.id) },
+                    label = { Text(c.name) }
                 )
             }
         }

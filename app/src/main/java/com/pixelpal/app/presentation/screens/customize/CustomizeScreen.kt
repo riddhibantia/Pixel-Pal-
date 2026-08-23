@@ -1,6 +1,5 @@
 package com.pixelpal.app.presentation.screens.customize
 
-import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -21,11 +20,6 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Check
-import androidx.compose.material.icons.filled.Lock
-import androidx.compose.material.icons.filled.Pets
-import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
@@ -35,15 +29,13 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.semantics.contentDescription
-import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
 import com.pixelpal.app.animation.AnimationState
-import com.pixelpal.app.domain.model.PetType
+import com.pixelpal.app.domain.model.SpeciesStyle
 import com.pixelpal.app.presentation.components.AppTextField
 import com.pixelpal.app.presentation.components.AppTopBar
 import com.pixelpal.app.presentation.components.PetRenderer
@@ -53,23 +45,23 @@ import com.pixelpal.app.presentation.components.ThemeCard
 import com.pixelpal.app.presentation.components.themeOptions
 import com.pixelpal.app.presentation.navigation.Screen
 import com.pixelpal.app.presentation.theme.Radius
-import com.pixelpal.app.presentation.theme.Sizing
 import com.pixelpal.app.presentation.theme.Spacing
 
 /**
- * Customize = PIXEL + APPEARANCE.
- * The single authoritative place for the companion name, the companion
- * selection and the app theme. Settings stays for ME + APP behavior.
+ * Customize = transform THE companion's appearance (species × color × pattern)
+ * plus app theme. Nothing here creates a second companion.
  */
 @Composable
 fun CustomizeScreen(
     navController: NavController,
     viewModel: CustomizeViewModel = hiltViewModel()
 ) {
-    val selectedPetId by viewModel.selectedPetType.collectAsState()
-    val petName by viewModel.petName.collectAsState()
-    val bond by viewModel.bond.collectAsState()
+    val companion by viewModel.companion.collectAsState()
     val currentTheme by viewModel.currentTheme.collectAsState()
+
+    val species = companion?.effectiveSpecies ?: "cat"
+    val color = companion?.color ?: "orange"
+    val pattern = companion?.pattern ?: "plain"
 
     Scaffold(
         bottomBar = {
@@ -83,14 +75,12 @@ fun CustomizeScreen(
                 .verticalScroll(rememberScrollState())
                 .padding(bottom = Spacing.lg)
         ) {
-            AppTopBar(title = "Customize")
+            AppTopBar(title = "Customize Companion")
 
             Column(modifier = Modifier.padding(horizontal = Spacing.screenHorizontal)) {
 
-                // ── COMPANION ──
-                SectionHeader(title = "Companion")
+                SectionHeader(title = "Your Companion")
 
-                // Large living preview
                 Surface(
                     modifier = Modifier.fillMaxWidth(),
                     shape = RoundedCornerShape(Radius.large),
@@ -111,7 +101,7 @@ fun CustomizeScreen(
                                 )
                         )
                         PetRenderer(
-                            petType = selectedPetId,
+                            petType = species,
                             animationState = AnimationState.HAPPY,
                             size = 170.dp
                         )
@@ -121,7 +111,7 @@ fun CustomizeScreen(
                 Spacer(modifier = Modifier.height(Spacing.md))
 
                 AppTextField(
-                    value = petName,
+                    value = companion?.name ?: "",
                     onValueChange = { if (it.length <= 20) viewModel.updatePetName(it) },
                     label = "Companion Name",
                     placeholder = "Name your companion"
@@ -129,20 +119,80 @@ fun CustomizeScreen(
 
                 Spacer(modifier = Modifier.height(Spacing.md))
 
-                // ── SELECT COMPANION ──
-                SectionHeader(title = "Select Companion")
+                Text(
+                    text = "Transforming your companion never affects your bond, tasks, " +
+                        "reminders, or agent connection.",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+
+                Spacer(modifier = Modifier.height(Spacing.md))
+
+                // ── SPECIES ──
+                SectionHeader(title = "Species")
                 LazyRow(horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
-                    items(PetType.entries) { pet ->
-                        CompanionCard(
-                            pet = pet,
-                            bondLevel = bond.level,
-                            selected = selectedPetId.equals(pet.id, ignoreCase = true),
-                            onClick = { viewModel.selectPet(pet) }
+                    items(SpeciesStyle.SPECIES) { candidate ->
+                        OptionCard(
+                            label = speciesLabel(candidate),
+                            selected = species == candidate,
+                            onClick = {
+                                viewModel.transformAppearance(
+                                    SpeciesStyle(candidate, color, pattern)
+                                )
+                            }
+                        ) {
+                            PetRenderer(
+                                petType = candidate,
+                                animationState = AnimationState.IDLE,
+                                size = 56.dp
+                            )
+                        }
+                    }
+                }
+
+                Spacer(modifier = Modifier.height(Spacing.md))
+
+                // ── COLOR ──
+                SectionHeader(title = "Color")
+                LazyRow(horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
+                    items(SpeciesStyle.COLORS) { candidate ->
+                        ColorSwatchCard(
+                            label = speciesLabel(candidate),
+                            selected = color == candidate,
+                            onClick = {
+                                viewModel.transformAppearance(
+                                    SpeciesStyle(species, candidate, pattern)
+                                )
+                            }
                         )
                     }
                 }
 
                 Spacer(modifier = Modifier.height(Spacing.md))
+
+                // ── PATTERN ──
+                SectionHeader(title = "Pattern")
+                LazyRow(horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
+                    items(SpeciesStyle.PATTERNS) { candidate ->
+                        OptionCard(
+                            label = speciesLabel(candidate),
+                            selected = pattern == candidate,
+                            onClick = {
+                                viewModel.transformAppearance(
+                                    SpeciesStyle(species, color, candidate)
+                                )
+                            }
+                        ) {
+                            Box(
+                                modifier = Modifier
+                                    .size(44.dp)
+                                    .background(patternPreview(candidate), RoundedCornerShape(Radius.medium))
+                            )
+                        }
+                    }
+                }
+
+                Spacer(modifier = Modifier.height(Spacing.lg))
 
                 // ── APP APPEARANCE ──
                 SectionHeader(title = "App Appearance")
@@ -164,109 +214,106 @@ fun CustomizeScreen(
     }
 }
 
-/** Visual companion card: sprite, name, lock state + bond requirement, selected ring + check. */
+private fun speciesLabel(value: String): String =
+    value.replaceFirstChar { it.uppercase() }
+
+private fun patternPreview(pattern: String): Color = when (pattern) {
+    "stripes" -> Color(0xFF7E57C2)
+    "spots" -> Color(0xFFEF6C00)
+    "patches" -> Color(0xFF2E7D32)
+    else -> Color(0xFF90A4AE)
+}
+
 @Composable
-private fun CompanionCard(
-    pet: PetType,
-    bondLevel: Int,
+private fun OptionCard(
+    label: String,
     selected: Boolean,
     onClick: () -> Unit,
-    modifier: Modifier = Modifier
+    content: @Composable () -> Unit
 ) {
-    val locked = !pet.hasFullAnimationSet || bondLevel < pet.unlockBondLevel
-
     Column(
-        modifier = modifier
-            .width(120.dp)
-            .clickable(onClickLabel = pet.displayName, enabled = !locked) { onClick() }
+        modifier = Modifier
+            .width(104.dp)
+            .clickable { onClick() }
             .background(
-                if (selected) MaterialTheme.colorScheme.primary.copy(alpha = 0.08f)
-                else MaterialTheme.colorScheme.surface,
-                RoundedCornerShape(Radius.large)
+                color = if (selected) {
+                    MaterialTheme.colorScheme.primary.copy(alpha = 0.08f)
+                } else {
+                    MaterialTheme.colorScheme.surface
+                },
+                shape = RoundedCornerShape(Radius.medium)
             )
             .border(
-                BorderStroke(
+                androidx.compose.foundation.BorderStroke(
                     width = if (selected) 2.dp else 1.dp,
                     color = if (selected) MaterialTheme.colorScheme.primary
                     else MaterialTheme.colorScheme.outline.copy(alpha = 0.5f)
                 ),
-                RoundedCornerShape(Radius.large)
+                RoundedCornerShape(Radius.medium)
             )
-            .padding(Spacing.md)
-            .semantics {
-                contentDescription = buildString {
-                    append(pet.displayName)
-                    append(", ")
-                    append(
-                        when {
-                            locked -> "locked"
-                            selected -> "selected"
-                            else -> "available"
-                        }
-                    )
-                }
-            },
+            .padding(Spacing.sm),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
-        // Sprite or placeholder
         Box(
             modifier = Modifier
-                .size(64.dp)
+                .size(60.dp)
                 .background(
-                    if (locked) MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f)
-                    else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
-                    RoundedCornerShape(Radius.medium)
+                    MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
+                    RoundedCornerShape(Radius.small)
                 ),
             contentAlignment = Alignment.Center
-        ) {
-            if (pet.hasFullAnimationSet) {
-                PetRenderer(
-                    petType = pet.id,
-                    animationState = AnimationState.HAPPY,
-                    size = 56.dp
-                )
-            } else {
-                Icon(
-                    imageVector = if (locked) Icons.Default.Lock else Icons.Default.Pets,
-                    contentDescription = null,
-                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                    modifier = Modifier.size(Sizing.icon)
-                )
-            }
-        }
-
-        Spacer(modifier = Modifier.height(Spacing.sm))
-
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            Text(
-                text = pet.displayName,
-                style = MaterialTheme.typography.titleSmall,
-                color = MaterialTheme.colorScheme.onSurface,
-                textAlign = TextAlign.Center
-            )
-            if (selected) {
-                Spacer(modifier = Modifier.width(Spacing.xs))
-                Icon(
-                    imageVector = Icons.Default.Check,
-                    contentDescription = "Selected",
-                    tint = MaterialTheme.colorScheme.primary,
-                    modifier = Modifier.size(14.dp)
-                )
-            }
-        }
-
+        ) { content() }
         Spacer(modifier = Modifier.height(Spacing.xs))
-
         Text(
-            text = when {
-                !pet.hasFullAnimationSet -> "Coming Soon"
-                bondLevel < pet.unlockBondLevel -> "Bond Lvl ${pet.unlockBondLevel}"
-                selected -> "Selected"
-                else -> "Unlocked"
-            },
+            text = label,
             style = MaterialTheme.typography.labelSmall,
-            color = if (locked) MaterialTheme.colorScheme.onSurfaceVariant
-            else MaterialTheme.colorScheme.primary
+            fontWeight = if (selected) FontWeight.Bold else FontWeight.Normal
         )
+    }
+}
+
+@Composable
+private fun ColorSwatchCard(
+    label: String,
+    selected: Boolean,
+    onClick: () -> Unit
+) {
+    val swatch = when (label.lowercase()) {
+        "blue" -> Color(0xFF42A5F5)
+        "purple" -> Color(0xFFAB47BC)
+        "pink" -> Color(0xFFEC407A)
+        "green" -> Color(0xFF66BB6A)
+        else -> Color(0xFFFF8A65) // orange
+    }
+    Column(
+        modifier = Modifier
+            .width(88.dp)
+            .clickable { onClick() }
+            .background(
+                color = if (selected) {
+                    MaterialTheme.colorScheme.primary.copy(alpha = 0.08f)
+                } else {
+                    MaterialTheme.colorScheme.surface
+                },
+                shape = RoundedCornerShape(Radius.medium)
+            )
+            .border(
+                androidx.compose.foundation.BorderStroke(
+                    width = if (selected) 2.dp else 1.dp,
+                    color = if (selected) MaterialTheme.colorScheme.primary
+                    else MaterialTheme.colorScheme.outline.copy(alpha = 0.5f)
+                ),
+                RoundedCornerShape(Radius.medium)
+            )
+            .padding(Spacing.sm),
+        horizontalAlignment = Alignment.CenterHorizontally
+    ) {
+        Box(
+            modifier = Modifier
+                .size(36.dp)
+                .background(swatch, CircleShape)
+        )
+        Spacer(modifier = Modifier.height(Spacing.xs))
+        Text(text = label, style = MaterialTheme.typography.labelSmall)
     }
 }

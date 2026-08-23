@@ -86,16 +86,6 @@ fun CreateReminderScreen(
 ) {
     var title by remember { mutableStateOf("") }
     val context = LocalContext.current
-    val companions by viewModel.companions.collectAsState()
-    val activeCompanionId by viewModel.activeCompanionId.collectAsState()
-
-    // Defaults to the nav-arg companion (when opened from a card), else the active one.
-    var selectedCompanionId by remember { mutableStateOf<Long?>(null) }
-    LaunchedEffect(viewModel.initialCompanionId, activeCompanionId) {
-        if (selectedCompanionId == null) {
-            selectedCompanionId = viewModel.initialCompanionId ?: activeCompanionId
-        }
-    }
 
     var selectedMode by remember { mutableStateOf(TimeMode.QUICK) }
     var selectedQuickMinutes by remember { mutableStateOf(60L) }
@@ -189,8 +179,7 @@ fun CreateReminderScreen(
                 triggerTime = triggerTime,
                 hour = cal.get(Calendar.HOUR_OF_DAY),
                 minute = cal.get(Calendar.MINUTE),
-                soundUri = soundUri,
-                companionId = selectedCompanionId
+                soundUri = soundUri
             )
         }
     }
@@ -239,24 +228,6 @@ fun CreateReminderScreen(
                 label = "Reminder",
                 placeholder = "What do you want to be reminded of?"
             )
-
-            // ── WHO ──
-            if (companions.isNotEmpty()) {
-                SectionHeader(title = "Who")
-                FlowRow(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
-                    verticalArrangement = Arrangement.spacedBy(Spacing.sm)
-                ) {
-                    companions.forEach { companion ->
-                        FilterChip(
-                            selected = selectedCompanionId == companion.id,
-                            onClick = { selectedCompanionId = companion.id },
-                            label = { Text(companion.name) }
-                        )
-                    }
-                }
-            }
 
             // ── WHEN ──
             SectionHeader(title = "When")

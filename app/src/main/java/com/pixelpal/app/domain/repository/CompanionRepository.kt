@@ -1,32 +1,28 @@
 package com.pixelpal.app.domain.repository
 
 import com.pixelpal.app.domain.model.Companion
+import com.pixelpal.app.domain.model.SpeciesStyle
 import kotlinx.coroutines.flow.Flow
 
+/** Single-companion repository: exactly one primary companion is expected. */
 interface CompanionRepository {
-    fun getAllActive(): Flow<List<Companion>>
-    fun getAll(): Flow<List<Companion>>
-    fun getArchived(): Flow<List<Companion>>
+    fun getPrimary(): Flow<Companion?>
+    suspend fun getPrimaryDirect(): Companion?
     fun getById(id: Long): Flow<Companion?>
-
-    suspend fun getAllActiveDirect(): List<Companion>
-    suspend fun getAllDirect(): List<Companion>
     suspend fun getByIdDirect(id: Long): Companion?
 
-    /** Creates a companion, enforcing MAX_ACTIVE_COMPANIONS when it would be active. */
+    /** Maintenance/fold access — should return one row in normal operation. */
+    suspend fun getAllDirect(): List<Companion>
+
+    /** Creates the single companion (fresh installs only). */
     suspend fun create(companion: Companion): CompanionActionResult
 
+    /** Appearance transformation (species/color/pattern) + profile edits. */
     suspend fun update(companion: Companion)
-
-    suspend fun archive(id: Long)
-
-    /** Restores an archived companion; returns [CompanionActionResult.LimitReached] when at the cap. */
-    suspend fun restore(id: Long): CompanionActionResult
+    suspend fun transformAppearance(style: SpeciesStyle)
 
     suspend fun setFavorite(id: Long, favorite: Boolean)
     suspend fun setLastUsed(id: Long)
-    suspend fun countActive(): Int
-    suspend fun canCreateActive(): Boolean
-    suspend fun firstActiveDirect(): Companion?
+
     suspend fun firstAnyDirect(): Companion?
 }

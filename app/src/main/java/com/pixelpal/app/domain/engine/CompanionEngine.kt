@@ -10,6 +10,7 @@ import com.pixelpal.app.overlay.OverlayManager
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -23,6 +24,7 @@ class CompanionEngine @Inject constructor(
     private val activeCompanionManager: ActiveCompanionManager,
     private val activityEventRepository: ActivityEventRepository,
     private val reminderRepository: ReminderRepository,
+    private val taskRepository: com.pixelpal.app.domain.repository.TaskRepository,
     private val snoozeReminderUseCase: SnoozeReminderUseCase
 ) {
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Main)
@@ -68,7 +70,15 @@ class CompanionEngine @Inject constructor(
 
         val companion = activeCompanionManager.companionById(companionId) ?: return
         val bond = bondEngine.getBondDirect(companionId)
-        val text = reactionProvider.interactionMessage(companion, bond.level, interaction)
+        val pendingTasks = taskRepository.getTasks(companionId)
+            .first()
+            .count { !it.isDone }
+        val text = reactionProvider.interactionMessage(
+            companion,
+            bond.level,
+            pendingTasks,
+            interaction
+        )
 
         if (text != null) {
             overlayManager.showSpeechBubble(companionId, text)

@@ -3,16 +3,14 @@ package com.pixelpal.app.data.local.db
 import androidx.room.Database
 import androidx.room.RoomDatabase
 import com.pixelpal.app.data.local.db.dao.ActivityEventDao
-import com.pixelpal.app.data.local.db.dao.AgentConfigDao
-import com.pixelpal.app.data.local.db.dao.AgentStatusDao
+import com.pixelpal.app.data.local.db.dao.AgentConnectionDao
 import com.pixelpal.app.data.local.db.dao.BondDao
 import com.pixelpal.app.data.local.db.dao.CompanionDao
 import com.pixelpal.app.data.local.db.dao.PersonalityDao
 import com.pixelpal.app.data.local.db.dao.ReminderDao
 import com.pixelpal.app.data.local.db.dao.TaskDao
 import com.pixelpal.app.data.local.db.entity.ActivityEventEntity
-import com.pixelpal.app.data.local.db.entity.AgentConfigEntity
-import com.pixelpal.app.data.local.db.entity.AgentStatusEntity
+import com.pixelpal.app.data.local.db.entity.AgentConnectionEntity
 import com.pixelpal.app.data.local.db.entity.BondEntity
 import com.pixelpal.app.data.local.db.entity.CompanionEntity
 import com.pixelpal.app.data.local.db.entity.PersonalityEntity
@@ -26,11 +24,10 @@ import com.pixelpal.app.data.local.db.entity.TaskEntity
         PersonalityEntity::class,
         CompanionEntity::class,
         TaskEntity::class,
-        AgentConfigEntity::class,
-        AgentStatusEntity::class,
+        AgentConnectionEntity::class,
         ActivityEventEntity::class
     ],
-    version = 6,
+    version = 7,
     exportSchema = true
 )
 abstract class PixelPalDatabase : RoomDatabase() {
@@ -39,7 +36,6 @@ abstract class PixelPalDatabase : RoomDatabase() {
     abstract fun personalityDao(): PersonalityDao
     abstract fun companionDao(): CompanionDao
     abstract fun taskDao(): TaskDao
-    abstract fun agentConfigDao(): AgentConfigDao
-    abstract fun agentStatusDao(): AgentStatusDao
+    abstract fun agentConnectionDao(): AgentConnectionDao
     abstract fun activityEventDao(): ActivityEventDao
 }

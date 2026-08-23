@@ -20,6 +20,7 @@ object Constants {
     const val KEY_CURRENT_THEME = "current_theme"
     const val KEY_ACTIVE_COMPANION_ID = "active_companion_id"
     const val KEY_COMPANION_BOOTSTRAP_DONE = "companion_bootstrap_done"
+    const val KEY_SINGLE_COMPANION_FOLD_DONE = "single_companion_fold_done"
 
     // Notification channels
     const val CHANNEL_COMPANION = "companion_channel"
@@ -53,9 +54,11 @@ object Constants {
     const val NOTIFICATION_ID_AGENT = 1004
 
     // Companion limits & agent polling
-    const val MAX_ACTIVE_COMPANIONS = 3
-    const val MAX_SIMULTANEOUS_OVERLAYS = 2
     const val MAX_BOND_LEVEL = 100
+    const val MAX_SIMULTANEOUS_OVERLAYS = 1
+
+    /** Daily taps that still grant bond before interactions become reaction-only. */
+    const val BOND_GRANTING_TAPS_PER_DAY = 3
     const val DEFAULT_AGENT_POLL_INTERVAL_MIN = 15L
     const val AGENT_WORK_PREFIX = "agent_poll_"
 
@@ -65,5 +68,5 @@ object Constants {
 
     // Room database
     const val DATABASE_NAME = "pixelpal_database_v2"
-    const val DATABASE_VERSION = 6
+    const val DATABASE_VERSION = 7
 }

@@ -1,7 +1,6 @@
 package com.pixelpal.app.data.remote
 
 import com.pixelpal.app.domain.model.AgentCheckResult
-import com.pixelpal.app.domain.model.AgentConfig
 import com.pixelpal.app.domain.model.AgentState
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
@@ -18,11 +17,16 @@ import javax.inject.Singleton
 /**
  * Generic connector that polls a user-configured JSON status endpoint.
  *
- * The endpoint is expected to return an envelope like:
- *   { "status": "WORKING", "message": "processing request #42" }
+ * Understood envelope (superset — unknown keys ignored, missing fields null):
+ *   {
+ *     "status": "WORKING",
+ *     "currentTask": "Implementing authentication",
+ *     "progress": 65,
+ *     "message": "Database integration completed"
+ *   }
  *
- * No API keys or credentials are ever sent or stored. Network failures map to
- * [AgentState.OFFLINE]; non-2xx responses map to [AgentState.FAILED].
+ * No API keys or credentials are sent or stored. Network failures map to
+ * [AgentState.OFFLINE]; non-2xx responses map to [AgentState.ERROR].
  */
 @Singleton
 class GenericHttpAgentConnector @Inject constructor() : AgentConnector {
@@ -34,16 +38,16 @@ class GenericHttpAgentConnector @Inject constructor() : AgentConnector {
 
     private val json = Json { ignoreUnknownKeys = true }
 
-    override suspend fun checkStatus(config: AgentConfig): AgentCheckResult {
-        if (config.endpointUrl.isBlank()) {
-            return AgentCheckResult(AgentState.OFFLINE, "No endpoint configured")
+    override suspend fun checkNow(endpointUrl: String): AgentCheckResult {
+        if (endpointUrl.isBlank()) {
+            return AgentCheckResult(AgentState.DISCONNECTED, "No endpoint configured")
         }
         return withContext(Dispatchers.IO) {
             try {
-                val request = Request.Builder().url(config.endpointUrl).get().build()
+                val request = Request.Builder().url(endpointUrl).get().build()
                 client.newCall(request).execute().use { response ->
                     if (!response.isSuccessful) {
-                        AgentCheckResult(AgentState.FAILED, "HTTP ${response.code}")
+                        AgentCheckResult(AgentState.ERROR, "HTTP ${response.code}")
                     } else {
                         val body = response.body?.string().orEmpty()
                         parseEnvelope(body)
@@ -51,7 +55,7 @@ class GenericHttpAgentConnector @Inject constructor() : AgentConnector {
                     }
                 }
             } catch (e: IOException) {
-                Timber.d(e, "Agent status check failed for ${config.companionId}")
+                Timber.d(e, "Agent status check failed")
                 AgentCheckResult(AgentState.OFFLINE, e.message ?: "Network error")
             }
         }
@@ -60,9 +64,12 @@ class GenericHttpAgentConnector @Inject constructor() : AgentConnector {
     private fun parseEnvelope(body: String): AgentCheckResult? {
         return try {
             val envelope = json.decodeFromString<AgentEnvelope>(body)
+            val progress = envelope.progress?.takeIf { it in 0..100 }
             AgentCheckResult(
                 state = AgentState.fromId(envelope.status),
-                message = envelope.message
+                message = envelope.message,
+                currentTask = envelope.currentTask?.takeIf { it.isNotBlank() },
+                progress = progress
             )
         } catch (e: Exception) {
             Timber.d(e, "Failed to parse agent envelope")
@@ -73,6 +80,8 @@ class GenericHttpAgentConnector @Inject constructor() : AgentConnector {
     @Serializable
     private data class AgentEnvelope(
         val status: String = "",
-        val message: String? = null
+        val message: String? = null,
+        val currentTask: String? = null,
+        val progress: Int? = null
     )
 }

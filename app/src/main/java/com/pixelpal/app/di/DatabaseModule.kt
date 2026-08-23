@@ -5,8 +5,7 @@ import androidx.room.Room
 import com.pixelpal.app.data.local.db.PixelPalDatabase
 import com.pixelpal.app.data.local.db.DatabaseMigrations
 import com.pixelpal.app.data.local.db.dao.ActivityEventDao
-import com.pixelpal.app.data.local.db.dao.AgentConfigDao
-import com.pixelpal.app.data.local.db.dao.AgentStatusDao
+import com.pixelpal.app.data.local.db.dao.AgentConnectionDao
 import com.pixelpal.app.data.local.db.dao.BondDao
 import com.pixelpal.app.data.local.db.dao.CompanionDao
 import com.pixelpal.app.data.local.db.dao.PersonalityDao
@@ -39,7 +38,8 @@ object DatabaseModule {
             DatabaseMigrations.MIGRATION_2_3,
             DatabaseMigrations.MIGRATION_3_4,
             DatabaseMigrations.MIGRATION_4_5,
-            DatabaseMigrations.MIGRATION_5_6
+            DatabaseMigrations.MIGRATION_5_6,
+            DatabaseMigrations.MIGRATION_6_7
         )
         // Dev builds may move between versions freely; wiping on downgrade beats crashing.
         .fallbackToDestructiveMigrationOnDowngrade()
@@ -62,10 +62,7 @@ object DatabaseModule {
     fun provideTaskDao(db: PixelPalDatabase): TaskDao = db.taskDao()
 
     @Provides
-    fun provideAgentConfigDao(db: PixelPalDatabase): AgentConfigDao = db.agentConfigDao()
-
-    @Provides
-    fun provideAgentStatusDao(db: PixelPalDatabase): AgentStatusDao = db.agentStatusDao()
+    fun provideAgentConnectionDao(db: PixelPalDatabase): AgentConnectionDao = db.agentConnectionDao()
 
     @Provides
     fun provideActivityEventDao(db: PixelPalDatabase): ActivityEventDao = db.activityEventDao()

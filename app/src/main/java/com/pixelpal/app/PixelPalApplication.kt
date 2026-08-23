@@ -5,7 +5,7 @@ import androidx.hilt.work.HiltWorkerFactory
 import androidx.work.Configuration
 import com.pixelpal.app.data.local.datastore.CompanionBootstrapInitializer
 import com.pixelpal.app.domain.engine.ActiveCompanionManager
-import com.pixelpal.app.domain.repository.AgentConfigRepository
+import com.pixelpal.app.domain.repository.AgentConnectionRepository
 import com.pixelpal.app.worker.WorkerScheduler
 import dagger.hilt.android.HiltAndroidApp
 import kotlinx.coroutines.CoroutineScope
@@ -31,7 +31,7 @@ class PixelPalApplication : Application(), Configuration.Provider {
     lateinit var activeCompanionManager: ActiveCompanionManager
 
     @Inject
-    lateinit var agentConfigRepository: AgentConfigRepository
+    lateinit var agentConnectionRepository: AgentConnectionRepository
 
     override val workManagerConfiguration: Configuration
         get() = Configuration.Builder()
@@ -47,16 +47,19 @@ class PixelPalApplication : Application(), Configuration.Provider {
 
         workerScheduler.schedulePeriodicWork()
 
-        // Idempotent companion bootstrap: seeds the migrated/legacy pet as the
-        // default companion, ensures bond/personality rows, and repairs the
-        // active selection. Runs once per install.
+        // Startup reconciliation: one-time fold of legacy multi-companion data
+        // into THE companion, fresh-install seeding, bond/personality guarantees,
+        // and restore of any configured agent polling.
         CoroutineScope(SupervisorJob() + Dispatchers.IO).launch {
             try {
-                companionBootstrapInitializer.ensureInitialized()
+                companionBootstrapInitializer.runStartupReconciliation()
                 activeCompanionManager.ensureValidActiveCompanion()
-                // Restore polling for any agents already configured as enabled.
-                agentConfigRepository.getEnabledDirect().forEach { config ->
-                    workerScheduler.scheduleAgentPolling(config.companionId, config.pollIntervalMinutes)
+                // Restore polling for the companion's agent when configured.
+                agentConnectionRepository.getPollingEnabledDirect().forEach { connection ->
+                    workerScheduler.scheduleAgentPolling(
+                        connection.companionId,
+                        connection.pollingIntervalMinutes
+                    )
                 }
             } catch (e: Exception) {
                 Timber.e(e, "Companion bootstrap failed")

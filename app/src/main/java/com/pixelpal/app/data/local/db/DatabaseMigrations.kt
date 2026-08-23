@@ -268,4 +268,91 @@ object DatabaseMigrations {
             db.execSQL("ALTER TABLE `activity_events` ADD COLUMN `isRead` INTEGER NOT NULL DEFAULT 0")
         }
     }
+
+    /**
+     * Version 7 pivots to the SINGLE-companion architecture:
+     *  - `companions` gains pure-appearance columns (species/color/pattern).
+     *  - `agent_config` + `agent_status` merge into one `agent_connection`
+     *    row per companion — the AI Agent is now a FEATURE of the companion.
+     *
+     * NOTE: folding multiple legacy companions into the single primary happens
+     * AFTER migration, in Kotlin (SingleCompanionFold) because primary
+     * selection needs the DataStore active-companion id, which SQL can't read.
+     */
+    val MIGRATION_6_7 = object : Migration(6, 7) {
+        override fun migrate(db: SupportSQLiteDatabase) {
+            db.execSQL("ALTER TABLE `companions` ADD COLUMN `species` TEXT NOT NULL DEFAULT 'cat'")
+            db.execSQL("ALTER TABLE `companions` ADD COLUMN `color` TEXT NOT NULL DEFAULT 'orange'")
+            db.execSQL("ALTER TABLE `companions` ADD COLUMN `pattern` TEXT NOT NULL DEFAULT 'plain'")
+
+            db.execSQL(
+                """
+                CREATE TABLE IF NOT EXISTS `agent_connection` (
+                    `companionId` INTEGER NOT NULL,
+                    `agentName` TEXT NOT NULL,
+                    `provider` TEXT NOT NULL,
+                    `endpointUrl` TEXT NOT NULL,
+                    `connectionStatus` TEXT NOT NULL,
+                    `pollingEnabled` INTEGER NOT NULL,
+                    `pollingIntervalMinutes` INTEGER NOT NULL,
+                    `currentStatus` TEXT NOT NULL,
+                    `currentTask` TEXT,
+                    `progress` INTEGER,
+                    `lastMessage` TEXT,
+                    `errorMessage` TEXT,
+                    `lastCheckedAt` INTEGER,
+                    `updatedAt` INTEGER NOT NULL,
+                    PRIMARY KEY(`companionId`),
+                    FOREIGN KEY(`companionId`) REFERENCES `companions`(`id`)
+                        ON UPDATE NO ACTION ON DELETE CASCADE
+                )
+                """.trimIndent()
+            )
+
+            // Merge config+status into connections (rows exist for any companion
+            // that had either table populated).
+            db.execSQL(
+                """
+                INSERT INTO `agent_connection`
+                    (`companionId`, `agentName`, `provider`, `endpointUrl`, `connectionStatus`,
+                     `pollingEnabled`, `pollingIntervalMinutes`, `currentStatus`, `currentTask`,
+                     `progress`, `lastMessage`, `errorMessage`, `lastCheckedAt`, `updatedAt`)
+                SELECT c.`companionId`,
+                       '',
+                       '',
+                       c.`endpointUrl`,
+                       CASE WHEN c.`enabled` = 1 THEN 'CONNECTED' ELSE 'DISCONNECTED' END,
+                       c.`enabled`,
+                       c.`pollIntervalMinutes`,
+                       COALESCE(s.`state`, CASE WHEN c.`enabled` = 1 THEN 'IDLE' ELSE 'DISCONNECTED' END),
+                       NULL,
+                       NULL,
+                       s.`message`,
+                       CASE WHEN s.`state` IN ('FAILED', 'OFFLINE') THEN s.`message` ELSE NULL END,
+                       s.`lastCheckedAt`,
+                       COALESCE(s.`updatedAt`, c.`updatedAt`)
+                FROM `agent_config` c
+                LEFT JOIN `agent_status` s ON s.`companionId` = c.`companionId`
+                """.trimIndent()
+            )
+            db.execSQL(
+                """
+                INSERT INTO `agent_connection`
+                    (`companionId`, `agentName`, `provider`, `endpointUrl`, `connectionStatus`,
+                     `pollingEnabled`, `pollingIntervalMinutes`, `currentStatus`, `currentTask`,
+                     `progress`, `lastMessage`, `errorMessage`, `lastCheckedAt`, `updatedAt`)
+                SELECT s.`companionId`, '', '', '', 'DISCONNECTED', 0, 15,
+                       s.`state`, NULL, NULL, s.`message`,
+                       CASE WHEN s.`state` IN ('FAILED', 'OFFLINE') THEN s.`message` ELSE NULL END,
+                       s.`lastCheckedAt`, s.`updatedAt`
+                FROM `agent_status` s
+                WHERE NOT EXISTS (
+                    SELECT 1 FROM `agent_connection` ac WHERE ac.`companionId` = s.`companionId`
+                )
+                """.trimIndent()
+            )
+            db.execSQL("DROP TABLE IF EXISTS `agent_config`")
+            db.execSQL("DROP TABLE IF EXISTS `agent_status`")
+        }
+    }
 }

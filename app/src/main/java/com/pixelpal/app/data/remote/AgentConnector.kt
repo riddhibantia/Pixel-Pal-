@@ -1,13 +1,12 @@
 package com.pixelpal.app.data.remote
 
 import com.pixelpal.app.domain.model.AgentCheckResult
-import com.pixelpal.app.domain.model.AgentConfig
+import com.pixelpal.app.domain.model.AgentState
 
 /**
  * Provider-independent contract for checking an AI agent's status.
- * Implementations are responsible for mapping external responses into the
- * stable domain [AgentCheckResult] model.
+ * Implementations map external responses into the stable [AgentCheckResult].
  */
 interface AgentConnector {
-    suspend fun checkStatus(config: AgentConfig): AgentCheckResult
+    suspend fun checkNow(endpointUrl: String): AgentCheckResult
 }

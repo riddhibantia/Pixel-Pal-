@@ -7,5 +7,8 @@ package com.pixelpal.app.domain.model
 data class AgentCheckResult(
     val state: AgentState,
     val message: String? = null,
+    /** Structured update fields (OpenCode-style payloads); null when absent. */
+    val currentTask: String? = null,
+    val progress: Int? = null,
     val checkedAt: Long = System.currentTimeMillis()
 )

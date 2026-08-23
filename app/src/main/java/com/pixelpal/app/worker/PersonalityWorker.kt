@@ -23,7 +23,7 @@ class PersonalityWorker @AssistedInject constructor(
 
     override suspend fun doWork(): Result {
         return try {
-            companionRepository.getAllActiveDirect().forEach { companion ->
+            companionRepository.getPrimaryDirect()?.let { companion ->
                 val bond = bondRepository.getBondDirect(companion.id)
                 val stats = DailyInteractionStats(
                     tapCount = bond.tapsToday,

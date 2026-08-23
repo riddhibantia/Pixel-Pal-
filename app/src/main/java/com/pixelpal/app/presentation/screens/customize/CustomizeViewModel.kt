@@ -2,65 +2,51 @@ package com.pixelpal.app.presentation.screens.customize
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.pixelpal.app.animation.SpriteAnimator
+import com.pixelpal.app.domain.model.Companion
+import com.pixelpal.app.domain.model.SpeciesStyle
+import com.pixelpal.app.domain.repository.CompanionRepository
 import com.pixelpal.app.data.local.datastore.PreferencesManager
-import com.pixelpal.app.domain.engine.BondEngine
-import com.pixelpal.app.domain.model.Bond
-import com.pixelpal.app.domain.model.PetType
-import com.pixelpal.app.domain.usecase.companion.GetActiveCompanionUseCase
-import com.pixelpal.app.domain.usecase.companion.UpdateCompanionUseCase
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
+/**
+ * Companion customization = transformation of THE companion's appearance.
+ * Species/color/pattern changes never touch bond/tasks/reminders/agent data.
+ */
 @HiltViewModel
 class CustomizeViewModel @Inject constructor(
     private val preferencesManager: PreferencesManager,
-    private val spriteAnimator: SpriteAnimator,
-    getActiveCompanionUseCase: GetActiveCompanionUseCase,
-    private val updateCompanionUseCase: UpdateCompanionUseCase,
-    bondEngine: BondEngine
+    private val companionRepository: CompanionRepository,
+    private val spriteAnimator: com.pixelpal.app.animation.SpriteAnimator
 ) : ViewModel() {
 
-    private val activeCompanion = getActiveCompanionUseCase.activeCompanion
+    val companion: StateFlow<Companion?> = companionRepository.getPrimary()
         .stateIn(viewModelScope, SharingStarted.Lazily, null)
-
-    val selectedPetType: StateFlow<String> = activeCompanion
-        .map { it?.petType ?: "cat" }
-        .stateIn(viewModelScope, SharingStarted.Lazily, "cat")
-
-    val petName: StateFlow<String> = activeCompanion
-        .map { it?.name ?: "Pixel" }
-        .stateIn(viewModelScope, SharingStarted.Lazily, "Pixel")
 
     val currentTheme: StateFlow<String> = preferencesManager.currentTheme
         .stateIn(viewModelScope, SharingStarted.Lazily, "dark")
 
-    val bond: StateFlow<Bond> = bondEngine.bond
-        .stateIn(viewModelScope, SharingStarted.Lazily, Bond(companionId = -1))
-
-    fun selectPet(petType: PetType) {
+    fun transformAppearance(style: SpeciesStyle) {
         viewModelScope.launch {
-            val companion = activeCompanion.value ?: return@launch
-            updateCompanionUseCase(companion.copy(petType = petType.id))
-            spriteAnimator.setPetType(petType.id)
+            companionRepository.transformAppearance(style)
+            spriteAnimator.setPetType(style.species)
         }
     }
 
     fun updatePetName(name: String) {
         viewModelScope.launch {
-            val companion = activeCompanion.value ?: return@launch
-            updateCompanionUseCase(companion.copy(name = name))
+            val current = companion.value ?: return@launch
+            if (name.isNotBlank()) {
+                companionRepository.update(current.copy(name = name.take(20)))
+            }
         }
     }
 
     fun selectTheme(theme: String) {
-        viewModelScope.launch {
-            preferencesManager.setCurrentTheme(theme)
-        }
+        viewModelScope.launch { preferencesManager.setCurrentTheme(theme) }
     }
 }

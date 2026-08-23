@@ -59,68 +59,39 @@ class OverlayService : Service() {
 
             combine(
                 preferencesManager.overlayEnabled,
-                preferencesManager.overlayCompanionIds,
-                companionRepository.getAllActive()
-            ) { enabled, selectedIds, companions -> Triple(enabled, selectedIds, companions) }
-                .collect { (enabled, selectedIds, companions) ->
-                    val desired =
-                        resolveDesiredCompanions(enabled, selectedIds, companions)
-                    syncSessions(desired)
-                    val names = desired.mapNotNull { id ->
-                        companions.firstOrNull { it.id == id }?.name
+                companionRepository.getPrimary()
+            ) { enabled, companion -> enabled to companion }
+                .collect { (enabled, companion) ->
+                    val desired = if (enabled && companion != null) {
+                        listOf(companion.id)
+                    } else {
+                        emptyList()
                     }
-                    if (names.isNotEmpty()) {
-                        notifyForeground(names.joinToString(", "))
+                    syncSessions(desired)
+                    if (companion != null && desired.isNotEmpty()) {
+                        notifyForeground(companion.name)
                     }
                 }
         }
     }
 
-    /**
-     * Desired overlay set:
-     *  - master off → none;
-     *  - explicit selection (capped at MAX_SIMULTANEOUS_OVERLAYS);
-     *  - no selection yet → the ACTIVE companion only (approved default).
-     */
-    private suspend fun resolveDesiredCompanions(
-        enabled: Boolean,
-        selectedIds: Set<String>,
-        companions: List<com.pixelpal.app.domain.model.Companion>
-    ): List<Long> {
-        if (!enabled) return emptyList()
-        val activeIds = companions.map { it.id }.toSet()
-
-        val explicit = selectedIds.mapNotNull { it.toLongOrNull() }.filter { it in activeIds }
-        if (explicit.isNotEmpty()) {
-            return explicit.distinct().take(Constants.MAX_SIMULTANEOUS_OVERLAYS)
-        }
-
-        val activeId = preferencesManager.getActiveCompanionId()
-        val fallback = activeId?.takeIf { id -> companions.any { it.id == id } }
-            ?: companions.firstOrNull()?.id
-            ?: return emptyList()
-        return listOf(fallback)
-    }
-
     private suspend fun syncSessions(desiredIds: List<Long>) {
-        // Stop sessions no longer wanted.
+        // Stop sessions no longer wanted (single-overlay invariant: at most one).
         overlayManager.activeCompanionIds().filter { it !in desiredIds }.forEach {
             overlayManager.hideCompanionFor(it)
         }
-        // Start/refresh wanted ones.
         desiredIds.forEach { id ->
             val companion = companionRepository.getByIdDirect(id) ?: return@forEach
             if (!overlayManager.isShowing(id)) {
                 overlayManager.showCompanionFor(
                     companionId = companion.id,
-                    petType = companion.petType,
+                    petType = companion.effectiveSpecies,
                     onTap = { cid -> companionEngine.onTap(cid) },
                     onDoubleTap = { cid -> companionEngine.onDoubleTap(cid) },
                     onLongPress = { cid -> companionEngine.onFeed(cid) }
                 )
             } else {
-                // Keep sprite in sync if the pet type changed (Customize).
-                overlayManager.updatePetTypeFor(id, companion.petType)
+                overlayManager.updatePetTypeFor(id, companion.effectiveSpecies)
             }
         }
     }
