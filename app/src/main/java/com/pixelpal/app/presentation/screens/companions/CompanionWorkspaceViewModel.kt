@@ -2,19 +2,17 @@ package com.pixelpal.app.presentation.screens.companions
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.pixelpal.app.domain.model.ActivityEvent
 import com.pixelpal.app.domain.model.AgentConnection
-import com.pixelpal.app.domain.model.AgentState
 import com.pixelpal.app.domain.model.Bond
 import com.pixelpal.app.domain.model.Companion
-import com.pixelpal.app.domain.model.Personality
 import com.pixelpal.app.domain.model.Reminder
 import com.pixelpal.app.domain.model.Task
-import com.pixelpal.app.domain.repository.ActivityEventRepository
+import com.pixelpal.app.domain.model.AgentState
 import com.pixelpal.app.domain.repository.AgentConnectionRepository
 import com.pixelpal.app.domain.repository.BondRepository
 import com.pixelpal.app.domain.repository.ReminderRepository
 import com.pixelpal.app.domain.repository.TaskRepository
+import kotlinx.coroutines.flow.map
 import com.pixelpal.app.domain.usecase.agent.GetAgentConnectionUseCase
 import com.pixelpal.app.domain.usecase.agent.SaveAgentConnectionUseCase
 import com.pixelpal.app.domain.usecase.companion.GetActiveCompanionUseCase
@@ -37,11 +35,9 @@ import javax.inject.Inject
 data class CompanionWorkspaceUiState(
     val companion: Companion? = null,
     val bond: Bond? = null,
-    val personality: Personality? = null,
     val tasks: List<Task> = emptyList(),
     val reminders: List<Reminder> = emptyList(),
     val agentConnection: AgentConnection? = null,
-    val recentActivity: List<ActivityEvent> = emptyList(),
     val checkingAgent: Boolean = false,
     val loading: Boolean = true
 )
@@ -51,10 +47,8 @@ data class CompanionWorkspaceUiState(
 class CompanionWorkspaceViewModel @Inject constructor(
     getActiveCompanionUseCase: GetActiveCompanionUseCase,
     bondRepository: BondRepository,
-    activityEventRepository: ActivityEventRepository,
     reminderRepository: ReminderRepository,
     taskRepository: TaskRepository,
-    private val personalityEngine: com.pixelpal.app.domain.engine.PersonalityEngine,
     getAgentConnectionUseCase: GetAgentConnectionUseCase,
     private val agentConnectionRepository: AgentConnectionRepository,
     private val saveAgentConnectionUseCase: SaveAgentConnectionUseCase,
@@ -64,48 +58,36 @@ class CompanionWorkspaceViewModel @Inject constructor(
     private val completeTaskUseCase: CompleteTaskUseCase
 ) : ViewModel() {
 
-    private data class Core(
-        val companion: Companion?,
-        val bond: Bond?,
-        val personality: Personality?
-    )
+    private val core = getActiveCompanionUseCase.activeCompanion.flatMapLatest { c ->
+        if (c == null) flowOf<Pair<Companion?, Bond?>>(null to null)
+        else bondRepository.getBond(c.id).map { bond -> c to bond }
+    }
 
     private data class Extras(
         val tasks: List<Task>,
         val reminders: List<Reminder>,
-        val agent: AgentConnection?,
-        val activity: List<ActivityEvent>
+        val agent: AgentConnection?
     )
 
-    private val core = getActiveCompanionUseCase.activeCompanion.flatMapLatest { c ->
-        if (c == null) flowOf(Core(null, null, null))
-        else combine(
-            bondRepository.getBond(c.id),
-            personalityEngine.getPersonality(c.id)
-        ) { bond, personality -> Core(c, bond, personality) }
-    }
-
     private val extras = getActiveCompanionUseCase.activeCompanion.flatMapLatest { c ->
-        if (c == null) flowOf(Extras(emptyList(), emptyList(), null, emptyList()))
+        if (c == null) flowOf(Extras(emptyList(), emptyList(), null))
         else combine(
             taskRepository.getTasks(c.id),
             reminderRepository.getPendingForCompanion(c.id),
-            getAgentConnectionUseCase.getConnection(c.id),
-            activityEventRepository.getCenterEventsForCompanion(c.id, limit = 20)
-        ) { tasks, reminders, agent, activity ->
-            Extras(tasks, reminders, agent, activity)
+            getAgentConnectionUseCase.getConnection(c.id)
+        ) { tasks, reminders, agent ->
+            Extras(tasks, reminders, agent)
         }
     }
 
-    val uiState: StateFlow<CompanionWorkspaceUiState> = combine(core, extras) { core, extras ->
+    val uiState: StateFlow<CompanionWorkspaceUiState> = combine(core, extras) { corePair, extras ->
+        val (companion, bond) = corePair
         CompanionWorkspaceUiState(
-            companion = core.companion,
-            bond = core.bond,
-            personality = core.personality,
+            companion = companion,
+            bond = bond,
             tasks = extras.tasks,
             reminders = extras.reminders,
             agentConnection = extras.agent,
-            recentActivity = extras.activity,
             loading = false
         )
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), CompanionWorkspaceUiState())

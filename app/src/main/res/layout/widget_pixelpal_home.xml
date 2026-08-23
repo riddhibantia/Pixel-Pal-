@@ -1,0 +1,78 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@drawable/widget_background"
+    android:orientation="vertical"
+    android:padding="14dp"
+    android:gravity="center_horizontal">
+
+    <TextView
+        android:id="@+id/widget_home_name"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Pixel"
+        android:textColor="#1A1A2E"
+        android:textSize="16sp"
+        android:textStyle="bold" />
+
+    <TextView
+        android:id="@+id/widget_home_status"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="2dp"
+        android:text="Happy • Bond Lv 3"
+        android:textColor="#00D4AA"
+        android:textSize="11sp" />
+
+    <View
+        android:layout_width="40dp"
+        android:layout_height="2dp"
+        android:layout_marginTop="8dp"
+        android:layout_marginBottom="8dp"
+        android:background="#00D4AA"
+        android:alpha="0.3" />
+
+    <TextView
+        android:id="@+id/widget_home_tasks"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="☐ 3 tasks remaining"
+        android:textColor="#1A1A2E"
+        android:textSize="12sp" />
+
+    <TextView
+        android:id="@+id/widget_home_reminder"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="4dp"
+        android:text="🔔 Meeting at 6:00 PM"
+        android:textColor="#1A1A2E"
+        android:alpha="0.7"
+        android:textSize="11sp"
+        android:visibility="gone" />
+
+    <TextView
+        android:id="@+id/widget_home_agent"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="4dp"
+        android:text="● Connected"
+        android:textColor="#00D4AA"
+        android:textSize="11sp"
+        android:visibility="gone" />
+
+    <TextView
+        android:id="@+id/widget_home_open"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="10dp"
+        android:background="#00D4AA"
+        android:padding="8dp"
+        android:gravity="center"
+        android:text="Open PixelPal"
+        android:textColor="#FFFFFF"
+        android:textSize="12sp"
+        android:textStyle="bold" />
+
+</LinearLayout>

@@ -1,0 +1,284 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@drawable/widget_background"
+    android:orientation="vertical"
+    android:padding="12dp">
+
+    <!-- Header -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:gravity="center_vertical"
+        android:orientation="horizontal">
+
+        <TextView
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:text="PIXELPAL TASKS"
+            android:textColor="#1A1A2E"
+            android:textSize="12sp"
+            android:textStyle="bold"
+            android:letterSpacing="0.08" />
+
+        <TextView
+            android:id="@+id/widget_add_task"
+            android:layout_width="32dp"
+            android:layout_height="32dp"
+            android:gravity="center"
+            android:text="+"
+            android:textColor="#00D4AA"
+            android:textSize="20sp"
+            android:textStyle="bold" />
+
+    </LinearLayout>
+
+    <View
+        android:layout_width="match_parent"
+        android:layout_height="1dp"
+        android:layout_marginTop="8dp"
+        android:layout_marginBottom="8dp"
+        android:background="#1A1A2E"
+        android:alpha="0.1" />
+
+    <!-- Task rows container -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical">
+
+        <!-- Row 0 -->
+        <LinearLayout
+            android:id="@+id/widget_task_row_0"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:gravity="center_vertical"
+            android:orientation="horizontal"
+            android:paddingTop="4dp"
+            android:paddingBottom="4dp"
+            android:visibility="gone">
+
+            <TextView
+                android:id="@+id/widget_task_checkbox_0"
+                android:layout_width="24dp"
+                android:layout_height="24dp"
+                android:background="@drawable/widget_checkbox_background"
+                android:gravity="center"
+                android:text="☐"
+                android:textColor="#00D4AA"
+                android:textSize="14sp" />
+
+            <TextView
+                android:id="@+id/widget_task_title_0"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="10dp"
+                android:layout_weight="1"
+                android:ellipsize="end"
+                android:maxLines="1"
+                android:text="Task title"
+                android:textColor="#1A1A2E"
+                android:textSize="13sp" />
+        </LinearLayout>
+
+        <!-- Row 1 -->
+        <LinearLayout
+            android:id="@+id/widget_task_row_1"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:gravity="center_vertical"
+            android:orientation="horizontal"
+            android:paddingTop="4dp"
+            android:paddingBottom="4dp"
+            android:visibility="gone">
+
+            <TextView
+                android:id="@+id/widget_task_checkbox_1"
+                android:layout_width="24dp"
+                android:layout_height="24dp"
+                android:background="@drawable/widget_checkbox_background"
+                android:gravity="center"
+                android:text="☐"
+                android:textColor="#00D4AA"
+                android:textSize="14sp" />
+
+            <TextView
+                android:id="@+id/widget_task_title_1"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="10dp"
+                android:layout_weight="1"
+                android:ellipsize="end"
+                android:maxLines="1"
+                android:text="Task title"
+                android:textColor="#1A1A2E"
+                android:textSize="13sp" />
+        </LinearLayout>
+
+        <!-- Row 2 -->
+        <LinearLayout
+            android:id="@+id/widget_task_row_2"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:gravity="center_vertical"
+            android:orientation="horizontal"
+            android:paddingTop="4dp"
+            android:paddingBottom="4dp"
+            android:visibility="gone">
+
+            <TextView
+                android:id="@+id/widget_task_checkbox_2"
+                android:layout_width="24dp"
+                android:layout_height="24dp"
+                android:background="@drawable/widget_checkbox_background"
+                android:gravity="center"
+                android:text="☐"
+                android:textColor="#00D4AA"
+                android:textSize="14sp" />
+
+            <TextView
+                android:id="@+id/widget_task_title_2"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="10dp"
+                android:layout_weight="1"
+                android:ellipsize="end"
+                android:maxLines="1"
+                android:text="Task title"
+                android:textColor="#1A1A2E"
+                android:textSize="13sp" />
+        </LinearLayout>
+
+        <!-- Row 3 -->
+        <LinearLayout
+            android:id="@+id/widget_task_row_3"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:gravity="center_vertical"
+            android:orientation="horizontal"
+            android:paddingTop="4dp"
+            android:paddingBottom="4dp"
+            android:visibility="gone">
+
+            <TextView
+                android:id="@+id/widget_task_checkbox_3"
+                android:layout_width="24dp"
+                android:layout_height="24dp"
+                android:background="@drawable/widget_checkbox_background"
+                android:gravity="center"
+                android:text="☐"
+                android:textColor="#00D4AA"
+                android:textSize="14sp" />
+
+            <TextView
+                android:id="@+id/widget_task_title_3"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="10dp"
+                android:layout_weight="1"
+                android:ellipsize="end"
+                android:maxLines="1"
+                android:text="Task title"
+                android:textColor="#1A1A2E"
+                android:textSize="13sp" />
+        </LinearLayout>
+
+        <!-- Row 4 -->
+        <LinearLayout
+            android:id="@+id/widget_task_row_4"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:gravity="center_vertical"
+            android:orientation="horizontal"
+            android:paddingTop="4dp"
+            android:paddingBottom="4dp"
+            android:visibility="gone">
+
+            <TextView
+                android:id="@+id/widget_task_checkbox_4"
+                android:layout_width="24dp"
+                android:layout_height="24dp"
+                android:background="@drawable/widget_checkbox_background"
+                android:gravity="center"
+                android:text="☐"
+                android:textColor="#00D4AA"
+                android:textSize="14sp" />
+
+            <TextView
+                android:id="@+id/widget_task_title_4"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="10dp"
+                android:layout_weight="1"
+                android:ellipsize="end"
+                android:maxLines="1"
+                android:text="Task title"
+                android:textColor="#1A1A2E"
+                android:textSize="13sp" />
+        </LinearLayout>
+
+        <!-- Row 5 -->
+        <LinearLayout
+            android:id="@+id/widget_task_row_5"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:gravity="center_vertical"
+            android:orientation="horizontal"
+            android:paddingTop="4dp"
+            android:paddingBottom="4dp"
+            android:visibility="gone">
+
+            <TextView
+                android:id="@+id/widget_task_checkbox_5"
+                android:layout_width="24dp"
+                android:layout_height="24dp"
+                android:background="@drawable/widget_checkbox_background"
+                android:gravity="center"
+                android:text="☐"
+                android:textColor="#00D4AA"
+                android:textSize="14sp" />
+
+            <TextView
+                android:id="@+id/widget_task_title_5"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="10dp"
+                android:layout_weight="1"
+                android:ellipsize="end"
+                android:maxLines="1"
+                android:text="Task title"
+                android:textColor="#1A1A2E"
+                android:textSize="13sp" />
+        </LinearLayout>
+
+        <!-- Empty state -->
+        <TextView
+            android:id="@+id/widget_empty"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:gravity="center"
+            android:padding="16dp"
+            android:text="No tasks yet.\nTap + to add one!"
+            android:textColor="#1A1A2E"
+            android:alpha="0.6"
+            android:textSize="12sp"
+            android:visibility="gone" />
+
+        <!-- Summary for small widget -->
+        <TextView
+            android:id="@+id/widget_summary"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:gravity="center"
+            android:paddingTop="6dp"
+            android:text="3 tasks remaining"
+            android:textColor="#1A1A2E"
+            android:alpha="0.5"
+            android:textSize="11sp"
+            android:visibility="gone" />
+
+    </LinearLayout>
+
+</LinearLayout>

@@ -225,76 +225,63 @@ private fun CompanionHeroCard(
         shape = RoundedCornerShape(Radius.large),
         color = MaterialTheme.colorScheme.surface
     ) {
-        Column(modifier = Modifier.padding(Spacing.md)) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(vertical = Spacing.lg, horizontal = Spacing.md),
+            horizontalAlignment = Alignment.CenterHorizontally
+        ) {
 
-            // ── Identity row ──
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Box(
-                    modifier = Modifier
-                        .size(72.dp)
-                        .clip(CircleShape)
-                        .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.1f))
-                        .clickable(onClickLabel = "Interact with ${companion.name}") { onInteract() },
-                    contentAlignment = Alignment.Center
-                ) {
-                    PetRenderer(
-                        petType = companion.effectiveSpecies,
-                        animationState = AnimationState.IDLE,
-                        size = 64.dp
-                    )
-                }
-                Spacer(modifier = Modifier.width(Spacing.md))
-                Column(modifier = Modifier.weight(1f)) {
-                    Text(
-                        text = companion.name,
-                        style = MaterialTheme.typography.titleLarge,
-                        fontWeight = FontWeight.Bold
-                    )
-                    Text(
-                        text = "${speciesLabel(companion.effectiveSpecies)} Companion",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                    Text(
-                        text = "${state.stateLabel()} • Bond Lv ${bond?.level ?: 0} • ${bond?.streakDays ?: 0}d streak",
-                        style = MaterialTheme.typography.labelMedium,
-                        color = MaterialTheme.colorScheme.primary
-                    )
-                }
+            // ── Large centered companion — the visual heart of the app ──
+            Box(
+                modifier = Modifier
+                    .size(200.dp)
+                    .clip(CircleShape)
+                    .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.08f))
+                    .clickable(onClickLabel = "Interact with ${companion.name}") { onInteract() },
+                contentAlignment = Alignment.Center
+            ) {
+                PetRenderer(
+                    petType = companion.effectiveSpecies,
+                    animationState = AnimationState.IDLE,
+                    size = 180.dp
+                )
             }
 
             Spacer(modifier = Modifier.height(Spacing.md))
 
-            // ── Quick actions ──
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(Spacing.sm)
-            ) {
-                PrimaryButton(
-                    text = "Interact",
-                    onClick = onInteract,
-                    modifier = Modifier.weight(1.4f)
-                )
-                SecondaryButton(
-                    text = "Feed",
-                    onClick = onFeed,
-                    modifier = Modifier.weight(1f)
-                )
-                SecondaryButton(
-                    text = "Play",
-                    onClick = onInteract,
-                    modifier = Modifier.weight(1f)
-                )
-            }
+            Text(
+                text = companion.name,
+                style = MaterialTheme.typography.headlineSmall,
+                fontWeight = FontWeight.Bold,
+                color = MaterialTheme.colorScheme.onSurface
+            )
+            Spacer(modifier = Modifier.height(4.dp))
+            Text(
+                text = "${state.stateLabel()} • Bond Level ${bond?.level ?: 0} • ${bond?.streakDays ?: 0}d streak",
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.primary,
+                fontWeight = FontWeight.Medium
+            )
+
+            Spacer(modifier = Modifier.height(Spacing.md))
+
+            // Primary interaction — compact, centered
+            PrimaryButton(
+                text = "Interact",
+                onClick = onInteract,
+                modifier = Modifier.fillMaxWidth(0.55f)
+            )
 
             Spacer(modifier = Modifier.height(Spacing.sm))
+
             SecondaryButton(
                 text = "Open Workspace",
                 onClick = onOpenWorkspace,
                 modifier = Modifier.fillMaxWidth()
             )
 
-            Spacer(modifier = Modifier.height(Spacing.sm))
+            Spacer(modifier = Modifier.height(Spacing.md))
 
             // ── Compact stats footer ──
             Row(

@@ -45,7 +45,6 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
 import com.pixelpal.app.animation.AnimationState
 import com.pixelpal.app.domain.model.AgentConnection
-import com.pixelpal.app.domain.model.Personality
 import com.pixelpal.app.domain.model.Task
 import com.pixelpal.app.presentation.components.AppTextField
 import com.pixelpal.app.presentation.components.AppTopBar
@@ -106,12 +105,6 @@ fun CompanionWorkspaceScreen(
 
             Spacer(modifier = Modifier.height(Spacing.md))
 
-            // ── Personality ──
-            state.personality?.let { personality ->
-                PersonalitySection(personality = personality)
-                Spacer(modifier = Modifier.height(Spacing.md))
-            }
-
             // ── Tasks ──
             TasksSection(tasks = state.tasks, viewModel = viewModel)
             Spacer(modifier = Modifier.height(Spacing.md))
@@ -131,10 +124,6 @@ fun CompanionWorkspaceScreen(
                 onCheckNow = viewModel::refreshAgentStatus,
                 onDisconnect = viewModel::disconnectAgent
             )
-            Spacer(modifier = Modifier.height(Spacing.md))
-
-            // ── Activity ──
-            ActivitySection(activities = state.recentActivity)
         }
     }
 }
@@ -244,40 +233,6 @@ private fun BondSection(bond: com.pixelpal.app.domain.model.Bond?) {
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
-        }
-    }
-}
-
-@Composable
-private fun PersonalitySection(personality: Personality) {
-    SectionHeader(title = "Personality")
-    Card(
-        modifier = Modifier.fillMaxWidth(),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
-    ) {
-        Column(modifier = Modifier.padding(Spacing.md)) {
-            val traits = listOf(
-                "Friendliness" to personality.friendliness,
-                "Curiosity" to personality.curiosity,
-                "Playfulness" to personality.playfulness,
-                "Confidence" to personality.confidence
-            )
-            traits.forEachIndexed { index, (label, value) ->
-                if (index > 0) Spacer(modifier = Modifier.height(Spacing.sm))
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Text(
-                        text = label,
-                        style = MaterialTheme.typography.bodySmall,
-                        modifier = Modifier.width(96.dp)
-                    )
-                    LinearProgressIndicator(
-                        progress = { value.coerceIn(0f, 1f) },
-                        modifier = Modifier
-                            .weight(1f)
-                            .height(6.dp)
-                    )
-                }
-            }
         }
     }
 }
@@ -568,48 +523,3 @@ private fun connectionStatusText(connection: AgentConnection?): String =
         else -> "● Connected — ${connection.currentStatus.displayName}"
     }
 
-@Composable
-private fun ActivitySection(activities: List<com.pixelpal.app.domain.model.ActivityEvent>) {
-    SectionHeader(title = "Activity")
-    Card(
-        modifier = Modifier.fillMaxWidth(),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
-    ) {
-        Column(modifier = Modifier.padding(Spacing.md)) {
-            if (activities.isEmpty()) {
-                Text(
-                    text = "No activity yet.",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-            } else {
-                activities.forEachIndexed { index, event ->
-                    if (index > 0) {
-                        HorizontalDivider(color = MaterialTheme.colorScheme.outline.copy(alpha = 0.2f))
-                        Spacer(modifier = Modifier.height(Spacing.sm))
-                    }
-                    Row(modifier = Modifier.fillMaxWidth()) {
-                        Column(modifier = Modifier.weight(1f)) {
-                            Text(
-                                text = event.title,
-                                style = MaterialTheme.typography.bodyMedium
-                            )
-                            event.description?.let {
-                                Text(
-                                    text = it,
-                                    style = MaterialTheme.typography.bodySmall,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                                )
-                            }
-                        }
-                        Text(
-                            text = timeFormat.format(Date(event.createdAt)),
-                            style = MaterialTheme.typography.labelSmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                    }
-                }
-            }
-        }
-    }
-}

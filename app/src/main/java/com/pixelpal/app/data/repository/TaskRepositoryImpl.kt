@@ -1,5 +1,6 @@
 package com.pixelpal.app.data.repository
 
+import android.content.Context
 import androidx.room.withTransaction
 import com.pixelpal.app.data.local.db.PixelPalDatabase
 import com.pixelpal.app.data.local.db.dao.ActivityEventDao
@@ -9,6 +10,9 @@ import com.pixelpal.app.data.local.db.entity.TaskEntity
 import com.pixelpal.app.domain.model.ActivityType
 import com.pixelpal.app.domain.model.Task
 import com.pixelpal.app.domain.repository.TaskRepository
+import com.pixelpal.app.widget.TasksWidgetProvider
+import com.pixelpal.app.widget.HomeWidgetProvider
+import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
 import javax.inject.Inject
@@ -16,6 +20,7 @@ import javax.inject.Singleton
 
 @Singleton
 class TaskRepositoryImpl @Inject constructor(
+    @ApplicationContext private val context: Context,
     private val database: PixelPalDatabase,
     private val taskDao: TaskDao,
     private val activityEventDao: ActivityEventDao
@@ -26,7 +31,10 @@ class TaskRepositoryImpl @Inject constructor(
     }
 
     override suspend fun addTask(task: Task): Long {
-        return taskDao.insert(task.toEntity())
+        val id = taskDao.insert(task.toEntity())
+        TasksWidgetProvider.updateAllWidgets(context)
+        HomeWidgetProvider.updateAllWidgets(context)
+        return id
     }
 
     override suspend fun completeTask(task: Task): Boolean {
@@ -42,6 +50,8 @@ class TaskRepositoryImpl @Inject constructor(
                 )
             )
         }
+        TasksWidgetProvider.updateAllWidgets(context)
+        HomeWidgetProvider.updateAllWidgets(context)
         return true
     }
 
@@ -50,7 +60,10 @@ class TaskRepositoryImpl @Inject constructor(
             taskDao.markUndone(task.id)
         } else {
             completeTask(task)
+            return
         }
+        TasksWidgetProvider.updateAllWidgets(context)
+        HomeWidgetProvider.updateAllWidgets(context)
     }
 
     private fun TaskEntity.toDomain() = Task(
