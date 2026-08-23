@@ -8,6 +8,7 @@ import com.pixelpal.app.domain.model.Companion
 import com.pixelpal.app.domain.model.Reminder
 import com.pixelpal.app.domain.model.Task
 import com.pixelpal.app.domain.model.AgentState
+import com.pixelpal.app.data.local.datastore.PreferencesManager
 import com.pixelpal.app.domain.repository.AgentConnectionRepository
 import com.pixelpal.app.domain.repository.BondRepository
 import com.pixelpal.app.domain.repository.ReminderRepository
@@ -38,6 +39,7 @@ data class CompanionWorkspaceUiState(
     val tasks: List<Task> = emptyList(),
     val reminders: List<Reminder> = emptyList(),
     val agentConnection: AgentConnection? = null,
+    val tasksWidgetEnabled: Boolean = false,
     val checkingAgent: Boolean = false,
     val loading: Boolean = true
 )
@@ -50,6 +52,7 @@ class CompanionWorkspaceViewModel @Inject constructor(
     reminderRepository: ReminderRepository,
     taskRepository: TaskRepository,
     getAgentConnectionUseCase: GetAgentConnectionUseCase,
+    private val preferencesManager: PreferencesManager,
     private val agentConnectionRepository: AgentConnectionRepository,
     private val saveAgentConnectionUseCase: SaveAgentConnectionUseCase,
     private val toggleFavoriteUseCase: ToggleFavoriteUseCase,
@@ -80,16 +83,24 @@ class CompanionWorkspaceViewModel @Inject constructor(
         }
     }
 
-    val uiState: StateFlow<CompanionWorkspaceUiState> = combine(core, extras) { corePair, extras ->
-        val (companion, bond) = corePair
-        CompanionWorkspaceUiState(
-            companion = companion,
-            bond = bond,
-            tasks = extras.tasks,
-            reminders = extras.reminders,
-            agentConnection = extras.agent,
-            loading = false
-        )
+    private val tasksWidgetEnabled = preferencesManager.tasksWidgetEnabled
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), false)
+
+    val uiState: StateFlow<CompanionWorkspaceUiState> = combine(
+        combine(core, extras) { corePair, extras ->
+            val (companion, bond) = corePair
+            CompanionWorkspaceUiState(
+                companion = companion,
+                bond = bond,
+                tasks = extras.tasks,
+                reminders = extras.reminders,
+                agentConnection = extras.agent,
+                loading = false
+            )
+        },
+        tasksWidgetEnabled
+    ) { state, widgetEnabled ->
+        state.copy(tasksWidgetEnabled = widgetEnabled)
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), CompanionWorkspaceUiState())
 
     private val _checkingAgent = MutableStateFlow(false)
@@ -149,5 +160,9 @@ class CompanionWorkspaceViewModel @Inject constructor(
 
     fun toggleTask(task: Task) {
         viewModelScope.launch { completeTaskUseCase(task) }
+    }
+
+    fun setTasksWidgetEnabled(enabled: Boolean) {
+        viewModelScope.launch { preferencesManager.setTasksWidgetEnabled(enabled) }
     }
 }

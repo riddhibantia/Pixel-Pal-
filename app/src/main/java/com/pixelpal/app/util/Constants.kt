@@ -21,6 +21,7 @@ object Constants {
     const val KEY_ACTIVE_COMPANION_ID = "active_companion_id"
     const val KEY_COMPANION_BOOTSTRAP_DONE = "companion_bootstrap_done"
     const val KEY_SINGLE_COMPANION_FOLD_DONE = "single_companion_fold_done"
+    const val KEY_TASKS_WIDGET_ENABLED = "tasks_widget_enabled"
 
     // Notification channels
     const val CHANNEL_COMPANION = "companion_channel"

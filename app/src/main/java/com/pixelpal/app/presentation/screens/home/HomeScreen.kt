@@ -1,4 +1,4 @@
-package com.pixelpal.app.presentation.screens.home
+﻿package com.pixelpal.app.presentation.screens.home
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -26,22 +26,39 @@ import androidx.compose.material3.Badge
 import androidx.compose.material3.BadgedBox
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.animation.core.Animatable
+import androidx.compose.animation.core.FastOutSlowInEasing
+import androidx.compose.animation.core.Spring
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.spring
+import androidx.compose.animation.core.tween
+import androidx.compose.foundation.layout.offset
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.StrokeCap
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
 import com.pixelpal.app.animation.AnimationState
@@ -59,6 +76,8 @@ import com.pixelpal.app.presentation.theme.Radius
 import com.pixelpal.app.presentation.theme.Spacing
 import java.util.Calendar
 import java.util.concurrent.TimeUnit
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 
 @Composable
 fun HomeScreen(
@@ -220,6 +239,74 @@ private fun CompanionHeroCard(
     val companion = state.companion ?: return
     val bond = state.bond
 
+    // â”€â”€ Interaction animation state â”€â”€
+    var interactionTick by remember { mutableIntStateOf(0) }
+    var feedbackText by remember { mutableStateOf<String?>(null) }
+    var showParticles by remember { mutableStateOf(false) }
+    var useHappyExpression by remember { mutableStateOf(false) }
+
+    val scaleAnim = remember { Animatable(1f) }
+    val rotationAnim = remember { Animatable(0f) }
+    val glowAlphaAnim = remember { Animatable(0f) }
+
+    val feedbackAlpha by animateFloatAsState(
+        targetValue = if (feedbackText != null) 1f else 0f,
+        animationSpec = tween(durationMillis = 300, easing = FastOutSlowInEasing),
+        label = "feedbackAlpha"
+    )
+
+    val reactionMessages = remember(companion.name) {
+        listOf(
+            "${companion.name} is happy!",
+            "That made me smile!",
+            "âœ¨ Bond strengthened!",
+            "${companion.name} enjoyed that!",
+            "A happy moment!",
+            "So much love! â™¥",
+            "You made my day!",
+            "Weâ€™re getting closer!"
+        )
+    }
+
+    LaunchedEffect(interactionTick) {
+        if (interactionTick == 0) return@LaunchedEffect
+        // Pick random feedback
+        feedbackText = reactionMessages.random()
+        showParticles = true
+        useHappyExpression = true
+
+        // Bounce + wiggle + glow sequence
+        launch {
+            scaleAnim.animateTo(1.18f, animationSpec = tween(140, easing = FastOutSlowInEasing))
+            scaleAnim.animateTo(0.94f, animationSpec = tween(120))
+            scaleAnim.animateTo(1.06f, animationSpec = tween(100))
+            scaleAnim.animateTo(1f, animationSpec = spring(dampingRatio = Spring.DampingRatioMediumBouncy, stiffness = Spring.StiffnessLow))
+        }
+        launch {
+            glowAlphaAnim.animateTo(0.55f, animationSpec = tween(180))
+            glowAlphaAnim.animateTo(0f, animationSpec = tween(500, delayMillis = 400))
+        }
+        launch {
+            // Wiggle: -8 -> 8 -> -4 -> 4 -> 0
+            rotationAnim.animateTo(-7f, tween(90))
+            rotationAnim.animateTo(7f, tween(110))
+            rotationAnim.animateTo(-4f, tween(90))
+            rotationAnim.animateTo(4f, tween(80))
+            rotationAnim.animateTo(0f, spring(dampingRatio = 0.5f, stiffness = Spring.StiffnessMedium))
+        }
+        delay(650)
+        useHappyExpression = false
+        delay(550)
+        showParticles = false
+        delay(900)
+        feedbackText = null
+    }
+
+    fun triggerInteract() {
+        interactionTick++
+        onInteract()
+    }
+
     Surface(
         modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(Radius.large),
@@ -232,23 +319,72 @@ private fun CompanionHeroCard(
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
 
-            // ── Large centered companion — the visual heart of the app ──
+            // â”€â”€ Large centered companion â€” the visual heart of the app â”€â”€
             Box(
-                modifier = Modifier
-                    .size(200.dp)
-                    .clip(CircleShape)
-                    .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.08f))
-                    .clickable(onClickLabel = "Interact with ${companion.name}") { onInteract() },
+                modifier = Modifier.size(220.dp),
                 contentAlignment = Alignment.Center
             ) {
-                PetRenderer(
-                    petType = companion.effectiveSpecies,
-                    animationState = AnimationState.IDLE,
-                    size = 180.dp
-                )
+                // Soft glow behind companion during reaction
+                if (glowAlphaAnim.value > 0.01f) {
+                    Box(
+                        modifier = Modifier
+                            .size(190.dp)
+                            .alpha(glowAlphaAnim.value)
+                            .background(
+                                MaterialTheme.colorScheme.primary.copy(alpha = 0.18f),
+                                CircleShape
+                            )
+                    )
+                }
+
+                // Sparkles / stars / hearts overlay â€” positioned around the pet
+                if (showParticles) {
+                    SparkleOverlay(alpha = glowAlphaAnim.value)
+                }
+
+                Box(
+                    modifier = Modifier
+                        .size(200.dp)
+                        .clip(CircleShape)
+                        .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.08f))
+                        .clickable(onClickLabel = "Interact with ${companion.name}") { triggerInteract() }
+                        .graphicsLayer(
+                            scaleX = scaleAnim.value,
+                            scaleY = scaleAnim.value,
+                            rotationZ = rotationAnim.value
+                        ),
+                    contentAlignment = Alignment.Center
+                ) {
+                    PetRenderer(
+                        petType = companion.effectiveSpecies,
+                        animationState = if (useHappyExpression) AnimationState.HAPPY else AnimationState.IDLE,
+                        size = 180.dp
+                    )
+                }
             }
 
-            Spacer(modifier = Modifier.height(Spacing.md))
+            // Temporary feedback text
+            if (feedbackText != null) {
+                Spacer(modifier = Modifier.height(Spacing.sm))
+                Text(
+                    text = feedbackText!!,
+                    style = MaterialTheme.typography.labelLarge,
+                    color = MaterialTheme.colorScheme.primary,
+                    fontWeight = FontWeight.SemiBold,
+                    textAlign = TextAlign.Center,
+                    modifier = Modifier
+                        .alpha(feedbackAlpha)
+                        .padding(horizontal = Spacing.md)
+                )
+            } else {
+                Spacer(modifier = Modifier.height(Spacing.sm))
+                // Reserve space so layout doesn't jump â€” invisible placeholder
+                Text(
+                    text = " ",
+                    style = MaterialTheme.typography.labelLarge,
+                    modifier = Modifier.height(18.dp)
+                )
+            }
 
             Text(
                 text = companion.name,
@@ -258,7 +394,7 @@ private fun CompanionHeroCard(
             )
             Spacer(modifier = Modifier.height(4.dp))
             Text(
-                text = "${state.stateLabel()} • Bond Level ${bond?.level ?: 0} • ${bond?.streakDays ?: 0}d streak",
+                text = "${state.stateLabel()} â€¢ Bond Level ${bond?.level ?: 0} â€¢ ${bond?.streakDays ?: 0}d streak",
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.primary,
                 fontWeight = FontWeight.Medium
@@ -266,10 +402,10 @@ private fun CompanionHeroCard(
 
             Spacer(modifier = Modifier.height(Spacing.md))
 
-            // Primary interaction — compact, centered
+            // Primary interaction â€” compact, centered with press feedback
             PrimaryButton(
                 text = "Interact",
-                onClick = onInteract,
+                onClick = { triggerInteract() },
                 modifier = Modifier.fillMaxWidth(0.55f)
             )
 
@@ -283,7 +419,7 @@ private fun CompanionHeroCard(
 
             Spacer(modifier = Modifier.height(Spacing.md))
 
-            // ── Compact stats footer ──
+            // â”€â”€ Compact stats footer â”€â”€
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween
@@ -313,6 +449,58 @@ private fun CompanionHeroCard(
                 )
             }
         }
+    }
+}
+
+@Composable
+private fun SparkleOverlay(alpha: Float) {
+    Box(
+        modifier = Modifier
+            .size(220.dp)
+            .alpha(alpha)
+    ) {
+        // Top-left sparkle
+        Text(
+            text = "âœ¨",
+            fontSize = 18.sp,
+            modifier = Modifier
+                .align(Alignment.TopStart)
+                .offset(x = 12.dp, y = 18.dp)
+        )
+        // Top-right star
+        Text(
+            text = "â­",
+            fontSize = 16.sp,
+            modifier = Modifier
+                .align(Alignment.TopEnd)
+                .offset(x = (-14).dp, y = 22.dp)
+        )
+        // Bottom-left heart
+        Text(
+            text = "â™¥",
+            fontSize = 14.sp,
+            color = MaterialTheme.colorScheme.primary,
+            modifier = Modifier
+                .align(Alignment.BottomStart)
+                .offset(x = 20.dp, y = (-16).dp)
+        )
+        // Bottom-right sparkle
+        Text(
+            text = "âœ¨",
+            fontSize = 14.sp,
+            modifier = Modifier
+                .align(Alignment.BottomEnd)
+                .offset(x = (-18).dp, y = (-20).dp)
+        )
+        // Mid-right star
+        Text(
+            text = "âœ¦",
+            fontSize = 12.sp,
+            color = MaterialTheme.colorScheme.primary,
+            modifier = Modifier
+                .align(Alignment.CenterEnd)
+                .offset(x = (-6).dp)
+        )
     }
 }
 

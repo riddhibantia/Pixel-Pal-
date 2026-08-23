@@ -18,6 +18,7 @@ import kotlinx.coroutines.launch
 import dagger.hilt.EntryPoint
 import dagger.hilt.InstallIn
 import dagger.hilt.components.SingletonComponent
+import timber.log.Timber
 
 @EntryPoint
 @InstallIn(SingletonComponent::class)
@@ -141,6 +142,7 @@ class TasksWidgetProvider : AppWidgetProvider() {
     }
 
     private fun updateWidget(context: Context, manager: AppWidgetManager, appWidgetId: Int) {
+        Timber.d("TasksWidget: onUpdate called for widget $appWidgetId")
         scope.launch(Dispatchers.IO) {
             try {
                 val entryPoint = EntryPointAccessors.fromApplication(
@@ -148,7 +150,17 @@ class TasksWidgetProvider : AppWidgetProvider() {
                 )
                 val db = entryPoint.database()
                 val companion = db.companionDao().getPrimaryDirect()
-                val companionId = companion?.id ?: return@launch
+                Timber.d("TasksWidget: companion loaded: ${companion?.name} id=${companion?.id}")
+                val companionId = companion?.id ?: run {
+                    Timber.w("TasksWidget: no companion found, showing empty state for widget $appWidgetId")
+                    val views = RemoteViews(context.packageName, R.layout.widget_pixelpal_tasks)
+                    for (i in 0..5) views.setViewVisibility(getRowId(i), android.view.View.GONE)
+                    views.setViewVisibility(R.id.widget_empty, android.view.View.VISIBLE)
+                    views.setTextViewText(R.id.widget_empty, "No companion yet.\nOpen PixelPal!")
+                    views.setViewVisibility(R.id.widget_summary, android.view.View.GONE)
+                    manager.updateAppWidget(appWidgetId, views)
+                    return@launch
+                }
 
                 // Use direct DB query to avoid Flow
                 val cursor = db.openHelper.readableDatabase.query(
@@ -159,6 +171,7 @@ class TasksWidgetProvider : AppWidgetProvider() {
                     tasks.add(Triple(cursor.getLong(0), cursor.getString(1), cursor.getInt(2) != 0))
                 }
                 cursor.close()
+                Timber.d("TasksWidget: found ${tasks.size} tasks for companion $companionId for widget $appWidgetId")
 
                 val views = RemoteViews(context.packageName, R.layout.widget_pixelpal_tasks)
 
@@ -213,7 +226,10 @@ class TasksWidgetProvider : AppWidgetProvider() {
                 }
 
                 manager.updateAppWidget(appWidgetId, views)
-            } catch (_: Exception) { }
+                Timber.d("TasksWidget: RemoteViews update succeeded for widget $appWidgetId")
+            } catch (e: Exception) {
+                Timber.e(e, "TasksWidget: update failed for widget $appWidgetId")
+            }
         }
     }
 

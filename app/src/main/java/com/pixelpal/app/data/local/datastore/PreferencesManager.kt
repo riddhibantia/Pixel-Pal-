@@ -34,6 +34,7 @@ class PreferencesManager @Inject constructor(
         val ACTIVE_COMPANION_ID = longPreferencesKey(Constants.KEY_ACTIVE_COMPANION_ID)
         val COMPANION_BOOTSTRAP_DONE = booleanPreferencesKey(Constants.KEY_COMPANION_BOOTSTRAP_DONE)
         val SINGLE_COMPANION_FOLD_DONE = booleanPreferencesKey(Constants.KEY_SINGLE_COMPANION_FOLD_DONE)
+        val TASKS_WIDGET_ENABLED = booleanPreferencesKey(Constants.KEY_TASKS_WIDGET_ENABLED)
 
         /** Per-companion overlay positions: overlay_x_<id> / overlay_y_<id>. */
         fun overlayX(companionId: Long) = floatPreferencesKey("${Constants.KEY_OVERLAY_X}_$companionId")
@@ -102,6 +103,10 @@ class PreferencesManager @Inject constructor(
 
     val companionBootstrapDone: Flow<Boolean> = dataStore.data.map { preferences ->
         preferences[Keys.COMPANION_BOOTSTRAP_DONE] ?: false
+    }
+
+    val tasksWidgetEnabled: Flow<Boolean> = dataStore.data.map { preferences ->
+        preferences[Keys.TASKS_WIDGET_ENABLED] ?: false
     }
 
     suspend fun updateOverlayPosition(x: Float, y: Float) {
@@ -210,6 +215,12 @@ class PreferencesManager @Inject constructor(
     suspend fun setActiveCompanionId(companionId: Long) {
         dataStore.edit { preferences ->
             preferences[Keys.ACTIVE_COMPANION_ID] = companionId
+        }
+    }
+
+    suspend fun setTasksWidgetEnabled(enabled: Boolean) {
+        dataStore.edit { preferences ->
+            preferences[Keys.TASKS_WIDGET_ENABLED] = enabled
         }
     }
 

@@ -106,7 +106,12 @@ fun CompanionWorkspaceScreen(
             Spacer(modifier = Modifier.height(Spacing.md))
 
             // ── Tasks ──
-            TasksSection(tasks = state.tasks, viewModel = viewModel)
+            TasksSection(
+                tasks = state.tasks,
+                viewModel = viewModel,
+                widgetEnabled = state.tasksWidgetEnabled,
+                onWidgetToggle = viewModel::setTasksWidgetEnabled
+            )
             Spacer(modifier = Modifier.height(Spacing.md))
 
             // ── Reminders ──
@@ -240,9 +245,12 @@ private fun BondSection(bond: com.pixelpal.app.domain.model.Bond?) {
 @Composable
 private fun TasksSection(
     tasks: List<Task>,
-    viewModel: CompanionWorkspaceViewModel
+    viewModel: CompanionWorkspaceViewModel,
+    widgetEnabled: Boolean = false,
+    onWidgetToggle: (Boolean) -> Unit = {}
 ) {
     var newTask by remember { mutableStateOf("") }
+    val context = androidx.compose.ui.platform.LocalContext.current
 
     SectionHeader(title = "Tasks")
     Card(
@@ -300,6 +308,82 @@ private fun TasksSection(
                             }
                         )
                     }
+                }
+            }
+
+            Spacer(modifier = Modifier.height(Spacing.md))
+            HorizontalDivider(color = MaterialTheme.colorScheme.outline.copy(alpha = 0.2f))
+            Spacer(modifier = Modifier.height(Spacing.md))
+
+            // ── Home Screen Widget opt-in ──
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(
+                        text = "Home Screen Widget",
+                        style = MaterialTheme.typography.titleSmall,
+                        fontWeight = FontWeight.SemiBold
+                    )
+                    Text(
+                        text = "Show tasks on your Android home screen",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                    if (widgetEnabled) {
+                        Spacer(modifier = Modifier.height(4.dp))
+                        Text(
+                            text = "✓ Widget enabled — add it from your launcher's widget picker",
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.primary,
+                            fontWeight = FontWeight.Medium
+                        )
+                    }
+                }
+                Spacer(modifier = Modifier.width(Spacing.sm))
+                Switch(
+                    checked = widgetEnabled,
+                    onCheckedChange = { enabled ->
+                        onWidgetToggle(enabled)
+                        if (enabled) {
+                            // Guide user to widget picker or request pin (Android 8+)
+                            try {
+                                val appWidgetManager = android.appwidget.AppWidgetManager.getInstance(context)
+                                if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.O &&
+                                    appWidgetManager.isRequestPinAppWidgetSupported
+                                ) {
+                                    val provider = android.content.ComponentName(
+                                        context,
+                                        com.pixelpal.app.widget.TasksWidgetProvider::class.java
+                                    )
+                                    appWidgetManager.requestPinAppWidget(provider, null, null)
+                                }
+                            } catch (_: Exception) { }
+                        }
+                    }
+                )
+            }
+            if (!widgetEnabled) {
+                Spacer(modifier = Modifier.height(Spacing.sm))
+                TextButton(
+                    onClick = {
+                        onWidgetToggle(true)
+                        try {
+                            val appWidgetManager = android.appwidget.AppWidgetManager.getInstance(context)
+                            if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.O &&
+                                appWidgetManager.isRequestPinAppWidgetSupported
+                            ) {
+                                val provider = android.content.ComponentName(
+                                    context,
+                                    com.pixelpal.app.widget.TasksWidgetProvider::class.java
+                                )
+                                appWidgetManager.requestPinAppWidget(provider, null, null)
+                            }
+                        } catch (_: Exception) { }
+                    }
+                ) {
+                    Text("Enable Widget")
                 }
             }
         }
