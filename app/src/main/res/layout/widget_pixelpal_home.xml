@@ -25,7 +25,7 @@
         android:textColor="#00D4AA"
         android:textSize="11sp" />
 
-    <View
+    <ImageView
         android:layout_width="40dp"
         android:layout_height="2dp"
         android:layout_marginTop="8dp"
