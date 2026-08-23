@@ -1,0 +1,52 @@
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="120dp"
+    android:height="120dp"
+    android:viewportWidth="120"
+    android:viewportHeight="120">
+
+    <!-- Pixel-style LLAMA: geometric body, long neck, long ears -->
+    <!-- Body -->
+    <path
+        android:fillColor="#ECE3D4"
+        android:pathData="M58,98 C46,98 38,92 38,84 L38,72 C38,66 43,62 50,62 L70,62 C77,62 82,66 82,72 L82,84 C82,92 74,98 62,98 Z" />
+
+    <!-- Neck (long) -->
+    <path
+        android:fillColor="#ECE3D4"
+        android:pathData="M64,64 L76,64 L78,34 L68,32 Z" />
+
+    <!-- Head -->
+    <path
+        android:fillColor="#F5EEE2"
+        android:pathData="M64,22 L80,22 C83,22 85,24 85,27 L85,33 C85,36 83,38 80,38 L66,38 C63,38 61,36 61,33 L61,26 Z" />
+
+    <!-- Long ears -->
+    <path
+        android:fillColor="#D7C9B2"
+        android:pathData="M65,20 L69,8 L73,19 Z" />
+    <path
+        android:fillColor="#D7C9B2"
+        android:pathData="M75,20 L79,8 L83,19 Z" />
+
+    <!-- Eyes -->
+    <path
+        android:fillColor="#1E1E30"
+        android:pathData="M69,28 a2.5,2.5 0 1,0 5,0 a2.5,2.5 0 1,0 -5,0 Z" />
+    <path
+        android:fillColor="#1E1E30"
+        android:pathData="M77,28 a2.5,2.5 0 1,0 5,0 a2.5,2.5 0 1,0 -5,0 Z" />
+
+    <!-- Blanket pattern (patches) -->
+    <path
+        android:fillColor="#EF6C9C"
+        android:pathData="M42,70 L54,70 L54,80 L42,80 Z" />
+    <path
+        android:fillColor="#66BB6A"
+        android:pathData="M58,70 L70,70 L70,80 L58,80 Z" />
+    <path
+        android:fillColor="#42A5F5"
+        android:pathData="M42,84 L52,84 L52,92 L42,92 Z" />
+    <!-- Happy eyes -->
+    <path android:fillColor="#18181D" android:pathData="M 44,36 L 46,32 L 48,36 L 47,37 L 46,36 L 45,37 Z" />
+    <path android:fillColor="#18181D" android:pathData="M 72,36 L 74,32 L 76,36 L 75,37 L 74,36 L 73,37 Z" />
+</vector>

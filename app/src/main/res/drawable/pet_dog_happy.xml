@@ -1,0 +1,76 @@
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="120dp"
+    android:height="120dp"
+    android:viewportWidth="120"
+    android:viewportHeight="120">
+
+    <!-- Body -->
+    <path
+        android:fillColor="#C4956A"
+        android:pathData="M60,95 C45,95 35,88 35,78 L35,68 C35,62 40,58 46,58 L74,58 C80,58 85,62 85,68 L85,78 C85,88 75,95 60,95 Z" />
+
+    <!-- Belly -->
+    <path
+        android:fillColor="#F5E6D3"
+        android:pathData="M50,62 Q60,60 70,62 L70,90 Q60,94 50,90 Z" />
+
+    <!-- Left leg -->
+    <path
+        android:fillColor="#C4956A"
+        android:pathData="M44,88 L42,100 C42,102 44,104 47,104 L50,104 C52,104 53,102 52,100 L50,88" />
+
+    <!-- Right leg -->
+    <path
+        android:fillColor="#C4956A"
+        android:pathData="M70,88 L68,100 C68,102 70,104 73,104 L76,104 C78,104 79,102 78,100 L76,88" />
+
+    <!-- Tail (wagging, curved up) -->
+    <path
+        android:fillColor="#A07850"
+        android:pathData="M85,80 Q98,70 100,58 Q101,48 95,42"
+        android:strokeWidth="5"
+        android:strokeColor="#A07850"
+        android:strokeLineCap="round" />
+
+    <!-- Head -->
+    <path
+        android:fillColor="#C4956A"
+        android:pathData="M60,62 C40,62 25,50 25,35 C25,18 40,8 60,8 C80,8 95,18 95,35 C95,50 80,62 60,62 Z" />
+
+    <!-- Left ear (floppy) -->
+    <path
+        android:fillColor="#A07850"
+        android:pathData="M28,30 L18,14 L24,8 L38,22 Z" />
+
+    <!-- Right ear (floppy) -->
+    <path
+        android:fillColor="#A07850"
+        android:pathData="M92,30 L102,14 L96,8 L82,22 Z" />
+
+    <!-- Eye patch -->
+    <path
+        android:fillColor="#A07850"
+        android:pathData="M40,28 A10,8 0 1,1 56,28 A10,8 0 1,1 40,28 Z" />
+
+        <!-- Happy eyes -->
+    <path android:fillColor="#18181D" android:pathData="M 44,36 L 46,32 L 48,36 L 47,37 L 46,36 L 45,37 Z" />
+    <path android:fillColor="#18181D" android:pathData="M 72,36 L 74,32 L 76,36 L 75,37 L 74,36 L 73,37 Z" />
+
+    <!-- Nose --> -->
+    <path
+        android:fillColor="#2D2D2D"
+        android:pathData="M56,42 A4,3 0 1,1 64,42 A4,3 0 1,1 56,42 Z" />
+
+    <!-- Tongue out -->
+    <path
+        android:fillColor="#FF8FAB"
+        android:pathData="M57,46 Q60,52 63,46 Z" />
+
+    <!-- Mouth -->
+    <path
+        android:pathData="M52,46 Q56,44 60,46 Q64,44 68,46"
+        android:strokeWidth="1.5"
+        android:strokeColor="#8B6844"
+        android:fillColor="#00000000"
+        android:strokeLineCap="round" />
+</vector>

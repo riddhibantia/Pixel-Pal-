@@ -20,8 +20,7 @@
             android:text="PIXELPAL TASKS"
             android:textColor="#1A1A2E"
             android:textSize="12sp"
-            android:textStyle="bold"
-            android:letterSpacing="0.08" />
+            android:textStyle="bold" />
 
         <TextView
             android:id="@+id/widget_add_task"
@@ -40,8 +39,7 @@
         android:layout_height="1dp"
         android:layout_marginTop="8dp"
         android:layout_marginBottom="8dp"
-        android:background="#1A1A2E"
-        android:alpha="0.1" />
+        android:background="#331A1A2E" />
 
     <!-- Task rows container -->
     <LinearLayout
@@ -66,7 +64,7 @@
                 android:layout_height="24dp"
                 android:background="@drawable/widget_checkbox_background"
                 android:gravity="center"
-                android:text="☐"
+                android:text=" "
                 android:textColor="#00D4AA"
                 android:textSize="14sp" />
 
@@ -100,7 +98,7 @@
                 android:layout_height="24dp"
                 android:background="@drawable/widget_checkbox_background"
                 android:gravity="center"
-                android:text="☐"
+                android:text=" "
                 android:textColor="#00D4AA"
                 android:textSize="14sp" />
 
@@ -134,7 +132,7 @@
                 android:layout_height="24dp"
                 android:background="@drawable/widget_checkbox_background"
                 android:gravity="center"
-                android:text="☐"
+                android:text=" "
                 android:textColor="#00D4AA"
                 android:textSize="14sp" />
 
@@ -168,7 +166,7 @@
                 android:layout_height="24dp"
                 android:background="@drawable/widget_checkbox_background"
                 android:gravity="center"
-                android:text="☐"
+                android:text=" "
                 android:textColor="#00D4AA"
                 android:textSize="14sp" />
 
@@ -202,7 +200,7 @@
                 android:layout_height="24dp"
                 android:background="@drawable/widget_checkbox_background"
                 android:gravity="center"
-                android:text="☐"
+                android:text=" "
                 android:textColor="#00D4AA"
                 android:textSize="14sp" />
 
@@ -236,7 +234,7 @@
                 android:layout_height="24dp"
                 android:background="@drawable/widget_checkbox_background"
                 android:gravity="center"
-                android:text="☐"
+                android:text=" "
                 android:textColor="#00D4AA"
                 android:textSize="14sp" />
 
@@ -261,8 +259,7 @@
             android:gravity="center"
             android:padding="16dp"
             android:text="No tasks yet.\nTap + to add one!"
-            android:textColor="#1A1A2E"
-            android:alpha="0.6"
+            android:textColor="#991A1A2E"
             android:textSize="12sp"
             android:visibility="gone" />
 
@@ -274,8 +271,7 @@
             android:gravity="center"
             android:paddingTop="6dp"
             android:text="3 tasks remaining"
-            android:textColor="#1A1A2E"
-            android:alpha="0.5"
+            android:textColor="#801A1A2E"
             android:textSize="11sp"
             android:visibility="gone" />
 

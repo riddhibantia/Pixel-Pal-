@@ -1,0 +1,70 @@
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="120dp"
+    android:height="120dp"
+    android:viewportWidth="120"
+    android:viewportHeight="120">
+
+    <!-- Tail (wide flat swimmer tail) -->
+    <path
+        android:fillColor="#FFB5C5"
+        android:pathData="M85,75 Q110,75 110,65 Q110,55 95,50" />
+    <path
+        android:fillColor="#FF91A4"
+        android:pathData="M85,73 Q105,73 105,65 Q105,58 95,52" />
+
+    <!-- Body -->
+    <path
+        android:fillColor="#FFB5C5"
+        android:pathData="M60,95 C45,95 30,88 30,78 L30,68 C30,62 38,58 45,58 L75,58 C82,58 90,62 90,68 L90,78 C90,88 75,95 60,95 Z" />
+
+    <!-- Belly -->
+    <path
+        android:fillColor="#FFD1DC"
+        android:pathData="M50,65 Q60,60 70,65 L70,85 Q60,90 50,85 Z" />
+
+    <!-- Left short leg -->
+    <path
+        android:fillColor="#FF91A4"
+        android:pathData="M44,88 L40,98 A4,4 0 0,0 48,98 L48,88" />
+
+    <!-- Right short leg -->
+    <path
+        android:fillColor="#FF91A4"
+        android:pathData="M70,88 L68,98 A4,4 0 0,0 76,98 L76,88" />
+
+    <!-- Gills (Left) -->
+    <path android:fillColor="#FF6B9D" android:pathData="M25,25 Q10,20 15,30 Q20,35 25,35 Z" />
+    <path android:fillColor="#FF6B9D" android:pathData="M22,38 Q5,35 10,45 Q15,50 25,45 Z" />
+    <path android:fillColor="#FF6B9D" android:pathData="M25,50 Q10,55 15,65 Q20,60 28,55 Z" />
+
+    <!-- Gills (Right) -->
+    <path android:fillColor="#FF6B9D" android:pathData="M95,25 Q110,20 105,30 Q100,35 95,35 Z" />
+    <path android:fillColor="#FF6B9D" android:pathData="M98,38 Q115,35 110,45 Q105,50 95,45 Z" />
+    <path android:fillColor="#FF6B9D" android:pathData="M95,50 Q110,55 105,65 Q100,60 92,55 Z" />
+
+    <!-- Head (very wide and squished) -->
+    <path
+        android:fillColor="#FFB5C5"
+        android:pathData="M60,65 C30,65 18,52 18,38 C18,22 35,12 60,12 C85,12 102,22 102,38 C102,52 90,65 60,65 Z" />
+
+    <!-- Left eye (dot) -->
+    <path
+        android:fillColor="#2D2D2D"
+        android:pathData="M35,38 A3,3 0 1,1 41,38 A3,3 0 1,1 35,38 Z" />
+
+    <!-- Right eye (dot) -->
+    <path
+        android:fillColor="#2D2D2D"
+        android:pathData="M79,38 A3,3 0 1,1 85,38 A3,3 0 1,1 79,38 Z" />
+
+    <!-- Little smile -->
+    <path
+        android:pathData="M55,48 Q60,52 65,48"
+        android:strokeWidth="1.5"
+        android:strokeColor="#FF6B9D"
+        android:fillColor="#00000000"
+        android:strokeLineCap="round" />
+    <!-- Blink - eyes closed -->
+    <path android:fillColor="#18181D" android:pathData="M 42,36 L 50,36" android:strokeWidth="2" android:strokeColor="#18181D" android:strokeLineCap="round" />
+    <path android:fillColor="#18181D" android:pathData="M 70,36 L 78,36" android:strokeWidth="2" android:strokeColor="#18181D" android:strokeLineCap="round" />
+</vector>

@@ -1,0 +1,13 @@
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="24dp"
+    android:height="24dp"
+    android:viewportWidth="24"
+    android:viewportHeight="24">
+    <!-- 4-point sparkle -->
+    <path
+        android:fillColor="#FFD54F"
+        android:pathData="M12,2 L13.5,9.5 L21,12 L13.5,14.5 L12,22 L10.5,14.5 L3,12 L10.5,9.5 Z" />
+    <path
+        android:fillColor="#FFECB3"
+        android:pathData="M12,6 L12.8,10.2 L17,12 L12.8,13.8 L12,18 L11.2,13.8 L7,12 L11.2,10.2 Z" />
+</vector>

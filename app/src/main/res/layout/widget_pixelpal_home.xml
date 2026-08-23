@@ -21,7 +21,7 @@
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_marginTop="2dp"
-        android:text="Happy • Bond Lv 3"
+        android:text="Happy - Bond Lv 3"
         android:textColor="#00D4AA"
         android:textSize="11sp" />
 
@@ -30,14 +30,13 @@
         android:layout_height="2dp"
         android:layout_marginTop="8dp"
         android:layout_marginBottom="8dp"
-        android:background="#00D4AA"
-        android:alpha="0.3" />
+        android:background="#4D00D4AA" />
 
     <TextView
         android:id="@+id/widget_home_tasks"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:text="☐ 3 tasks remaining"
+        android:text="3 tasks remaining"
         android:textColor="#1A1A2E"
         android:textSize="12sp" />
 
@@ -46,9 +45,8 @@
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_marginTop="4dp"
-        android:text="🔔 Meeting at 6:00 PM"
-        android:textColor="#1A1A2E"
-        android:alpha="0.7"
+        android:text="Meeting at 6:00 PM"
+        android:textColor="#B31A1A2E"
         android:textSize="11sp"
         android:visibility="gone" />
 
@@ -57,7 +55,7 @@
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_marginTop="4dp"
-        android:text="● Connected"
+        android:text="Connected"
         android:textColor="#00D4AA"
         android:textSize="11sp"
         android:visibility="gone" />

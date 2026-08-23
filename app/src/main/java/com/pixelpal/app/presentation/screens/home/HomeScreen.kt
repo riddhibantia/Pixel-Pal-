@@ -239,11 +239,11 @@ private fun CompanionHeroCard(
     val companion = state.companion ?: return
     val bond = state.bond
 
-    // â”€â”€ Interaction animation state â”€â”€
+    // -- Interaction animation state --
     var interactionTick by remember { mutableIntStateOf(0) }
     var feedbackText by remember { mutableStateOf<String?>(null) }
     var showParticles by remember { mutableStateOf(false) }
-    var useHappyExpression by remember { mutableStateOf(false) }
+    var currentExpression by remember { mutableStateOf(AnimationState.IDLE) }
 
     val scaleAnim = remember { Animatable(1f) }
     val rotationAnim = remember { Animatable(0f) }
@@ -259,44 +259,73 @@ private fun CompanionHeroCard(
         listOf(
             "${companion.name} is happy!",
             "That made me smile!",
-            "âœ¨ Bond strengthened!",
+            "Bond strengthened!",
             "${companion.name} enjoyed that!",
             "A happy moment!",
-            "So much love! â™¥",
+            "So much love!",
             "You made my day!",
-            "Weâ€™re getting closer!"
+            "We are getting closer!"
         )
     }
 
     LaunchedEffect(interactionTick) {
         if (interactionTick == 0) return@LaunchedEffect
-        // Pick random feedback
+        // Pick random feedback and expression for varied reactions
         feedbackText = reactionMessages.random()
         showParticles = true
-        useHappyExpression = true
+        // Randomly choose happy smile or blink for this interaction
+        val reactionType = (0..3).random()
+        currentExpression = when (reactionType) {
+            0 -> AnimationState.HAPPY  // bounce + happy smile + sparkles
+            1 -> AnimationState.BLINK  // blink + bounce
+            2 -> AnimationState.HAPPY  // wiggle + happy
+            else -> AnimationState.HAPPY // heart glow
+        }
 
-        // Bounce + wiggle + glow sequence
+        // Bounce + wiggle + glow sequence — slight variation per reaction
         launch {
-            scaleAnim.animateTo(1.18f, animationSpec = tween(140, easing = FastOutSlowInEasing))
-            scaleAnim.animateTo(0.94f, animationSpec = tween(120))
-            scaleAnim.animateTo(1.06f, animationSpec = tween(100))
-            scaleAnim.animateTo(1f, animationSpec = spring(dampingRatio = Spring.DampingRatioMediumBouncy, stiffness = Spring.StiffnessLow))
+            when (reactionType) {
+                0 -> {
+                    scaleAnim.animateTo(1.18f, animationSpec = tween(140, easing = FastOutSlowInEasing))
+                    scaleAnim.animateTo(0.94f, animationSpec = tween(120))
+                    scaleAnim.animateTo(1.06f, animationSpec = tween(100))
+                    scaleAnim.animateTo(1f, animationSpec = spring(dampingRatio = Spring.DampingRatioMediumBouncy, stiffness = Spring.StiffnessLow))
+                }
+                1 -> {
+                    scaleAnim.animateTo(1.08f, tween(100))
+                    scaleAnim.animateTo(1f, tween(120))
+                    scaleAnim.animateTo(1.05f, tween(80))
+                    scaleAnim.animateTo(1f, spring(dampingRatio = 0.6f, stiffness = Spring.StiffnessMedium))
+                }
+                else -> {
+                    scaleAnim.animateTo(1.12f, tween(130))
+                    scaleAnim.animateTo(0.98f, tween(110))
+                    scaleAnim.animateTo(1f, spring(dampingRatio = Spring.DampingRatioMediumBouncy, stiffness = Spring.StiffnessLow))
+                }
+            }
         }
         launch {
             glowAlphaAnim.animateTo(0.55f, animationSpec = tween(180))
             glowAlphaAnim.animateTo(0f, animationSpec = tween(500, delayMillis = 400))
         }
         launch {
-            // Wiggle: -8 -> 8 -> -4 -> 4 -> 0
-            rotationAnim.animateTo(-7f, tween(90))
-            rotationAnim.animateTo(7f, tween(110))
-            rotationAnim.animateTo(-4f, tween(90))
-            rotationAnim.animateTo(4f, tween(80))
-            rotationAnim.animateTo(0f, spring(dampingRatio = 0.5f, stiffness = Spring.StiffnessMedium))
+            // Wiggle varies per reaction
+            if (reactionType == 2) {
+                rotationAnim.animateTo(-7f, tween(90))
+                rotationAnim.animateTo(7f, tween(110))
+                rotationAnim.animateTo(-4f, tween(90))
+                rotationAnim.animateTo(4f, tween(80))
+                rotationAnim.animateTo(0f, spring(dampingRatio = 0.5f, stiffness = Spring.StiffnessMedium))
+            } else if (reactionType == 1) {
+                // Subtle blink doesn't wiggle much
+                rotationAnim.animateTo(-2f, tween(80))
+                rotationAnim.animateTo(2f, tween(80))
+                rotationAnim.animateTo(0f, tween(80))
+            }
         }
-        delay(650)
-        useHappyExpression = false
-        delay(550)
+        delay(900)
+        currentExpression = AnimationState.IDLE
+        delay(300)
         showParticles = false
         delay(900)
         feedbackText = null
@@ -319,7 +348,7 @@ private fun CompanionHeroCard(
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
 
-            // â”€â”€ Large centered companion â€” the visual heart of the app â”€â”€
+            // -- Large centered companion - the visual heart of the app --
             Box(
                 modifier = Modifier.size(220.dp),
                 contentAlignment = Alignment.Center
@@ -337,7 +366,7 @@ private fun CompanionHeroCard(
                     )
                 }
 
-                // Sparkles / stars / hearts overlay â€” positioned around the pet
+                // Sparkles / stars / hearts overlay - positioned around the pet
                 if (showParticles) {
                     SparkleOverlay(alpha = glowAlphaAnim.value)
                 }
@@ -357,7 +386,7 @@ private fun CompanionHeroCard(
                 ) {
                     PetRenderer(
                         petType = companion.effectiveSpecies,
-                        animationState = if (useHappyExpression) AnimationState.HAPPY else AnimationState.IDLE,
+                        animationState = currentExpression,
                         size = 180.dp
                     )
                 }
@@ -378,7 +407,7 @@ private fun CompanionHeroCard(
                 )
             } else {
                 Spacer(modifier = Modifier.height(Spacing.sm))
-                // Reserve space so layout doesn't jump â€” invisible placeholder
+                // Reserve space so layout doesn't jump - invisible placeholder
                 Text(
                     text = " ",
                     style = MaterialTheme.typography.labelLarge,
@@ -394,7 +423,7 @@ private fun CompanionHeroCard(
             )
             Spacer(modifier = Modifier.height(4.dp))
             Text(
-                text = "${state.stateLabel()} â€¢ Bond Level ${bond?.level ?: 0} â€¢ ${bond?.streakDays ?: 0}d streak",
+                text = "${state.stateLabel()} \u00B7 Bond Level ${bond?.level ?: 0} \u00B7 ${bond?.streakDays ?: 0}d streak",
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.primary,
                 fontWeight = FontWeight.Medium
@@ -402,7 +431,7 @@ private fun CompanionHeroCard(
 
             Spacer(modifier = Modifier.height(Spacing.md))
 
-            // Primary interaction â€” compact, centered with press feedback
+            // Primary interaction - compact, centered with press feedback
             PrimaryButton(
                 text = "Interact",
                 onClick = { triggerInteract() },
@@ -419,7 +448,7 @@ private fun CompanionHeroCard(
 
             Spacer(modifier = Modifier.height(Spacing.md))
 
-            // â”€â”€ Compact stats footer â”€â”€
+            // -- Compact stats footer --
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween
@@ -459,47 +488,50 @@ private fun SparkleOverlay(alpha: Float) {
             .size(220.dp)
             .alpha(alpha)
     ) {
-        // Top-left sparkle
-        Text(
-            text = "âœ¨",
-            fontSize = 18.sp,
+        // Top-left sparkle (vector, not text emoji)
+        androidx.compose.foundation.Image(
+            painter = androidx.compose.ui.res.painterResource(id = com.pixelpal.app.R.drawable.particle_sparkle),
+            contentDescription = null,
             modifier = Modifier
                 .align(Alignment.TopStart)
                 .offset(x = 12.dp, y = 18.dp)
+                .size(20.dp)
         )
         // Top-right star
-        Text(
-            text = "â­",
-            fontSize = 16.sp,
+        androidx.compose.foundation.Image(
+            painter = androidx.compose.ui.res.painterResource(id = com.pixelpal.app.R.drawable.particle_star),
+            contentDescription = null,
             modifier = Modifier
                 .align(Alignment.TopEnd)
                 .offset(x = (-14).dp, y = 22.dp)
+                .size(18.dp)
         )
         // Bottom-left heart
-        Text(
-            text = "â™¥",
-            fontSize = 14.sp,
-            color = MaterialTheme.colorScheme.primary,
+        androidx.compose.foundation.Image(
+            painter = androidx.compose.ui.res.painterResource(id = com.pixelpal.app.R.drawable.particle_heart),
+            contentDescription = null,
             modifier = Modifier
                 .align(Alignment.BottomStart)
                 .offset(x = 20.dp, y = (-16).dp)
+                .size(16.dp)
         )
         // Bottom-right sparkle
-        Text(
-            text = "âœ¨",
-            fontSize = 14.sp,
+        androidx.compose.foundation.Image(
+            painter = androidx.compose.ui.res.painterResource(id = com.pixelpal.app.R.drawable.particle_sparkle),
+            contentDescription = null,
             modifier = Modifier
                 .align(Alignment.BottomEnd)
                 .offset(x = (-18).dp, y = (-20).dp)
+                .size(16.dp)
         )
-        // Mid-right star
-        Text(
-            text = "âœ¦",
-            fontSize = 12.sp,
-            color = MaterialTheme.colorScheme.primary,
+        // Mid-right dot glow
+        androidx.compose.foundation.Image(
+            painter = androidx.compose.ui.res.painterResource(id = com.pixelpal.app.R.drawable.particle_dot),
+            contentDescription = null,
             modifier = Modifier
                 .align(Alignment.CenterEnd)
                 .offset(x = (-6).dp)
+                .size(14.dp)
         )
     }
 }

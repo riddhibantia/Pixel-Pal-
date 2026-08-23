@@ -1,0 +1,77 @@
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="120dp"
+    android:height="120dp"
+    android:viewportWidth="120"
+    android:viewportHeight="120">
+
+    <!-- Body (Rounder) -->
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M60,98 C40,98 30,90 30,78 L30,68 C30,60 38,55 45,55 L75,55 C82,55 90,60 90,68 L90,78 C90,90 80,98 60,98 Z" />
+
+    <!-- Left leg -->
+    <path
+        android:fillColor="#F0F0F0"
+        android:pathData="M44,90 L40,102 C40,105 44,106 47,106 L50,106 C53,106 54,105 52,102 L50,90" />
+
+    <!-- Right leg -->
+    <path
+        android:fillColor="#F0F0F0"
+        android:pathData="M70,90 L68,102 C68,105 72,106 75,106 L78,106 C81,106 82,105 80,102 L76,90" />
+
+    <!-- Fluffy round tail -->
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M85,85 A12,12 0 1,1 100,75 A12,12 0 1,1 85,85 Z" />
+    <path
+        android:fillColor="#F0F0F0"
+        android:pathData="M88,82 A6,6 0 1,1 94,76 A6,6 0 1,1 88,82 Z" />
+
+    <!-- Head -->
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M60,62 C38,62 22,50 22,35 C22,18 38,8 60,8 C82,8 98,18 98,35 C98,50 82,62 60,62 Z" />
+
+    <!-- Left long ear -->
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M38,20 Q20,-10 32,-15 Q40,-5 46,15 Z" />
+    <path
+        android:fillColor="#FFB5C5"
+        android:pathData="M37,18 Q25,-5 33,-10 Q38,0 43,14 Z" />
+
+    <!-- Right long ear (slightly flopped) -->
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M82,20 Q95,-5 105,5 Q100,15 78,25 Z" />
+    <path
+        android:fillColor="#FFB5C5"
+        android:pathData="M83,21 Q94,2 101,8 Q98,14 81,24 Z" />
+
+        <!-- Blink - eyes closed -->
+    <path android:fillColor="#18181D" android:pathData="M 42,36 L 50,36" android:strokeWidth="2" android:strokeColor="#18181D" android:strokeLineCap="round" />
+    <path android:fillColor="#18181D" android:pathData="M 70,36 L 78,36" android:strokeWidth="2" android:strokeColor="#18181D" android:strokeLineCap="round" />
+
+    <!-- Nose --> -->
+    <path
+        android:fillColor="#FFB5C5"
+        android:pathData="M35,42 A5,3 0 1,1 45,42 A5,3 0 1,1 35,42 Z"
+        android:fillAlpha="0.6" />
+    <path
+        android:fillColor="#FFB5C5"
+        android:pathData="M75,42 A5,3 0 1,1 85,42 A5,3 0 1,1 75,42 Z"
+        android:fillAlpha="0.6" />
+
+    <!-- Tiny nose -->
+    <path
+        android:fillColor="#FFB5C5"
+        android:pathData="M58,42 A2,1.5 0 1,1 62,42 A2,1.5 0 1,1 58,42 Z" />
+
+    <!-- Bunny mouth -->
+    <path
+        android:pathData="M56,45 Q60,48 60,45 Q60,48 64,45"
+        android:strokeWidth="1.5"
+        android:strokeColor="#2D2D2D"
+        android:fillColor="#00000000"
+        android:strokeLineCap="round" />
+</vector>

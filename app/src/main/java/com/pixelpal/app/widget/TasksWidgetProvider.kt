@@ -204,9 +204,9 @@ class TasksWidgetProvider : AppWidgetProvider() {
                             val (taskId, title, isDone) = tasks[i]
                             views.setViewVisibility(getRowId(i), android.view.View.VISIBLE)
                             views.setTextViewText(getTitleId(i), title)
-                            views.setTextViewText(getCheckboxId(i), if (isDone) "☑" else "☐")
-                            // Strike-through via alpha
-                            views.setInt(getTitleId(i), "setAlpha", if (isDone) 60 else 255)
+                            views.setTextViewText(getCheckboxId(i), if (isDone) "X" else " ")
+                            // Dim completed tasks via text color
+                            views.setTextColor(getTitleId(i), if (isDone) android.graphics.Color.parseColor("#991A1A2E") else android.graphics.Color.parseColor("#FF1A1A2E"))
 
                             val toggleIntent = Intent(context, TasksWidgetProvider::class.java).apply {
                                 action = ACTION_TOGGLE_TASK
