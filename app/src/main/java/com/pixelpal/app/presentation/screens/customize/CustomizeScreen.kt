@@ -38,6 +38,7 @@ import com.pixelpal.app.animation.AnimationState
 import com.pixelpal.app.domain.model.SpeciesStyle
 import com.pixelpal.app.presentation.components.AppTextField
 import com.pixelpal.app.presentation.components.AppTopBar
+import com.pixelpal.app.presentation.components.BaseCompanionAvatar
 import com.pixelpal.app.presentation.components.PetRenderer
 import com.pixelpal.app.presentation.components.PixelPalBottomBar
 import com.pixelpal.app.presentation.components.SectionHeader
@@ -100,9 +101,12 @@ fun CustomizeScreen(
                                     CircleShape
                                 )
                         )
-                        PetRenderer(
-                            petType = species,
-                            animationState = AnimationState.HAPPY,
+                        BaseCompanionAvatar(
+                            companion = companion ?: com.pixelpal.app.domain.model.Companion(
+                                species = species,
+                                color = color,
+                                pattern = pattern
+                            ),
                             size = 170.dp
                         )
                     }

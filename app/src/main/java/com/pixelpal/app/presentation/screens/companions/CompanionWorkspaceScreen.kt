@@ -13,6 +13,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.ui.draw.clip
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
@@ -43,12 +44,11 @@ import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
-import com.pixelpal.app.animation.AnimationState
 import com.pixelpal.app.domain.model.AgentConnection
 import com.pixelpal.app.domain.model.Task
 import com.pixelpal.app.presentation.components.AppTextField
 import com.pixelpal.app.presentation.components.AppTopBar
-import com.pixelpal.app.presentation.components.PetRenderer
+import com.pixelpal.app.presentation.components.BaseCompanionAvatar
 import com.pixelpal.app.presentation.components.PrimaryButton
 import com.pixelpal.app.presentation.components.SectionHeader
 import com.pixelpal.app.presentation.navigation.Screen
@@ -152,15 +152,15 @@ private fun ProfileHeader(
             Box(
                 modifier = Modifier
                     .size(72.dp)
+                    .clip(RoundedCornerShape(Radius.large))
                     .background(
                         MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
                         RoundedCornerShape(Radius.large)
                     ),
                 contentAlignment = Alignment.Center
             ) {
-                PetRenderer(
-                    petType = companion.effectiveSpecies,
-                    animationState = AnimationState.HAPPY,
+                BaseCompanionAvatar(
+                    companion = companion,
                     size = 64.dp
                 )
             }
