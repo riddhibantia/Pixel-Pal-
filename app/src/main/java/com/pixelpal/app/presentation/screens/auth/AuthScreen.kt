@@ -66,7 +66,7 @@ fun AuthScreen(
                 modifier = Modifier
                     .fillMaxSize()
                     .verticalScroll(rememberScrollState())
-                    .padding(horizontal = Spacing.screenHorizontal, vertical = Spacing.large),
+                    .padding(horizontal = Spacing.screenHorizontal, vertical = Spacing.lg),
                 horizontalAlignment = Alignment.CenterHorizontally,
                 verticalArrangement = Arrangement.Center
             ) {
@@ -77,7 +77,7 @@ fun AuthScreen(
                     size = 120.dp
                 )
 
-                Spacer(modifier = Modifier.height(Spacing.medium))
+                Spacer(modifier = Modifier.height(Spacing.md))
 
                 Text(
                     text = if (uiState.isSignUpMode) "Create Your Account" else "Welcome Back",
@@ -91,10 +91,10 @@ fun AuthScreen(
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     textAlign = TextAlign.Center,
-                    modifier = Modifier.padding(horizontal = Spacing.medium, vertical = Spacing.extraSmall)
+                    modifier = Modifier.padding(horizontal = Spacing.md, vertical = Spacing.xs)
                 )
 
-                Spacer(modifier = Modifier.height(Spacing.large))
+                Spacer(modifier = Modifier.height(Spacing.lg))
 
                 // Email field
                 AppTextField(
@@ -112,7 +112,7 @@ fun AuthScreen(
                     }
                 )
 
-                Spacer(modifier = Modifier.height(Spacing.small))
+                Spacer(modifier = Modifier.height(Spacing.sm))
 
                 // Password field
                 AppTextField(
@@ -131,7 +131,7 @@ fun AuthScreen(
                 )
 
                 if (uiState.errorMessage != null) {
-                    Spacer(modifier = Modifier.height(Spacing.small))
+                    Spacer(modifier = Modifier.height(Spacing.sm))
                     Text(
                         text = uiState.errorMessage ?: "",
                         style = MaterialTheme.typography.bodySmall,
@@ -141,7 +141,7 @@ fun AuthScreen(
                 }
 
                 if (uiState.successMessage != null) {
-                    Spacer(modifier = Modifier.height(Spacing.small))
+                    Spacer(modifier = Modifier.height(Spacing.sm))
                     Text(
                         text = uiState.successMessage ?: "",
                         style = MaterialTheme.typography.bodySmall,
@@ -150,7 +150,7 @@ fun AuthScreen(
                     )
                 }
 
-                Spacer(modifier = Modifier.height(Spacing.medium))
+                Spacer(modifier = Modifier.height(Spacing.md))
 
                 if (uiState.isLoading) {
                     CircularProgressIndicator(
@@ -164,7 +164,7 @@ fun AuthScreen(
                         onClick = viewModel::submitEmailAuth
                     )
 
-                    Spacer(modifier = Modifier.height(Spacing.small))
+                    Spacer(modifier = Modifier.height(Spacing.sm))
 
                     // Guest Mode Button
                     SecondaryButton(
@@ -173,7 +173,7 @@ fun AuthScreen(
                     )
                 }
 
-                Spacer(modifier = Modifier.height(Spacing.small))
+                Spacer(modifier = Modifier.height(Spacing.sm))
 
                 Row(
                     modifier = Modifier.fillMaxWidth(),

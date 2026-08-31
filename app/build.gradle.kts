@@ -1,3 +1,5 @@
+import java.util.Properties
+
 plugins {
     id("com.android.application")
     id("org.jetbrains.kotlin.android")
@@ -11,10 +13,10 @@ android {
     namespace = "com.pixelpal.app"
     compileSdk = 35
 
-    val localProps = java.util.Properties().apply {
+    val localProps = Properties().apply {
         val localPropertiesFile = rootProject.file("local.properties")
         if (localPropertiesFile.exists()) {
-            load(localPropertiesFile.inputStream())
+            localPropertiesFile.inputStream().use { load(it) }
         }
     }
     val geminiApiKey = localProps.getProperty("GEMINI_API_KEY")

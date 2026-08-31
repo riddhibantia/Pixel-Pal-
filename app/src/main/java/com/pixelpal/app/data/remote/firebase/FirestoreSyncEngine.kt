@@ -36,7 +36,7 @@ class FirestoreSyncEngine @Inject constructor(
                 val cloudCompanion = FirestoreCompanion(
                     name = companion.name,
                     petType = companion.petType,
-                    role = companion.role,
+                    role = companion.role.name,
                     description = companion.description,
                     species = companion.species,
                     color = companion.color,
