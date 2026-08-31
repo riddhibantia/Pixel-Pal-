@@ -21,12 +21,30 @@ companions. Do not reintroduce multi-companion UI or identity leaks.
 
 No lint/typecheck/formatter beyond the standard Gradle build.
 
+## Modern Tech Stack & Architecture (v3 Updates)
+
+- **Language & Runtime**: Kotlin 2.0.0, Java 17 JVM target (`jvmTarget = "17"`), AGP 8.5.0.
+- **Annotation Processing**: **KSP** (`com.google.devtools.ksp`) for Room and Hilt (replaces `kapt`).
+- **Visuals & Animation**: **Lottie Compose** (`LottiePetView.kt` with state-based raw asset lookup in `AnimationState.getLottieRawResId` and fallback to vector drawables).
+- **Generative AI & Real-time Streaming**:
+  - `GeminiAgentConnector.kt` (Google Generative AI SDK, prompt personality injection, token streaming via `Flow<String>`). Key read from `local.properties` via `BuildConfig.GEMINI_API_KEY`.
+  - `WebSocketAgentConnector.kt` (OkHttp WebSocket listener for live event feeds).
+- **Cloud Database & Auth**:
+  - `FirebaseAuthManager.kt` (Guest mode anonymous auth, Email/Password login, password reset).
+  - `FirestoreSyncEngine.kt` (2-way real-time replication between Room and Cloud Firestore `users/{userId}/companion` & `tasks`).
+  - `FirebaseModule.kt` (Hilt DI with unlimited persistent offline caching).
+  - `AuthScreen.kt` & `AuthViewModel.kt` (Material 3 Auth screen under `Screen.Auth`).
+
 ## Key source files
 
 - `data/local/db/PixelPalDatabase.kt` — Room **v7**:
   CompanionEntity(+species/color/pattern), BondEntity, PersonalityEntity,
   ReminderEntity(companionId), TaskEntity(companionId),
   **AgentConnectionEntity** (merged config+status), ActivityEventEntity(isRead)
+- `data/remote/firebase/` — `FirebaseAuthManager.kt`, `FirestoreSyncEngine.kt`, `FirebaseModels.kt`
+- `data/remote/GeminiAgentConnector.kt` — Gemini AI connector with streaming
+- `presentation/components/LottiePetView.kt` — Lottie pet animation component
+- `presentation/screens/auth/` — `AuthScreen.kt`, `AuthViewModel.kt`
 - `data/local/db/DatabaseMigrations.kt` — chain 1_3…6_7. `MIGRATION_6_7` adds
   appearance columns and merges agent_config+agent_status → agent_connection
 - `data/local/datastore/CompanionBootstrapInitializer.kt` — startup
@@ -44,7 +62,7 @@ No lint/typecheck/formatter beyond the standard Gradle build.
   reminder +3; level milestones every 5; streaks increment once/day with
   milestone events at 3/7/14/30/60/100
 - `domain/engine/CompanionReactionProvider.kt` — contextual message layer;
-  weaves in live state ("You still have N tasks left"); agent-state messages
+  weaves in live state ("You still have N tasks left"); agent-state messages; Gemini AI integration
 - `domain/repository/AgentConnectionRepository.kt` (+Impl) — connection CRUD
   + `checkNow()` = poll → persist → record meaningful activity → notify
 - `data/remote/GenericHttpAgentConnector.kt` — polls user endpoint JSON
@@ -63,7 +81,7 @@ No lint/typecheck/formatter beyond the standard Gradle build.
   (Species×Color×Pattern via `SpeciesStyle`) — appearance-only
 - `overlay/` — `OverlayManager` registry of `OverlaySession`s capped at
   `MAX_SIMULTANEOUS_OVERLAYS = 1`; service syncs sessions to the primary
-- `di/RepositoryModule` — binds all repositories incl. `AgentConnector`
+- `di/RepositoryModule.kt` + `di/FirebaseModule.kt` — binds all repositories, Firebase, and agent connectors
 
 ## Gotchas
 
@@ -82,4 +100,4 @@ No lint/typecheck/formatter beyond the standard Gradle build.
   direct reads elsewhere.
 - Species sprites: full set only for cat; other species have idle vectors and
   fall back to IDLE automatically (`AnimationState.getDrawableResId`).
-- kapt warns "doesn't support language version 2.0+" — expected.
+
