@@ -2,6 +2,7 @@ package com.pixelpal.app.data.repository
 
 import com.pixelpal.app.data.local.db.dao.ReminderDao
 import com.pixelpal.app.data.local.db.entity.ReminderEntity
+import com.pixelpal.app.data.remote.firebase.FirestoreSyncEngine
 import com.pixelpal.app.domain.model.Reminder
 import com.pixelpal.app.domain.repository.ReminderRepository
 import kotlinx.coroutines.flow.Flow
@@ -11,7 +12,8 @@ import javax.inject.Singleton
 
 @Singleton
 class ReminderRepositoryImpl @Inject constructor(
-    private val dao: ReminderDao
+    private val dao: ReminderDao,
+    private val syncEngine: FirestoreSyncEngine
 ) : ReminderRepository {
 
     override fun getPendingReminders(): Flow<List<Reminder>> {
@@ -35,23 +37,45 @@ class ReminderRepositoryImpl @Inject constructor(
     }
 
     override suspend fun insert(reminder: Reminder): Long {
-        return dao.insert(reminder.toEntity())
+        val id = dao.insert(reminder.toEntity())
+        val saved = reminder.copy(id = id)
+        if (syncEngine.isUserLoggedIn) {
+            syncEngine.syncReminderToCloud(saved)
+        }
+        return id
     }
 
     override suspend fun update(reminder: Reminder) {
         dao.update(reminder.toEntity())
+        if (syncEngine.isUserLoggedIn) {
+            syncEngine.syncReminderToCloud(reminder)
+        }
     }
 
     override suspend fun delete(reminder: Reminder) {
         dao.delete(reminder.toEntity())
+        if (syncEngine.isUserLoggedIn) {
+            syncEngine.deleteReminderFromCloud(reminder.id)
+        }
     }
 
     override suspend fun complete(id: Long) {
-        dao.updateStatus(id, "COMPLETED", System.currentTimeMillis())
+        val now = System.currentTimeMillis()
+        dao.updateStatus(id, "COMPLETED", now)
+        if (syncEngine.isUserLoggedIn) {
+            dao.getReminderById(id)?.let {
+                syncEngine.syncReminderToCloud(it.toDomain())
+            }
+        }
     }
 
     override suspend fun snooze(id: Long, newTriggerTime: Long) {
         dao.snooze(id, newTriggerTime)
+        if (syncEngine.isUserLoggedIn) {
+            dao.getReminderById(id)?.let {
+                syncEngine.syncReminderToCloud(it.toDomain())
+            }
+        }
     }
 
     private fun ReminderEntity.toDomain() = Reminder(

@@ -2,6 +2,7 @@ package com.pixelpal.app.data.repository
 
 import com.pixelpal.app.data.local.db.dao.CompanionDao
 import com.pixelpal.app.data.local.db.entity.CompanionEntity
+import com.pixelpal.app.data.remote.firebase.FirestoreSyncEngine
 import com.pixelpal.app.domain.model.Companion
 import com.pixelpal.app.domain.model.CompanionRole
 import com.pixelpal.app.domain.model.SpeciesStyle
@@ -14,7 +15,8 @@ import javax.inject.Singleton
 
 @Singleton
 class CompanionRepositoryImpl @Inject constructor(
-    private val dao: CompanionDao
+    private val dao: CompanionDao,
+    private val syncEngine: FirestoreSyncEngine
 ) : CompanionRepository {
 
     override fun getPrimary(): Flow<Companion?> =
@@ -35,7 +37,11 @@ class CompanionRepositoryImpl @Inject constructor(
     override suspend fun create(companion: Companion): CompanionActionResult {
         return try {
             val id = dao.insert(companion.toEntity())
-            CompanionActionResult.Success(companion.copy(id = id))
+            val created = companion.copy(id = id)
+            if (syncEngine.isUserLoggedIn) {
+                syncEngine.syncCompanionToCloud(created)
+            }
+            CompanionActionResult.Success(created)
         } catch (e: Exception) {
             CompanionActionResult.Error(e.message)
         }
@@ -43,18 +49,23 @@ class CompanionRepositoryImpl @Inject constructor(
 
     override suspend fun update(companion: Companion) {
         dao.update(companion.toEntity())
+        if (syncEngine.isUserLoggedIn) {
+            syncEngine.syncCompanionToCloud(companion)
+        }
     }
 
     /** Appearance-only update: never touches identity or feature data. */
     override suspend fun transformAppearance(style: SpeciesStyle) {
         val current = dao.getPrimaryDirect() ?: return
-        dao.update(
-            current.copy(
-                species = style.species,
-                color = style.color,
-                pattern = style.pattern
-            )
+        val updated = current.copy(
+            species = style.species,
+            color = style.color,
+            pattern = style.pattern
         )
+        dao.update(updated)
+        if (syncEngine.isUserLoggedIn) {
+            syncEngine.syncCompanionToCloud(updated.toDomain())
+        }
     }
 
     override suspend fun setFavorite(id: Long, favorite: Boolean) {

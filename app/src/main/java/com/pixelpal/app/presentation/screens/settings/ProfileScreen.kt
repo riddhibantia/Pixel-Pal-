@@ -2,6 +2,7 @@ package com.pixelpal.app.presentation.screens.settings
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -18,6 +19,7 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -165,6 +167,64 @@ fun ProfileScreen(
 
             Spacer(modifier = Modifier.height(Spacing.lg))
 
+            SectionHeader(title = "Cloud Sync & Firestore")
+
+            Surface(
+                shape = RoundedCornerShape(Radius.large),
+                color = MaterialTheme.colorScheme.surface
+            ) {
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(Spacing.md),
+                    verticalArrangement = Arrangement.spacedBy(Spacing.sm)
+                ) {
+                    val isSyncing by viewModel.isSyncing.collectAsState()
+                    val accountText = when {
+                        !viewModel.isUserLoggedIn -> "Not Connected to Cloud"
+                        viewModel.isAnonymousUser -> "Guest Mode (Local & Cloud Sync Active)"
+                        else -> "Connected: ${viewModel.currentUserEmail ?: "Authenticated"}"
+                    }
+
+                    Text(
+                        text = accountText,
+                        style = MaterialTheme.typography.bodyMedium,
+                        fontWeight = FontWeight.Medium,
+                        color = MaterialTheme.colorScheme.onSurface
+                    )
+
+                    Text(
+                        text = "Firestore automatically backs up your pet, tasks, reminders, and streaks in real-time.",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+
+                    Spacer(modifier = Modifier.height(Spacing.xs))
+
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(Spacing.sm)
+                    ) {
+                        com.pixelpal.app.presentation.components.SecondaryButton(
+                            text = if (isSyncing) "Syncing..." else "Sync Now",
+                            enabled = !isSyncing && viewModel.isUserLoggedIn,
+                            modifier = Modifier.weight(1f),
+                            onClick = { viewModel.triggerCloudSync() }
+                        )
+
+                        com.pixelpal.app.presentation.components.SecondaryButton(
+                            text = if (viewModel.isUserLoggedIn && !viewModel.isAnonymousUser) "Account" else "Log In",
+                            modifier = Modifier.weight(1f),
+                            onClick = {
+                                navController.navigate(com.pixelpal.app.presentation.navigation.Screen.Auth.route)
+                            }
+                        )
+                    }
+                }
+            }
+
+            Spacer(modifier = Modifier.height(Spacing.lg))
+
             PrimaryButton(
                 text = "Save Changes",
                 enabled = !nameError && !emailError,
@@ -177,15 +237,6 @@ fun ProfileScreen(
                         viewModel.saveProfile(currentName, currentEmail, currentSeed)
                         navController.popBackStack()
                     }
-                }
-            )
-
-            Spacer(modifier = Modifier.height(Spacing.sm))
-
-            com.pixelpal.app.presentation.components.SecondaryButton(
-                text = "Cloud Sync & Account",
-                onClick = {
-                    navController.navigate(com.pixelpal.app.presentation.navigation.Screen.Auth.route)
                 }
             )
         }

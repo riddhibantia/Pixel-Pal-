@@ -2,6 +2,7 @@ package com.pixelpal.app.data.repository
 
 import com.pixelpal.app.data.local.db.dao.BondDao
 import com.pixelpal.app.data.local.db.entity.BondEntity
+import com.pixelpal.app.data.remote.firebase.FirestoreSyncEngine
 import com.pixelpal.app.domain.model.Bond
 import com.pixelpal.app.domain.repository.BondRepository
 import kotlinx.coroutines.flow.Flow
@@ -11,7 +12,8 @@ import javax.inject.Singleton
 
 @Singleton
 class BondRepositoryImpl @Inject constructor(
-    private val dao: BondDao
+    private val dao: BondDao,
+    private val syncEngine: FirestoreSyncEngine
 ) : BondRepository {
 
     override fun getBond(companionId: Long): Flow<Bond> {
@@ -28,6 +30,9 @@ class BondRepositoryImpl @Inject constructor(
 
     override suspend fun updateBond(bond: Bond) {
         dao.insertOrUpdate(bond.toEntity())
+        if (syncEngine.isUserLoggedIn) {
+            syncEngine.syncBondToCloud(bond)
+        }
     }
 
     override suspend fun ensureExists(companionId: Long) {

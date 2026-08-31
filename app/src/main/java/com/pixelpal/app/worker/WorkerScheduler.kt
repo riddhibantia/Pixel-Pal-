@@ -22,6 +22,13 @@ class WorkerScheduler @Inject constructor(
             .build()
         val personalityRequest = PeriodicWorkRequestBuilder<PersonalityWorker>(1, TimeUnit.DAYS)
             .build()
+        val firestoreSyncRequest = PeriodicWorkRequestBuilder<FirestoreSyncWorker>(1, TimeUnit.HOURS)
+            .setConstraints(
+                Constraints.Builder()
+                    .setRequiredNetworkType(NetworkType.CONNECTED)
+                    .build()
+            )
+            .build()
 
         WorkManager.getInstance(context).enqueueUniquePeriodicWork(
             BOND_DECAY_WORK_NAME,
@@ -33,6 +40,22 @@ class WorkerScheduler @Inject constructor(
             ExistingPeriodicWorkPolicy.UPDATE,
             personalityRequest
         )
+        WorkManager.getInstance(context).enqueueUniquePeriodicWork(
+            FIRESTORE_SYNC_WORK_NAME,
+            ExistingPeriodicWorkPolicy.UPDATE,
+            firestoreSyncRequest
+        )
+    }
+
+    fun triggerImmediateSync() {
+        val request = androidx.work.OneTimeWorkRequestBuilder<FirestoreSyncWorker>()
+            .setConstraints(
+                Constraints.Builder()
+                    .setRequiredNetworkType(NetworkType.CONNECTED)
+                    .build()
+            )
+            .build()
+        WorkManager.getInstance(context).enqueue(request)
     }
 
     /**
@@ -67,5 +90,6 @@ class WorkerScheduler @Inject constructor(
     companion object {
         private const val BOND_DECAY_WORK_NAME = "pixelpal_bond_decay"
         private const val PERSONALITY_WORK_NAME = "pixelpal_personality"
+        private const val FIRESTORE_SYNC_WORK_NAME = "pixelpal_firestore_sync"
     }
 }

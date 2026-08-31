@@ -7,6 +7,7 @@ import com.pixelpal.app.data.local.db.dao.ActivityEventDao
 import com.pixelpal.app.data.local.db.dao.TaskDao
 import com.pixelpal.app.data.local.db.entity.ActivityEventEntity
 import com.pixelpal.app.data.local.db.entity.TaskEntity
+import com.pixelpal.app.data.remote.firebase.FirestoreSyncEngine
 import com.pixelpal.app.domain.model.ActivityType
 import com.pixelpal.app.domain.model.Task
 import com.pixelpal.app.domain.repository.TaskRepository
@@ -23,7 +24,8 @@ class TaskRepositoryImpl @Inject constructor(
     @ApplicationContext private val context: Context,
     private val database: PixelPalDatabase,
     private val taskDao: TaskDao,
-    private val activityEventDao: ActivityEventDao
+    private val activityEventDao: ActivityEventDao,
+    private val syncEngine: FirestoreSyncEngine
 ) : TaskRepository {
 
     override fun getTasks(companionId: Long): Flow<List<Task>> {
@@ -32,6 +34,10 @@ class TaskRepositoryImpl @Inject constructor(
 
     override suspend fun addTask(task: Task): Long {
         val id = taskDao.insert(task.toEntity())
+        val savedTask = task.copy(id = id)
+        if (syncEngine.isUserLoggedIn) {
+            syncEngine.syncTaskToCloud(savedTask)
+        }
         TasksWidgetProvider.updateAllWidgets(context)
         HomeWidgetProvider.updateAllWidgets(context)
         return id
@@ -39,16 +45,20 @@ class TaskRepositoryImpl @Inject constructor(
 
     override suspend fun completeTask(task: Task): Boolean {
         if (task.isDone) return false
+        val now = System.currentTimeMillis()
         database.withTransaction {
-            taskDao.markDone(task.id, System.currentTimeMillis())
+            taskDao.markDone(task.id, now)
             activityEventDao.insert(
                 ActivityEventEntity(
                     companionId = task.companionId,
                     type = ActivityType.TASK_COMPLETED.id,
                     title = "Completed \"${task.title}\"",
-                    createdAt = System.currentTimeMillis()
+                    createdAt = now
                 )
             )
+        }
+        if (syncEngine.isUserLoggedIn) {
+            syncEngine.syncTaskToCloud(task.copy(isDone = true, completedAt = now))
         }
         TasksWidgetProvider.updateAllWidgets(context)
         HomeWidgetProvider.updateAllWidgets(context)
@@ -58,6 +68,9 @@ class TaskRepositoryImpl @Inject constructor(
     override suspend fun toggleTask(task: Task) {
         if (task.isDone) {
             taskDao.markUndone(task.id)
+            if (syncEngine.isUserLoggedIn) {
+                syncEngine.syncTaskToCloud(task.copy(isDone = false, completedAt = null))
+            }
         } else {
             completeTask(task)
             return
@@ -68,12 +81,19 @@ class TaskRepositoryImpl @Inject constructor(
 
     override suspend fun deleteTask(task: Task) {
         taskDao.delete(task.toEntity())
+        if (syncEngine.isUserLoggedIn) {
+            syncEngine.deleteTaskFromCloud(task.id)
+        }
         TasksWidgetProvider.updateAllWidgets(context)
         HomeWidgetProvider.updateAllWidgets(context)
     }
 
     override suspend fun reinsertTask(task: Task): Long {
         val id = taskDao.insert(task.toEntity())
+        val savedTask = task.copy(id = id)
+        if (syncEngine.isUserLoggedIn) {
+            syncEngine.syncTaskToCloud(savedTask)
+        }
         TasksWidgetProvider.updateAllWidgets(context)
         HomeWidgetProvider.updateAllWidgets(context)
         return id

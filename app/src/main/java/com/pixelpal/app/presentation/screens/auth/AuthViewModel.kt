@@ -25,7 +25,8 @@ data class AuthUiState(
 
 @HiltViewModel
 class AuthViewModel @Inject constructor(
-    private val authManager: FirebaseAuthManager
+    private val authManager: FirebaseAuthManager,
+    private val workerScheduler: com.pixelpal.app.worker.WorkerScheduler
 ) : ViewModel() {
 
     val authState: StateFlow<AuthState> = authManager.authStateFlow
@@ -69,6 +70,7 @@ class AuthViewModel @Inject constructor(
 
             result.fold(
                 onSuccess = {
+                    workerScheduler.triggerImmediateSync()
                     _uiState.update { it.copy(isLoading = false) }
                 },
                 onFailure = { error ->
@@ -89,6 +91,7 @@ class AuthViewModel @Inject constructor(
             val result = authManager.signInAnonymously()
             result.fold(
                 onSuccess = {
+                    workerScheduler.triggerImmediateSync()
                     _uiState.update { it.copy(isLoading = false) }
                 },
                 onFailure = { error ->

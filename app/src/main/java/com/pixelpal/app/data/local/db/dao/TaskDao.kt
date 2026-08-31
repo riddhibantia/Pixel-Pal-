@@ -12,6 +12,12 @@ interface TaskDao {
     @Query("SELECT * FROM tasks WHERE companionId = :companionId ORDER BY isDone ASC, createdAt DESC")
     fun getTasks(companionId: Long): Flow<List<TaskEntity>>
 
+    @Query("SELECT * FROM tasks WHERE companionId = :companionId ORDER BY isDone ASC, createdAt DESC")
+    suspend fun getTasksDirect(companionId: Long): List<TaskEntity>
+
+    @Query("SELECT * FROM tasks ORDER BY createdAt DESC")
+    suspend fun getAllTasksDirect(): List<TaskEntity>
+
     @Insert
     suspend fun insert(task: TaskEntity): Long
 

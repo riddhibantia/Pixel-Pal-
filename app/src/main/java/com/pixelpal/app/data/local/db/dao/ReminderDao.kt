@@ -23,6 +23,9 @@ interface ReminderDao {
     @Query("SELECT * FROM reminders ORDER BY triggerTime ASC")
     fun getAllReminders(): Flow<List<ReminderEntity>>
 
+    @Query("SELECT * FROM reminders ORDER BY triggerTime ASC")
+    suspend fun getAllRemindersDirect(): List<ReminderEntity>
+
     @Query("SELECT * FROM reminders WHERE id = :id")
     suspend fun getReminderById(id: Long): ReminderEntity?
 
