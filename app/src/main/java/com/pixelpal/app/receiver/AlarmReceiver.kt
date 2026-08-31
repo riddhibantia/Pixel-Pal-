@@ -11,9 +11,10 @@ import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
-import timber.log.Timber
 import javax.inject.Inject
+import timber.log.Timber
 import com.pixelpal.app.domain.model.Reminder
+import com.pixelpal.app.util.ReminderNotificationHelper
 
 @AndroidEntryPoint
 class AlarmReceiver : BroadcastReceiver() {
@@ -21,6 +22,7 @@ class AlarmReceiver : BroadcastReceiver() {
     @Inject lateinit var companionEngine: CompanionEngine
     @Inject lateinit var reminderRepository: ReminderRepository
     @Inject lateinit var reminderScheduler: ReminderScheduler
+    @Inject lateinit var reminderNotificationHelper: ReminderNotificationHelper
 
     override fun onReceive(context: Context, intent: Intent) {
         val reminderId = intent.getLongExtra("reminder_id", -1L)
@@ -32,9 +34,11 @@ class AlarmReceiver : BroadcastReceiver() {
                 try {
                     val reminder = reminderRepository.getById(reminderId)
                     if (reminder != null) {
-                        // The Dynamic Island overlay is the reminder UI — no system
-                        // notification popup. The ringtone still plays.
                         playRingtone(context, reminder)
+                        vibrate(context)
+
+                        // Always post a system notification — visible on lock screen and notification shade
+                        reminderNotificationHelper.show(reminder)
 
                         companionEngine.onReminderTriggered(reminder)
 
@@ -79,6 +83,25 @@ class AlarmReceiver : BroadcastReceiver() {
             }, 5000)
         } catch (e: Exception) {
             Timber.e(e, "Error playing reminder ringtone")
+        }
+    }
+
+    private fun vibrate(context: Context) {
+        try {
+            if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.S) {
+                val vibratorManager = context.getSystemService(android.os.VibratorManager::class.java)
+                vibratorManager?.defaultVibrator?.vibrate(
+                    android.os.VibrationEffect.createWaveform(longArrayOf(0, 400, 200, 400), -1)
+                )
+            } else {
+                @Suppress("DEPRECATION")
+                val vibrator = context.getSystemService(Context.VIBRATOR_SERVICE) as? android.os.Vibrator
+                vibrator?.vibrate(
+                    android.os.VibrationEffect.createWaveform(longArrayOf(0, 400, 200, 400), -1)
+                )
+            }
+        } catch (e: Exception) {
+            Timber.e(e, "Error vibrating for reminder")
         }
     }
 }

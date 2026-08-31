@@ -39,4 +39,17 @@ enum class AnimationState(
         val name = "pet_${petType.lowercase()}_$stateName"
         return context.resources.getIdentifier(name, "drawable", context.packageName)
     }
+
+    /**
+     * Resolves the Lottie raw JSON resource for this state and pet type.
+     * Returns 0 if no matching Lottie animation exists.
+     */
+    fun getLottieRawResId(petType: String, context: Context): Int {
+        val specificName = "pet_${petType.lowercase()}_$stateName"
+        val specificId = context.resources.getIdentifier(specificName, "raw", context.packageName)
+        if (specificId != 0) return specificId
+
+        val genericName = "lottie_pet_$stateName"
+        return context.resources.getIdentifier(genericName, "raw", context.packageName)
+    }
 }

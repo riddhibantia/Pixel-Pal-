@@ -12,4 +12,6 @@ interface TaskRepository {
      */
     suspend fun completeTask(task: Task): Boolean
     suspend fun toggleTask(task: Task)
+    suspend fun deleteTask(task: Task)
+    suspend fun reinsertTask(task: Task): Long
 }

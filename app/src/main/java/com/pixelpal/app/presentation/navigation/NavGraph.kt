@@ -24,6 +24,7 @@ import com.pixelpal.app.presentation.screens.settings.SettingsScreen
 
 sealed class Screen(val route: String) {
     object Onboarding : Screen("onboarding")
+    object Auth : Screen("auth")
     object Home : Screen("home")
     object Reminders : Screen("reminders")
     object CreateReminder : Screen("create_reminder")
@@ -70,13 +71,22 @@ fun PixelPalNavGraph(
                 }
             )
         }
+        composable(Screen.Auth.route) {
+            com.pixelpal.app.presentation.screens.auth.AuthScreen(
+                onAuthSuccess = {
+                    navController.navigate(Screen.Home.route) {
+                        popUpTo(Screen.Auth.route) { inclusive = true }
+                    }
+                }
+            )
+        }
         composable(Screen.Home.route) {
             HomeScreen(navController = navController)
         }
         composable(Screen.Reminders.route) {
             ReminderListScreen(navController = navController)
         }
-                composable(Screen.CreateReminder.route) {
+        composable(Screen.CreateReminder.route) {
             CreateReminderScreen(navController = navController)
         }
         composable(Screen.Customize.route) {

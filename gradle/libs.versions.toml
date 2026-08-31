@@ -1,6 +1,7 @@
 [versions]
 agp = "8.5.0"
 kotlin = "2.0.0"
+ksp = "2.0.0-1.0.24"
 kotlinSerialization = "1.7.1"
 composeBom = "2024.09.00"
 hilt = "2.51.1"
@@ -14,6 +15,10 @@ navigationCompose = "2.8.2"
 datastore = "1.1.1"
 room = "2.6.1"
 coil = "2.7.0"
+lottie = "6.5.0"
+generativeAi = "0.9.0"
+firebaseBom = "33.3.0"
+googleServices = "4.4.2"
 timber = "5.0.1"
 coroutines = "1.8.1"
 work = "2.9.1"
@@ -56,9 +61,18 @@ androidx-room-runtime = { module = "androidx.room:room-runtime", version.ref = "
 androidx-room-ktx = { module = "androidx.room:room-ktx", version.ref = "room" }
 androidx-room-compiler = { module = "androidx.room:room-compiler", version.ref = "room" }
 
-# Coil
+# Coil & Lottie
 coil-compose = { module = "io.coil-kt:coil-compose", version.ref = "coil" }
 coil-gif = { module = "io.coil-kt:coil-gif", version.ref = "coil" }
+lottie-compose = { module = "com.airbnb.android:lottie-compose", version.ref = "lottie" }
+
+# Gemini AI SDK
+google-generativeai = { module = "com.google.ai.client.generativeai:generativeai", version.ref = "generativeAi" }
+
+# Firebase (BOM + Auth + Firestore)
+firebase-bom = { module = "com.google.firebase:firebase-bom", version.ref = "firebaseBom" }
+firebase-auth = { module = "com.google.firebase:firebase-auth-ktx" }
+firebase-firestore = { module = "com.google.firebase:firebase-firestore-ktx" }
 
 # Timber
 timber = { module = "com.jakewharton.timber:timber", version.ref = "timber" }
@@ -89,3 +103,5 @@ androidx-compose-ui-tooling-preview = { module = "androidx.compose.ui:ui-tooling
 kotlin-android = { id = "org.jetbrains.kotlin.android", version.ref = "kotlin" }
 kotlin-serialization = { id = "org.jetbrains.kotlin.plugin.serialization", version.ref = "kotlin" }
 hilt-android = { id = "com.google.dagger:hilt-android", version.ref = "hilt" }
+ksp = { id = "com.google.devtools.ksp", version.ref = "ksp" }
+google-services = { id = "com.google.gms.google-services", version.ref = "googleServices" }

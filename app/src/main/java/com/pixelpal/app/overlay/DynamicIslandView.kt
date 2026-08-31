@@ -37,14 +37,14 @@ class DynamicIslandView(
     private val onRelease: (dx: Int, velocityX: Float) -> Unit
 ) : FrameLayout(context) {
 
-    // Palette shared with the app's overlay surfaces
-    private val islandBgTop = Color.parseColor("#26263C")
-    private val islandBgBottom = Color.parseColor("#17172A")
-    private val islandBorder = Color.parseColor("#00D4AA")
-    private val textPrimary = Color.parseColor("#E8ECF0")
-    private val textMuted = Color.parseColor("#9AA3AE")
-    private val accentGreen = Color.parseColor("#00D4AA")
-    private val accentYellow = Color.parseColor("#FDCB6E")
+    // Warm brown/gold palette — aligned with the app's DarkPalette
+    private val islandBgTop = Color.parseColor("#2A1F16")    // Surface
+    private val islandBgBottom = Color.parseColor("#1F1712")  // Background
+    private val islandBorder = Color.parseColor("#F6C453")    // Primary gold
+    private val textPrimary = Color.parseColor("#F5E9D2")    // Cream text
+    private val textMuted = Color.parseColor("#CBB89A")      // Secondary text
+    private val accentGreen = Color.parseColor("#F6C453")    // Primary gold (pulsing dot)
+    private val accentYellow = Color.parseColor("#F6C453")   // Primary gold (time label)
 
     private val handler = Handler(Looper.getMainLooper())
     private var compactRunnable: Runnable? = null

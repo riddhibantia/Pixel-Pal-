@@ -1,6 +1,7 @@
 package com.pixelpal.app.data.local.db.dao
 
 import androidx.room.Dao
+import androidx.room.Delete
 import androidx.room.Insert
 import androidx.room.Query
 import com.pixelpal.app.data.local.db.entity.TaskEntity
@@ -19,4 +20,7 @@ interface TaskDao {
 
     @Query("UPDATE tasks SET isDone = 0, completedAt = NULL WHERE id = :id")
     suspend fun markUndone(id: Long)
+
+    @Delete
+    suspend fun delete(task: TaskEntity)
 }

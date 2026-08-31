@@ -20,11 +20,15 @@ import com.pixelpal.app.domain.usecase.companion.GetActiveCompanionUseCase
 import com.pixelpal.app.domain.usecase.companion.ToggleFavoriteUseCase
 import com.pixelpal.app.domain.usecase.task.AddTaskUseCase
 import com.pixelpal.app.domain.usecase.task.CompleteTaskUseCase
+import com.pixelpal.app.presentation.components.SnackbarEvent
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.flatMapLatest
@@ -50,7 +54,7 @@ class CompanionWorkspaceViewModel @Inject constructor(
     getActiveCompanionUseCase: GetActiveCompanionUseCase,
     bondRepository: BondRepository,
     reminderRepository: ReminderRepository,
-    taskRepository: TaskRepository,
+    private val taskRepository: TaskRepository,
     getAgentConnectionUseCase: GetAgentConnectionUseCase,
     private val preferencesManager: PreferencesManager,
     private val agentConnectionRepository: AgentConnectionRepository,
@@ -106,6 +110,9 @@ class CompanionWorkspaceViewModel @Inject constructor(
     private val _checkingAgent = MutableStateFlow(false)
     val checkingAgent: StateFlow<Boolean> = _checkingAgent.asStateFlow()
 
+    private val _snackbarEvents = MutableSharedFlow<SnackbarEvent>()
+    val snackbarEvents: SharedFlow<SnackbarEvent> = _snackbarEvents.asSharedFlow()
+
     fun refreshAgentStatus() {
         val companionId = uiState.value.companion?.id ?: return
         if (_checkingAgent.value) return
@@ -138,7 +145,12 @@ class CompanionWorkspaceViewModel @Inject constructor(
                     errorMessage = null
                 )
             )
+            _snackbarEvents.emit(SnackbarEvent.AgentDisconnected(connection))
         }
+    }
+
+    fun undoDisconnect(connection: AgentConnection) {
+        viewModelScope.launch { saveAgentConnectionUseCase(connection) }
     }
 
     fun toggleFavorite() {
@@ -160,6 +172,17 @@ class CompanionWorkspaceViewModel @Inject constructor(
 
     fun toggleTask(task: Task) {
         viewModelScope.launch { completeTaskUseCase(task) }
+    }
+
+    fun deleteTask(task: Task) {
+        viewModelScope.launch {
+            taskRepository.deleteTask(task)
+            _snackbarEvents.emit(SnackbarEvent.TaskDeleted(task))
+        }
+    }
+
+    fun undoDeleteTask(task: Task) {
+        viewModelScope.launch { taskRepository.reinsertTask(task) }
     }
 
     fun setTasksWidgetEnabled(enabled: Boolean) {

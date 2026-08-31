@@ -46,6 +46,7 @@ import com.pixelpal.app.domain.model.ActivityEvent
 import com.pixelpal.app.domain.model.ActivityType
 import com.pixelpal.app.presentation.components.AppTopBar
 import com.pixelpal.app.presentation.components.EmptyState
+import com.pixelpal.app.presentation.components.GroupDivider
 import com.pixelpal.app.presentation.theme.Radius
 import com.pixelpal.app.presentation.theme.Spacing
 import java.util.concurrent.TimeUnit
@@ -109,8 +110,7 @@ fun ActivityCenterScreen(
                     Column(modifier = Modifier.padding(Spacing.md)) {
                         events.forEachIndexed { index, event ->
                             if (index > 0) {
-                                HorizontalDividerCompat()
-                                Spacer(modifier = Modifier.height(Spacing.sm))
+                                GroupDivider()
                             }
                             ActivityEventRow(event = event)
                         }
@@ -171,15 +171,7 @@ private fun ActivityEventRow(event: ActivityEvent) {
     }
 }
 
-@Composable
-private fun HorizontalDividerCompat() {
-    Box(
-        modifier = Modifier
-            .fillMaxWidth()
-            .height(0.5.dp)
-            .background(MaterialTheme.colorScheme.outlineVariant)
-    )
-}
+
 
 private fun eventIcon(type: ActivityType): ImageVector = when (type) {
     ActivityType.BOND_LEVEL_UP -> Icons.AutoMirrored.Filled.TrendingUp

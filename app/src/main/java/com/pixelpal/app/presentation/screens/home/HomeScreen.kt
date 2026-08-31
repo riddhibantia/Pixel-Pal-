@@ -1,4 +1,4 @@
-﻿package com.pixelpal.app.presentation.screens.home
+package com.pixelpal.app.presentation.screens.home
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -69,6 +69,7 @@ import com.pixelpal.app.presentation.components.LoadingState
 import com.pixelpal.app.presentation.components.PixelPalBottomBar
 import com.pixelpal.app.presentation.components.PrimaryButton
 import com.pixelpal.app.presentation.components.SecondaryButton
+import com.pixelpal.app.presentation.components.SectionHeader
 import com.pixelpal.app.presentation.components.SettingsGroup
 import com.pixelpal.app.presentation.components.SettingsRow
 import com.pixelpal.app.presentation.navigation.Screen
@@ -130,7 +131,7 @@ fun HomeScreen(
 
                     Spacer(modifier = Modifier.height(Spacing.md))
 
-                    SectionTitle("Today")
+                    SectionHeader(title = "Today")
                     Row(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.spacedBy(Spacing.sm)
@@ -548,16 +549,7 @@ private fun StatText(text: String) {
     )
 }
 
-@Composable
-private fun SectionTitle(title: String) {
-    Text(
-        text = title.uppercase(),
-        style = MaterialTheme.typography.labelSmall,
-        fontWeight = FontWeight.SemiBold,
-        color = MaterialTheme.colorScheme.onSurfaceVariant,
-        modifier = Modifier.padding(start = Spacing.xs, bottom = Spacing.sm)
-    )
-}
+
 
 @Composable
 private fun QuickStatusCard(

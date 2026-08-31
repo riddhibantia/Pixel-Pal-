@@ -8,11 +8,15 @@ import com.pixelpal.app.domain.usecase.reminder.CompleteReminderUseCase
 import com.pixelpal.app.domain.usecase.reminder.CreateReminderUseCase
 import com.pixelpal.app.domain.usecase.reminder.GetRemindersUseCase
 import com.pixelpal.app.domain.repository.ReminderRepository
+import com.pixelpal.app.presentation.components.SnackbarEvent
 import com.pixelpal.app.worker.ReminderScheduler
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.channels.Channel
+import kotlinx.coroutines.flow.MutableSharedFlow
+import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.flow.stateIn
@@ -34,6 +38,9 @@ class ReminderViewModel @Inject constructor(
 
     private val _reminderCreated = Channel<Boolean>()
     val reminderCreated = _reminderCreated.receiveAsFlow()
+
+    private val _snackbarEvents = MutableSharedFlow<SnackbarEvent>()
+    val snackbarEvents: SharedFlow<SnackbarEvent> = _snackbarEvents.asSharedFlow()
 
     val pendingReminders: StateFlow<List<Reminder>> = getRemindersUseCase.getPendingReminders()
         .stateIn(viewModelScope, SharingStarted.Lazily, emptyList())
@@ -76,6 +83,16 @@ class ReminderViewModel @Inject constructor(
         viewModelScope.launch {
             reminderScheduler.cancelReminder(reminder.id)
             reminderRepository.delete(reminder)
+            _snackbarEvents.emit(SnackbarEvent.ReminderDeleted(reminder))
+        }
+    }
+
+    fun undoDeleteReminder(reminder: Reminder) {
+        viewModelScope.launch {
+            reminderRepository.insert(reminder)
+            if (reminder.triggerTime > System.currentTimeMillis()) {
+                reminderScheduler.scheduleReminder(reminder)
+            }
         }
     }
 }

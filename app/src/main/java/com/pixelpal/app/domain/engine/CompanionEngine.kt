@@ -89,6 +89,8 @@ class CompanionEngine @Inject constructor(
         scope.launch {
             emotionEngine.triggerEmotion(Emotion.THINKING, durationMs = 60_000L)
 
+            // The system notification is posted by AlarmReceiver; the Dynamic Island
+            // is a bonus overlay shown only when the floating companion is visible.
             if (!overlayManager.isShowing()) return@launch
 
             // Recurring reminders were already re-armed for their next occurrence when

@@ -66,6 +66,19 @@ class TaskRepositoryImpl @Inject constructor(
         HomeWidgetProvider.updateAllWidgets(context)
     }
 
+    override suspend fun deleteTask(task: Task) {
+        taskDao.delete(task.toEntity())
+        TasksWidgetProvider.updateAllWidgets(context)
+        HomeWidgetProvider.updateAllWidgets(context)
+    }
+
+    override suspend fun reinsertTask(task: Task): Long {
+        val id = taskDao.insert(task.toEntity())
+        TasksWidgetProvider.updateAllWidgets(context)
+        HomeWidgetProvider.updateAllWidgets(context)
+        return id
+    }
+
     private fun TaskEntity.toDomain() = Task(
         id = id,
         companionId = companionId,

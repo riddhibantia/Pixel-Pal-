@@ -179,6 +179,15 @@ fun ProfileScreen(
                     }
                 }
             )
+
+            Spacer(modifier = Modifier.height(Spacing.sm))
+
+            com.pixelpal.app.presentation.components.SecondaryButton(
+                text = "Cloud Sync & Account",
+                onClick = {
+                    navController.navigate(com.pixelpal.app.presentation.navigation.Screen.Auth.route)
+                }
+            )
         }
     }
 

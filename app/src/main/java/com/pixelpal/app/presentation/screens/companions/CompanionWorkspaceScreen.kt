@@ -1,5 +1,6 @@
 package com.pixelpal.app.presentation.screens.companions
 
+import androidx.compose.animation.animateColorAsState
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -18,24 +19,30 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Star
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Checkbox
-import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Scaffold
+import androidx.compose.material3.SnackbarDuration
+import androidx.compose.material3.SnackbarHostState
+import androidx.compose.material3.SnackbarResult
+import androidx.compose.material3.Surface
+import androidx.compose.material3.SwipeToDismissBox
+import androidx.compose.material3.SwipeToDismissBoxValue
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
+import androidx.compose.material3.rememberSwipeToDismissBoxState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -49,11 +56,19 @@ import com.pixelpal.app.domain.model.Task
 import com.pixelpal.app.presentation.components.AppTextField
 import com.pixelpal.app.presentation.components.AppTopBar
 import com.pixelpal.app.presentation.components.BaseCompanionAvatar
+import com.pixelpal.app.presentation.components.ConfirmationDialog
+import com.pixelpal.app.presentation.components.DestructiveButton
+import com.pixelpal.app.presentation.components.GroupDivider
+import com.pixelpal.app.presentation.components.LoadingState
+import com.pixelpal.app.presentation.components.PixelPalSnackbarHost
 import com.pixelpal.app.presentation.components.PrimaryButton
+import com.pixelpal.app.presentation.components.SecondaryButton
 import com.pixelpal.app.presentation.components.SectionHeader
+import com.pixelpal.app.presentation.components.SnackbarEvent
 import com.pixelpal.app.presentation.navigation.Screen
 import com.pixelpal.app.presentation.theme.Radius
 import com.pixelpal.app.presentation.theme.Spacing
+import kotlinx.coroutines.launch
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
@@ -67,68 +82,96 @@ fun CompanionWorkspaceScreen(
 ) {
     val uiState by viewModel.uiState.collectAsState()
     val checkingAgent by viewModel.checkingAgent.collectAsState()
+    val snackbarHostState = remember { SnackbarHostState() }
+    val scope = rememberCoroutineScope()
 
     val state = uiState
+
+    // Collect snackbar events from ViewModel
+    LaunchedEffect(Unit) {
+        viewModel.snackbarEvents.collect { event ->
+            val result = snackbarHostState.showSnackbar(
+                message = event.message,
+                actionLabel = "Undo",
+                duration = SnackbarDuration.Short
+            )
+            if (result == SnackbarResult.ActionPerformed) {
+                when (event) {
+                    is SnackbarEvent.TaskDeleted -> viewModel.undoDeleteTask(event.task)
+                    is SnackbarEvent.AgentDisconnected -> viewModel.undoDisconnect(event.connection)
+                    else -> {}
+                }
+            }
+        }
+    }
+
     if (state.loading || state.companion == null) {
         Column(modifier = Modifier.fillMaxSize()) {
             AppTopBar(title = "Workspace", onBack = { navController.popBackStack() })
-            Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                CircularProgressIndicator()
-            }
+            LoadingState()
         }
         return
     }
 
     val companion = state.companion
 
-    Column(modifier = Modifier.fillMaxSize()) {
-        AppTopBar(title = "Workspace", onBack = { navController.popBackStack() })
-
+    Scaffold(
+        snackbarHost = { PixelPalSnackbarHost(hostState = snackbarHostState) }
+    ) { innerPadding ->
         Column(
             modifier = Modifier
-                .weight(1f)
-                .verticalScroll(rememberScrollState())
-                .padding(horizontal = Spacing.screenHorizontal)
-                .padding(bottom = Spacing.lg)
+                .fillMaxSize()
+                .padding(innerPadding)
         ) {
-            // ── Profile ──
-            ProfileHeader(companion = companion, bond = state.bond, viewModel = viewModel)
-            Spacer(modifier = Modifier.height(Spacing.sm))
-            TextButton(onClick = { navController.navigate(Screen.Customize.route) }) {
-                Text("Customize Companion")
+            AppTopBar(title = "Workspace", onBack = { navController.popBackStack() })
+
+            Column(
+                modifier = Modifier
+                    .weight(1f)
+                    .verticalScroll(rememberScrollState())
+                    .padding(horizontal = Spacing.screenHorizontal)
+                    .padding(bottom = Spacing.lg)
+            ) {
+                // ── Profile ──
+                ProfileHeader(companion = companion, bond = state.bond, viewModel = viewModel)
+                Spacer(modifier = Modifier.height(Spacing.sm))
+                SecondaryButton(
+                    text = "Customize Companion",
+                    onClick = { navController.navigate(Screen.Customize.route) }
+                )
+
+                Spacer(modifier = Modifier.height(Spacing.md))
+
+                // ── Bond & progress ──
+                BondSection(bond = state.bond)
+
+                Spacer(modifier = Modifier.height(Spacing.md))
+
+                // ── Tasks ──
+                TasksSection(
+                    tasks = state.tasks,
+                    viewModel = viewModel,
+                    widgetEnabled = state.tasksWidgetEnabled,
+                    onWidgetToggle = viewModel::setTasksWidgetEnabled
+                )
+                Spacer(modifier = Modifier.height(Spacing.md))
+
+                // ── Reminders ──
+                RemindersSection(
+                    reminders = state.reminders,
+                    onAddReminder = { navController.navigate(Screen.CreateReminder.route) }
+                )
+                Spacer(modifier = Modifier.height(Spacing.md))
+
+                // ── AI Agent Connection ──
+                AgentConnectionSection(
+                    connection = state.agentConnection,
+                    checking = checkingAgent,
+                    onSave = viewModel::saveAgentConnection,
+                    onCheckNow = viewModel::refreshAgentStatus,
+                    onDisconnect = viewModel::disconnectAgent
+                )
             }
-
-            Spacer(modifier = Modifier.height(Spacing.md))
-
-            // ── Bond & progress ──
-            BondSection(bond = state.bond)
-
-            Spacer(modifier = Modifier.height(Spacing.md))
-
-            // ── Tasks ──
-            TasksSection(
-                tasks = state.tasks,
-                viewModel = viewModel,
-                widgetEnabled = state.tasksWidgetEnabled,
-                onWidgetToggle = viewModel::setTasksWidgetEnabled
-            )
-            Spacer(modifier = Modifier.height(Spacing.md))
-
-            // ── Reminders ──
-            RemindersSection(
-                reminders = state.reminders,
-                onAddReminder = { navController.navigate(Screen.CreateReminder.route) }
-            )
-            Spacer(modifier = Modifier.height(Spacing.md))
-
-            // ── AI Agent Connection ──
-            AgentConnectionSection(
-                connection = state.agentConnection,
-                checking = checkingAgent,
-                onSave = viewModel::saveAgentConnection,
-                onCheckNow = viewModel::refreshAgentStatus,
-                onDisconnect = viewModel::disconnectAgent
-            )
         }
     }
 }
@@ -139,9 +182,10 @@ private fun ProfileHeader(
     bond: com.pixelpal.app.domain.model.Bond?,
     viewModel: CompanionWorkspaceViewModel
 ) {
-    Card(
+    Surface(
         modifier = Modifier.fillMaxWidth(),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
+        shape = RoundedCornerShape(Radius.large),
+        color = MaterialTheme.colorScheme.surface
     ) {
         Row(
             modifier = Modifier
@@ -203,9 +247,10 @@ private fun speciesLabel(species: String): String =
 @Composable
 private fun BondSection(bond: com.pixelpal.app.domain.model.Bond?) {
     SectionHeader(title = "Bond")
-    Card(
+    Surface(
         modifier = Modifier.fillMaxWidth(),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
+        shape = RoundedCornerShape(Radius.large),
+        color = MaterialTheme.colorScheme.surface
     ) {
         Column(modifier = Modifier.padding(Spacing.md)) {
             Row(
@@ -253,9 +298,10 @@ private fun TasksSection(
     val context = androidx.compose.ui.platform.LocalContext.current
 
     SectionHeader(title = "Tasks")
-    Card(
+    Surface(
         modifier = Modifier.fillMaxWidth(),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
+        shape = RoundedCornerShape(Radius.large),
+        color = MaterialTheme.colorScheme.surface
     ) {
         Column(modifier = Modifier.padding(Spacing.md)) {
             Row(verticalAlignment = Alignment.CenterVertically) {
@@ -266,15 +312,15 @@ private fun TasksSection(
                     modifier = Modifier.weight(1f)
                 )
                 Spacer(modifier = Modifier.width(Spacing.sm))
-                TextButton(
+                PrimaryButton(
+                    text = "Add",
                     onClick = {
                         viewModel.addTask(newTask)
                         newTask = ""
                     },
-                    enabled = newTask.isNotBlank()
-                ) {
-                    Text("Add")
-                }
+                    enabled = newTask.isNotBlank(),
+                    modifier = Modifier.width(80.dp)
+                )
             }
 
             if (tasks.isEmpty()) {
@@ -287,32 +333,18 @@ private fun TasksSection(
             } else {
                 tasks.forEachIndexed { index, task ->
                     if (index > 0) {
-                        HorizontalDivider(color = MaterialTheme.colorScheme.outline.copy(alpha = 0.2f))
-                        Spacer(modifier = Modifier.height(Spacing.xs))
+                        GroupDivider()
                     }
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .clickable { viewModel.toggleTask(task) },
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Checkbox(checked = task.isDone, onCheckedChange = { viewModel.toggleTask(task) })
-                        Text(
-                            text = task.title,
-                            style = MaterialTheme.typography.bodyMedium,
-                            textDecoration = if (task.isDone) TextDecoration.LineThrough else null,
-                            color = if (task.isDone) {
-                                MaterialTheme.colorScheme.onSurfaceVariant
-                            } else {
-                                MaterialTheme.colorScheme.onSurface
-                            }
-                        )
-                    }
+                    SwipeableTaskRow(
+                        task = task,
+                        onToggle = { viewModel.toggleTask(task) },
+                        onDelete = { viewModel.deleteTask(task) }
+                    )
                 }
             }
 
             Spacer(modifier = Modifier.height(Spacing.md))
-            HorizontalDivider(color = MaterialTheme.colorScheme.outline.copy(alpha = 0.2f))
+            GroupDivider()
             Spacer(modifier = Modifier.height(Spacing.md))
 
             // ── Home Screen Widget opt-in ──
@@ -347,7 +379,6 @@ private fun TasksSection(
                     onCheckedChange = { enabled ->
                         onWidgetToggle(enabled)
                         if (enabled) {
-                            // Guide user to widget picker or request pin (Android 8+)
                             try {
                                 val appWidgetManager = android.appwidget.AppWidgetManager.getInstance(context)
                                 if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.O &&
@@ -364,28 +395,72 @@ private fun TasksSection(
                     }
                 )
             }
-            if (!widgetEnabled) {
-                Spacer(modifier = Modifier.height(Spacing.sm))
-                TextButton(
-                    onClick = {
-                        onWidgetToggle(true)
-                        try {
-                            val appWidgetManager = android.appwidget.AppWidgetManager.getInstance(context)
-                            if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.O &&
-                                appWidgetManager.isRequestPinAppWidgetSupported
-                            ) {
-                                val provider = android.content.ComponentName(
-                                    context,
-                                    com.pixelpal.app.widget.TasksWidgetProvider::class.java
-                                )
-                                appWidgetManager.requestPinAppWidget(provider, null, null)
-                            }
-                        } catch (_: Exception) { }
-                    }
-                ) {
-                    Text("Enable Widget")
-                }
+        }
+    }
+}
+
+@Composable
+private fun SwipeableTaskRow(
+    task: Task,
+    onToggle: () -> Unit,
+    onDelete: () -> Unit
+) {
+    val dismissState = rememberSwipeToDismissBoxState(
+        confirmValueChange = { value ->
+            if (value == SwipeToDismissBoxValue.EndToStart) {
+                onDelete()
+                true
+            } else {
+                false
             }
+        }
+    )
+
+    SwipeToDismissBox(
+        state = dismissState,
+        backgroundContent = {
+            val color by animateColorAsState(
+                targetValue = if (dismissState.targetValue == SwipeToDismissBoxValue.EndToStart) {
+                    MaterialTheme.colorScheme.error.copy(alpha = 0.15f)
+                } else {
+                    MaterialTheme.colorScheme.surface
+                },
+                label = "swipe-bg"
+            )
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .background(color, RoundedCornerShape(Radius.small))
+                    .padding(horizontal = Spacing.md),
+                contentAlignment = Alignment.CenterEnd
+            ) {
+                Icon(
+                    imageVector = Icons.Default.Delete,
+                    contentDescription = "Delete",
+                    tint = MaterialTheme.colorScheme.error
+                )
+            }
+        },
+        enableDismissFromStartToEnd = false
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .background(MaterialTheme.colorScheme.surface)
+                .clickable { onToggle() },
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Checkbox(checked = task.isDone, onCheckedChange = { onToggle() })
+            Text(
+                text = task.title,
+                style = MaterialTheme.typography.bodyMedium,
+                textDecoration = if (task.isDone) TextDecoration.LineThrough else null,
+                color = if (task.isDone) {
+                    MaterialTheme.colorScheme.onSurfaceVariant
+                } else {
+                    MaterialTheme.colorScheme.onSurface
+                }
+            )
         }
     }
 }
@@ -396,9 +471,10 @@ private fun RemindersSection(
     onAddReminder: () -> Unit
 ) {
     SectionHeader(title = "Reminders")
-    Card(
+    Surface(
         modifier = Modifier.fillMaxWidth(),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
+        shape = RoundedCornerShape(Radius.large),
+        color = MaterialTheme.colorScheme.surface
     ) {
         Column(modifier = Modifier.padding(Spacing.md)) {
             if (reminders.isEmpty()) {
@@ -410,7 +486,7 @@ private fun RemindersSection(
             } else {
                 reminders.forEachIndexed { index, reminder ->
                     if (index > 0) {
-                        HorizontalDivider(color = MaterialTheme.colorScheme.outline.copy(alpha = 0.2f))
+                        GroupDivider()
                         Spacer(modifier = Modifier.height(Spacing.sm))
                     }
                     Text(
@@ -453,10 +529,27 @@ private fun AgentConnectionSection(
     var pollingEnabled by remember(connection?.companionId) {
         mutableStateOf(connection?.pollingEnabled ?: false)
     }
+    var showDisconnectConfirm by remember { mutableStateOf(false) }
 
-    Card(
+    if (showDisconnectConfirm) {
+        ConfirmationDialog(
+            title = "Disconnect Agent?",
+            message = "This will clear the endpoint and stop polling. You can reconnect later.",
+            confirmLabel = "Disconnect",
+            dismissLabel = "Cancel",
+            destructive = true,
+            onConfirm = {
+                showDisconnectConfirm = false
+                onDisconnect()
+            },
+            onDismiss = { showDisconnectConfirm = false }
+        )
+    }
+
+    Surface(
         modifier = Modifier.fillMaxWidth(),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
+        shape = RoundedCornerShape(Radius.large),
+        color = MaterialTheme.colorScheme.surface
     ) {
         Column(modifier = Modifier.padding(Spacing.md)) {
             // Status line
@@ -543,31 +636,33 @@ private fun AgentConnectionSection(
                 )
             }
 
-            Spacer(modifier = Modifier.height(Spacing.sm))
+            Spacer(modifier = Modifier.height(Spacing.md))
 
-            Row {
-                TextButton(
-                    onClick = {
-                        val companionId = connection?.companionId ?: return@TextButton
-                        onSave(
-                            (connection ?: AgentConnection(companionId = companionId)).copy(
-                                agentName = agentName.trim(),
-                                endpointUrl = endpoint.trim(),
-                                pollingEnabled = pollingEnabled
-                            )
+            PrimaryButton(
+                text = if (connection?.endpointUrl.isNullOrBlank()) "Connect" else "Save",
+                onClick = {
+                    val companionId = connection?.companionId ?: return@PrimaryButton
+                    onSave(
+                        (connection ?: AgentConnection(companionId = companionId)).copy(
+                            agentName = agentName.trim(),
+                            endpointUrl = endpoint.trim(),
+                            pollingEnabled = pollingEnabled
                         )
-                    }
-                ) {
-                    Text(if (connection?.endpointUrl.isNullOrBlank()) "Connect" else "Save")
+                    )
                 }
-                TextButton(onClick = onCheckNow, enabled = !checking && !connection?.endpointUrl.isNullOrBlank()) {
-                    Text(if (checking) "Checking…" else "Check Now")
-                }
-                if (!connection?.endpointUrl.isNullOrBlank()) {
-                    TextButton(onClick = onDisconnect) {
-                        Text("Disconnect", color = MaterialTheme.colorScheme.error)
-                    }
-                }
+            )
+            Spacer(modifier = Modifier.height(Spacing.sm))
+            SecondaryButton(
+                text = if (checking) "Checking…" else "Check Now",
+                onClick = onCheckNow,
+                enabled = !checking && !connection?.endpointUrl.isNullOrBlank()
+            )
+            if (!connection?.endpointUrl.isNullOrBlank()) {
+                Spacer(modifier = Modifier.height(Spacing.sm))
+                DestructiveButton(
+                    text = "Disconnect",
+                    onClick = { showDisconnectConfirm = true }
+                )
             }
 
             connection?.errorMessage?.let {
@@ -606,4 +701,3 @@ private fun connectionStatusText(connection: AgentConnection?): String =
             "Connection error"
         else -> "● Connected — ${connection.currentStatus.displayName}"
     }
-

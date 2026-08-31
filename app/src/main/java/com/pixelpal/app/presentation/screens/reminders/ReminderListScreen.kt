@@ -3,9 +3,7 @@ package com.pixelpal.app.presentation.screens.reminders
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -19,8 +17,12 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SegmentedButton
 import androidx.compose.material3.SegmentedButtonDefaults
 import androidx.compose.material3.SingleChoiceSegmentedButtonRow
+import androidx.compose.material3.SnackbarDuration
+import androidx.compose.material3.SnackbarHostState
+import androidx.compose.material3.SnackbarResult
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -34,8 +36,10 @@ import androidx.navigation.NavController
 import com.pixelpal.app.presentation.components.AppTopBar
 import com.pixelpal.app.presentation.components.EmptyState
 import com.pixelpal.app.presentation.components.PixelPalBottomBar
+import com.pixelpal.app.presentation.components.PixelPalSnackbarHost
 import com.pixelpal.app.presentation.components.PrimaryButton
 import com.pixelpal.app.presentation.components.ReminderCard
+import com.pixelpal.app.presentation.components.SnackbarEvent
 import com.pixelpal.app.presentation.navigation.Screen
 import com.pixelpal.app.presentation.theme.Spacing
 
@@ -49,6 +53,7 @@ fun ReminderListScreen(
     val pendingReminders by viewModel.pendingReminders.collectAsState()
     val completedReminders by viewModel.completedReminders.collectAsState()
     var filter by remember { mutableStateOf(ReminderFilter.UPCOMING) }
+    val snackbarHostState = remember { SnackbarHostState() }
 
     val permissionLauncher = androidx.activity.compose.rememberLauncherForActivityResult(
         androidx.activity.result.contract.ActivityResultContracts.RequestPermission()
@@ -57,6 +62,23 @@ fun ReminderListScreen(
     androidx.compose.runtime.LaunchedEffect(Unit) {
         if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.TIRAMISU) {
             permissionLauncher.launch(android.Manifest.permission.POST_NOTIFICATIONS)
+        }
+    }
+
+    // Collect snackbar events from ViewModel
+    LaunchedEffect(Unit) {
+        viewModel.snackbarEvents.collect { event ->
+            val result = snackbarHostState.showSnackbar(
+                message = event.message,
+                actionLabel = "Undo",
+                duration = SnackbarDuration.Short
+            )
+            if (result == SnackbarResult.ActionPerformed) {
+                when (event) {
+                    is SnackbarEvent.ReminderDeleted -> viewModel.undoDeleteReminder(event.reminder)
+                    else -> {}
+                }
+            }
         }
     }
 
@@ -75,7 +97,8 @@ fun ReminderListScreen(
         },
         bottomBar = {
             PixelPalBottomBar(navController = navController, selected = Screen.Reminders)
-        }
+        },
+        snackbarHost = { PixelPalSnackbarHost(hostState = snackbarHostState) }
     ) { innerPadding ->
         Column(
             modifier = Modifier
@@ -147,7 +170,6 @@ fun ReminderListScreen(
                             onComplete = { viewModel.completeReminder(reminder.id) },
                             onDelete = { viewModel.deleteReminder(reminder) }
                         )
-                        Spacer(modifier = Modifier.height(Spacing.sm))
                     }
                 }
             }

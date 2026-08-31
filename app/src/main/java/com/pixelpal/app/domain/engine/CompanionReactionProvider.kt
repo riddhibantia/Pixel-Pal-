@@ -2,6 +2,7 @@ package com.pixelpal.app.domain.engine
 
 import com.pixelpal.app.data.dialogue.DialogueLoader
 import com.pixelpal.app.data.local.datastore.PreferencesManager
+import com.pixelpal.app.data.remote.GeminiAgentConnector
 import com.pixelpal.app.domain.model.AgentState
 import com.pixelpal.app.domain.model.Companion
 import com.pixelpal.app.domain.model.Emotion
@@ -12,14 +13,14 @@ import javax.inject.Singleton
 /**
  * Contextual reaction layer for THE companion. Message categories are driven
  * by live app state (tasks due, agent status, streaks) — never generic spam.
- * GENERAL-style interactions still delegate to the [DialogueLoader] packs,
- * which filter by emotion/bond/personality.
+ * GENERAL-style interactions delegate to Gemini AI or [DialogueLoader] packs.
  */
 @Singleton
 class CompanionReactionProvider @Inject constructor(
     private val dialogueLoader: DialogueLoader,
     private val preferencesManager: PreferencesManager,
-    private val personalityEngine: PersonalityEngine
+    private val personalityEngine: PersonalityEngine,
+    private val geminiConnector: GeminiAgentConnector
 ) {
     enum class Interaction { TAP, DOUBLE_TAP, FEED }
 

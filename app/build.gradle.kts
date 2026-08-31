@@ -4,12 +4,23 @@ plugins {
     id("com.google.dagger.hilt.android")
     id("org.jetbrains.kotlin.plugin.compose")
     alias(libs.plugins.kotlin.serialization)
-    kotlin("kapt")
+    id("com.google.devtools.ksp")
 }
 
 android {
     namespace = "com.pixelpal.app"
     compileSdk = 35
+
+    val localProps = java.util.Properties().apply {
+        val localPropertiesFile = rootProject.file("local.properties")
+        if (localPropertiesFile.exists()) {
+            load(localPropertiesFile.inputStream())
+        }
+    }
+    val geminiApiKey = localProps.getProperty("GEMINI_API_KEY")
+        ?: providers.gradleProperty("GEMINI_API_KEY").orNull
+        ?: providers.environmentVariable("GEMINI_API_KEY").orNull
+        ?: ""
 
     defaultConfig {
         applicationId = "com.pixelpal.app"
@@ -21,6 +32,7 @@ android {
         vectorDrawables {
             useSupportLibrary = true
         }
+        buildConfigField("String", "GEMINI_API_KEY", "\"$geminiApiKey\"")
     }
 
     signingConfigs {
@@ -36,12 +48,12 @@ android {
     }
 
     compileOptions {
-        sourceCompatibility = JavaVersion.VERSION_1_8
-        targetCompatibility = JavaVersion.VERSION_1_8
+        sourceCompatibility = JavaVersion.VERSION_17
+        targetCompatibility = JavaVersion.VERSION_17
     }
 
     kotlinOptions {
-        jvmTarget = "1.8"
+        jvmTarget = "17"
         freeCompilerArgs += listOf("-Xjsr305=strict")
     }
 
@@ -100,8 +112,8 @@ dependencies {
     implementation(libs.hilt.android)
     implementation(libs.hilt.navigation.compose)
     implementation(libs.hilt.work)
-    kapt(libs.hilt.compiler)
-    kapt(libs.androidx.hilt.compiler)
+    ksp(libs.hilt.compiler)
+    ksp(libs.androidx.hilt.compiler)
 
     // DataStore Preferences
     implementation(libs.androidx.datastore.preferences)
@@ -109,11 +121,20 @@ dependencies {
     // Room Database
     implementation(libs.androidx.room.runtime)
     implementation(libs.androidx.room.ktx)
-    kapt(libs.androidx.room.compiler)
+    ksp(libs.androidx.room.compiler)
 
-    // Coil Image Loading (with animated WebP support)
+    // Coil & Lottie
     implementation(libs.coil.compose)
     implementation(libs.coil.gif)
+    implementation(libs.lottie.compose)
+
+    // Gemini AI SDK
+    implementation(libs.google.generativeai)
+
+    // Firebase (BOM + Auth + Firestore)
+    implementation(platform(libs.firebase.bom))
+    implementation(libs.firebase.auth)
+    implementation(libs.firebase.firestore)
 
     // Timber Logging
     implementation(libs.timber)
@@ -125,7 +146,7 @@ dependencies {
     // Kotlinx Serialization
     implementation(libs.kotlinx.serialization.json)
 
-    // OkHttp (agent connector)
+    // OkHttp (agent connector & web sockets)
     implementation(libs.okhttp)
 
     // WorkManager
@@ -142,11 +163,8 @@ dependencies {
     debugImplementation(libs.androidx.compose.ui.tooling.preview)
 }
 
-kapt {
-    correctErrorTypes = true
-    arguments {
-        arg("room.schemaLocation", "$projectDir/schemas")
-    }
+ksp {
+    arg("room.schemaLocation", "$projectDir/schemas")
 }
 
 tasks.withType<org.jetbrains.kotlin.gradle.tasks.KotlinCompile>().configureEach {
