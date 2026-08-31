@@ -1,26 +1,36 @@
 {
   "project_info": {
-    "project_number": "123456789012",
-    "project_id": "pixel-pet-demo",
-    "storage_bucket": "pixel-pet-demo.appspot.com"
+    "project_number": "385771806844",
+    "project_id": "pixel-pet-a1cc6",
+    "storage_bucket": "pixel-pet-a1cc6.firebasestorage.app"
   },
   "client": [
     {
       "client_info": {
-        "mobilesdk_app_id": "1:123456789012:android:abcdef0123456789",
+        "mobilesdk_app_id": "1:385771806844:android:0ee8ad97d328c9d8c329f9",
         "android_client_info": {
           "package_name": "com.pixelpal.app"
         }
       },
-      "oauth_client": [],
+      "oauth_client": [
+        {
+          "client_id": "385771806844-pafkg5sns6fk3034o9u4gcrm4uhht52q.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
       "api_key": [
         {
-          "current_key": "AIzaSyDemoPlaceholderKeyForPixelPetApp"
+          "current_key": "AIzaSyD00SqGiZH4n0YTkAWQVpI4u2kTytvvCXI"
         }
       ],
       "services": {
         "appinvite_service": {
-          "other_platform_oauth_client": []
+          "other_platform_oauth_client": [
+            {
+              "client_id": "385771806844-pafkg5sns6fk3034o9u4gcrm4uhht52q.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
         }
       }
     }
