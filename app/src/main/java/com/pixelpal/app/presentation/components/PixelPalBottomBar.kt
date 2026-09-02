@@ -3,11 +3,15 @@ package com.pixelpal.app.presentation.components
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Checklist
 import androidx.compose.material.icons.filled.Home
+import androidx.compose.material.icons.filled.SmartToy
 import androidx.compose.material.icons.filled.Notifications
 import androidx.compose.material.icons.filled.Palette
 import androidx.compose.material.icons.filled.Settings
+import androidx.compose.material.icons.outlined.Checklist
 import androidx.compose.material.icons.outlined.Home
+import androidx.compose.material.icons.outlined.SmartToy
 import androidx.compose.material.icons.outlined.Notifications
 import androidx.compose.material.icons.outlined.Palette
 import androidx.compose.material.icons.outlined.Settings
@@ -35,13 +39,16 @@ private data class NavDestination(
 
 private val destinations = listOf(
     NavDestination(Screen.Home, Icons.Filled.Home, Icons.Outlined.Home, "Home"),
+    NavDestination(Screen.Tasks, Icons.Filled.Checklist, Icons.Outlined.Checklist, "Tasks"),
+    NavDestination(Screen.CompanionWorkspace, Icons.Filled.SmartToy, Icons.Outlined.SmartToy, "Agent"),
     NavDestination(Screen.Reminders, Icons.Filled.Notifications, Icons.Outlined.Notifications, "Reminders"),
-    NavDestination(Screen.Customize, Icons.Filled.Palette, Icons.Outlined.Palette, "Customize"),
     NavDestination(Screen.Settings, Icons.Filled.Settings, Icons.Outlined.Settings, "Settings")
 )
 
 /**
- * Primary bottom navigation: Home / Reminders / Customize / Settings.
+ * Primary bottom navigation: Home / Tasks / Agent / Reminders / Customize.
+ * Settings lives behind the home-header gear.
+ * Customize stays reachable from the AI Agent screen header.
  * Subtle selected pill, consistent icons and labels; tabs use
  * popUpTo + saveState / launchSingleTop / restoreState for predictable behavior.
  */

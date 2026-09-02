@@ -102,7 +102,7 @@ class TasksWidgetProvider : AppWidgetProvider() {
                 cursor.close()
 
                 if (isDone) {
-                    taskDao.markUndone(taskId)
+                    taskDao.markUndone(taskId, System.currentTimeMillis())
                 } else {
                     taskDao.markDone(taskId, System.currentTimeMillis())
                     // Award bond progress — same as CompleteTaskUseCase

@@ -11,10 +11,12 @@ import kotlinx.coroutines.flow.Flow
 
 @Dao
 interface ReminderDao {
-    @Query("SELECT * FROM reminders WHERE status = 'PENDING' ORDER BY triggerTime ASC")
+    // TRIGGERED (fired but not yet completed/dismissed) stays visible in the
+    // pending lists so a reminder that fired on a locked screen is never lost.
+    @Query("SELECT * FROM reminders WHERE status IN ('PENDING', 'TRIGGERED') ORDER BY triggerTime ASC")
     fun getPendingReminders(): Flow<List<ReminderEntity>>
 
-    @Query("SELECT * FROM reminders WHERE status = 'PENDING' AND companionId = :companionId ORDER BY triggerTime ASC")
+    @Query("SELECT * FROM reminders WHERE status IN ('PENDING', 'TRIGGERED') AND companionId = :companionId ORDER BY triggerTime ASC")
     fun getPendingForCompanion(companionId: Long): Flow<List<ReminderEntity>>
 
     @Query("SELECT * FROM reminders WHERE status = 'COMPLETED' ORDER BY completedAt DESC")
@@ -29,6 +31,9 @@ interface ReminderDao {
     @Query("SELECT * FROM reminders WHERE id = :id")
     suspend fun getReminderById(id: Long): ReminderEntity?
 
+    @Query("SELECT * FROM reminders WHERE cloudId = :cloudId")
+    suspend fun getByCloudId(cloudId: String): ReminderEntity?
+
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insert(reminder: ReminderEntity): Long
 
@@ -38,9 +43,12 @@ interface ReminderDao {
     @Delete
     suspend fun delete(reminder: ReminderEntity)
 
-    @Query("UPDATE reminders SET status = :status, completedAt = :completedAt WHERE id = :id")
-    suspend fun updateStatus(id: Long, status: String, completedAt: Long? = null)
+    @Query("UPDATE reminders SET status = :status, completedAt = :completedAt, updatedAt = :updatedAt WHERE id = :id")
+    suspend fun updateStatus(id: Long, status: String, completedAt: Long? = null, updatedAt: Long = 0L)
 
-    @Query("UPDATE reminders SET snoozeCount = snoozeCount + 1, triggerTime = :newTriggerTime, status = 'PENDING' WHERE id = :id")
-    suspend fun snooze(id: Long, newTriggerTime: Long)
+    @Query("UPDATE reminders SET snoozeCount = snoozeCount + 1, triggerTime = :newTriggerTime, status = 'PENDING', updatedAt = :updatedAt WHERE id = :id")
+    suspend fun snooze(id: Long, newTriggerTime: Long, updatedAt: Long = 0L)
+
+    @Query("DELETE FROM reminders")
+    suspend fun deleteAll()
 }

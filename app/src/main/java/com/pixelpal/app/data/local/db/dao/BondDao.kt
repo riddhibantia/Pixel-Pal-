@@ -20,4 +20,7 @@ interface BondDao {
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertOrUpdate(bond: BondEntity)
+
+    @Query("DELETE FROM bond")
+    suspend fun deleteAll()
 }

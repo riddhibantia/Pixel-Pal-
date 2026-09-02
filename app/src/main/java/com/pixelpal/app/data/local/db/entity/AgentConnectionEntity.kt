@@ -24,6 +24,7 @@ data class AgentConnectionEntity(
     val agentName: String = "",
     val provider: String = "",
     val endpointUrl: String = "",
+    val commandUrl: String? = null,
     val connectionStatus: String = "DISCONNECTED",
     val pollingEnabled: Boolean = false,
     val pollingIntervalMinutes: Long = 15,

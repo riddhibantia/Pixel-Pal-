@@ -355,4 +355,92 @@ object DatabaseMigrations {
             db.execSQL("DROP TABLE IF EXISTS `agent_status`")
         }
     }
+
+    /**
+     * Version 8 makes Cloud Firestore sync safe across devices:
+     *  - `tasks`/`reminders` gain `cloudId` (stable UUID used as the Firestore
+     *    document id — Room autoincrement ids are device-local and collide).
+     *  - Both gain `updatedAt` for last-write-wins conflict resolution.
+     * Existing rows are backfilled with fresh UUIDs and their createdAt as
+     * updatedAt.
+     */
+    val MIGRATION_7_8 = object : Migration(7, 8) {
+        override fun migrate(db: SupportSQLiteDatabase) {
+            db.execSQL("ALTER TABLE `tasks` ADD COLUMN `cloudId` TEXT NOT NULL DEFAULT ''")
+            db.execSQL("ALTER TABLE `tasks` ADD COLUMN `updatedAt` INTEGER NOT NULL DEFAULT 0")
+            db.execSQL("ALTER TABLE `reminders` ADD COLUMN `cloudId` TEXT NOT NULL DEFAULT ''")
+            db.execSQL("ALTER TABLE `reminders` ADD COLUMN `updatedAt` INTEGER NOT NULL DEFAULT 0")
+            db.execSQL("ALTER TABLE `companions` ADD COLUMN `updatedAt` INTEGER NOT NULL DEFAULT 0")
+            db.execSQL("ALTER TABLE `bond` ADD COLUMN `updatedAt` INTEGER NOT NULL DEFAULT 0")
+
+            db.execSQL("UPDATE `tasks` SET `updatedAt` = `createdAt`")
+            db.execSQL("UPDATE `reminders` SET `updatedAt` = `createdAt`")
+            db.execSQL("UPDATE `companions` SET `updatedAt` = `createdAt`")
+            db.execSQL("UPDATE `bond` SET `updatedAt` = `lastInteractionTime`")
+
+            backfillCloudIds(db, "tasks")
+            backfillCloudIds(db, "reminders")
+        }
+
+        private fun backfillCloudIds(db: SupportSQLiteDatabase, table: String) {
+            val ids = mutableListOf<Long>()
+            db.query("SELECT `id` FROM `$table` WHERE `cloudId` = ''").use { cursor ->
+                while (cursor.moveToNext()) ids.add(cursor.getLong(0))
+            }
+            ids.forEach { id ->
+                db.execSQL(
+                    "UPDATE `$table` SET `cloudId` = ? WHERE `id` = ?",
+                    arrayOf(java.util.UUID.randomUUID().toString(), id)
+                )
+            }
+        }
+    }
+
+    /**
+     * Version 9 adds notes-app style subtasks: a task heading with tickable
+     * sub-points. Same cloud-sync columns as tasks (stable cloudId + updatedAt).
+     */
+    val MIGRATION_8_9 = object : Migration(8, 9) {
+        override fun migrate(db: SupportSQLiteDatabase) {
+            db.execSQL(
+                """
+                CREATE TABLE IF NOT EXISTS `subtasks` (
+                    `id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+                    `taskId` INTEGER NOT NULL,
+                    `title` TEXT NOT NULL,
+                    `isDone` INTEGER NOT NULL,
+                    `sortOrder` INTEGER NOT NULL,
+                    `createdAt` INTEGER NOT NULL,
+                    `completedAt` INTEGER,
+                    `cloudId` TEXT NOT NULL DEFAULT '',
+                    `updatedAt` INTEGER NOT NULL DEFAULT 0,
+                    FOREIGN KEY(`taskId`) REFERENCES `tasks`(`id`)
+                        ON UPDATE NO ACTION ON DELETE CASCADE
+                )
+                """.trimIndent()
+            )
+            db.execSQL("CREATE INDEX IF NOT EXISTS `index_subtasks_taskId` ON `subtasks`(`taskId`)")
+        }
+    }
+
+    /**
+     * Version 10 adds an optional `description` to tasks for the redesigned
+     * task editor (New Task / Task Detail screens).
+     */
+    val MIGRATION_9_10 = object : Migration(9, 10) {
+        override fun migrate(db: SupportSQLiteDatabase) {
+            db.execSQL("ALTER TABLE `tasks` ADD COLUMN `description` TEXT")
+        }
+    }
+
+    /**
+     * Version 11 adds an optional `commandUrl` to agent connections so the app
+     * can POST commands to the agent (two-way communication), distinct from
+     * the polled status endpoint.
+     */
+    val MIGRATION_10_11 = object : Migration(10, 11) {
+        override fun migrate(db: SupportSQLiteDatabase) {
+            db.execSQL("ALTER TABLE `agent_connection` ADD COLUMN `commandUrl` TEXT")
+        }
+    }
 }

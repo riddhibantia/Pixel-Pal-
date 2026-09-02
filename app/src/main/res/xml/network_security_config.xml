@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  PixelPal talks to user-configured AI agent status endpoints, which are
+  frequently plain-HTTP servers on localhost or the local network
+  (e.g. http://127.0.0.1:8765/status). Allow cleartext for that purpose;
+  first-party traffic (Firebase, Gemini) is HTTPS regardless.
+-->
+<network-security-config>
+    <base-config cleartextTrafficPermitted="true" />
+</network-security-config>

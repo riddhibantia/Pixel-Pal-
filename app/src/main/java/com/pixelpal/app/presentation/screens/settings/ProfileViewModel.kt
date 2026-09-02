@@ -4,8 +4,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.pixelpal.app.data.local.datastore.PreferencesManager
 import com.pixelpal.app.data.remote.firebase.FirebaseAuthManager
-import com.pixelpal.app.data.remote.firebase.FirestoreSyncEngine
-import com.pixelpal.app.worker.WorkerScheduler
+import com.pixelpal.app.data.remote.firebase.FirestoreSyncCoordinator
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
@@ -19,8 +18,7 @@ import javax.inject.Inject
 class ProfileViewModel @Inject constructor(
     private val preferencesManager: PreferencesManager,
     private val authManager: FirebaseAuthManager,
-    private val syncEngine: FirestoreSyncEngine,
-    private val workerScheduler: WorkerScheduler
+    private val syncCoordinator: FirestoreSyncCoordinator
 ) : ViewModel() {
 
     val userName: StateFlow<String> = preferencesManager.userName
@@ -32,12 +30,12 @@ class ProfileViewModel @Inject constructor(
     val avatarSeed: StateFlow<String> = preferencesManager.avatarSeed
         .stateIn(viewModelScope, SharingStarted.Lazily, "pixelpal")
 
-    val isUserLoggedIn: Boolean get() = syncEngine.isUserLoggedIn
-    val isAnonymousUser: Boolean get() = syncEngine.isAnonymousUser
-    val currentUserEmail: String? get() = syncEngine.currentUserEmail
+    val isUserLoggedIn: Boolean get() = syncCoordinator.isUserLoggedIn
+    val isAnonymousUser: Boolean get() = syncCoordinator.isAnonymousUser
+    val currentUserEmail: String? get() = syncCoordinator.currentUserEmail
 
-    private val _isSyncing = MutableStateFlow(false)
-    val isSyncing: StateFlow<Boolean> = _isSyncing.asStateFlow()
+    /** True while a real bidirectional cloud sync is in flight. */
+    val isSyncing: StateFlow<Boolean> = syncCoordinator.isSyncing
 
     /** Reads the currently stored values directly (DataStore) — not the StateFlow initial value. */
     suspend fun currentUserName(): String = preferencesManager.getUserName()
@@ -55,16 +53,11 @@ class ProfileViewModel @Inject constructor(
     }
 
     fun triggerCloudSync() {
-        viewModelScope.launch {
-            _isSyncing.value = true
-            workerScheduler.triggerImmediateSync()
-            kotlinx.coroutines.delay(1500)
-            _isSyncing.value = false
-        }
+        viewModelScope.launch { syncCoordinator.fullSync() }
     }
 
     fun signOut() {
-        authManager.signOut()
+        syncCoordinator.signOut()
     }
 
     /** Cycles to the next deterministic avatar style for this user. */

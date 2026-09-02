@@ -35,5 +35,9 @@ data class ReminderEntity(
     val snoozeCount: Int = 0,
     val createdAt: Long = System.currentTimeMillis(),
     val completedAt: Long? = null,
-    val companionId: Long? = null
+    val companionId: Long? = null,
+    // Stable cross-device identity for Cloud Firestore documents (Room row ids
+    // are device-local autoincrement values and must never key cloud docs).
+    @ColumnInfo(defaultValue = "") val cloudId: String = java.util.UUID.randomUUID().toString(),
+    @ColumnInfo(defaultValue = "0") val updatedAt: Long = 0L
 )

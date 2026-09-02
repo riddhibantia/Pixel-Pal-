@@ -19,7 +19,9 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Checklist
+import androidx.compose.material.icons.filled.ChevronRight
 import androidx.compose.material.icons.filled.Notifications
+import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.SmartToy
 import androidx.compose.material.icons.filled.Alarm
 import androidx.compose.material3.Badge
@@ -102,7 +104,8 @@ fun HomeScreen(
             HomeHeader(
                 userName = uiState.userName,
                 unreadCount = uiState.unreadActivityCount,
-                onBellClick = { navController.navigate(Screen.ActivityCenter.route) }
+                onBellClick = { navController.navigate(Screen.ActivityCenter.route) },
+                onSettingsClick = { navController.navigate(Screen.Settings.route) }
             )
 
             when {
@@ -131,6 +134,14 @@ fun HomeScreen(
 
                     Spacer(modifier = Modifier.height(Spacing.md))
 
+                    // The agent is the axis of the app — give it a live card on home.
+                    AgentStatusCard(
+                        connection = uiState.agentConnection,
+                        onOpen = { navController.navigate(Screen.CompanionWorkspace.route) }
+                    )
+
+                    Spacer(modifier = Modifier.height(Spacing.md))
+
                     SectionHeader(title = "Today")
                     Row(
                         modifier = Modifier.fillMaxWidth(),
@@ -141,7 +152,7 @@ fun HomeScreen(
                             icon = Icons.Default.Checklist,
                             label = "Tasks",
                             value = "${uiState.pendingTasks.size} remaining",
-                            onClick = { navController.navigate(Screen.CompanionWorkspace.route) }
+                            onClick = { navController.navigate(Screen.Tasks.route) }
                         )
                         QuickStatusCard(
                             modifier = Modifier.weight(1f),
@@ -180,6 +191,110 @@ fun HomeScreen(
     }
 }
 
+@Composable
+private fun AgentStatusCard(
+    connection: com.pixelpal.app.domain.model.AgentConnection?,
+    onOpen: () -> Unit
+) {
+    SectionHeader(title = "AI Agent")
+    Surface(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable(onClickLabel = "Open AI Agent") { onOpen() },
+        shape = RoundedCornerShape(Radius.large),
+        color = MaterialTheme.colorScheme.surface,
+        border = androidx.compose.foundation.BorderStroke(
+            1.dp,
+            MaterialTheme.colorScheme.outline.copy(alpha = 0.35f)
+        )
+    ) {
+        Column(modifier = Modifier.padding(Spacing.md)) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Box(
+                    modifier = Modifier
+                        .size(10.dp)
+                        .background(color = agentDotColor(connection), shape = CircleShape)
+                )
+                Spacer(modifier = Modifier.width(Spacing.sm))
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(
+                        text = agentStatusText(connection),
+                        style = MaterialTheme.typography.titleSmall,
+                        fontWeight = FontWeight.SemiBold
+                    )
+                    connection?.currentTask?.let {
+                        Text(
+                            text = it,
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            maxLines = 1
+                        )
+                    }
+                }
+                Icon(
+                    imageVector = androidx.compose.material.icons.Icons.Default.ChevronRight,
+                    contentDescription = "Open AI Agent",
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+
+            connection?.progress?.let { progress ->
+                Spacer(modifier = Modifier.height(Spacing.sm))
+                LinearProgressIndicator(
+                    progress = { progress / 100f },
+                    modifier = Modifier.fillMaxWidth()
+                )
+                Spacer(modifier = Modifier.height(Spacing.xs))
+                Text(
+                    text = "$progress% • ${connection.currentStatus.displayName}",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+
+            connection?.lastMessage?.let {
+                Spacer(modifier = Modifier.height(Spacing.xs))
+                Text(
+                    text = it,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    maxLines = 2
+                )
+            }
+
+            if (connection == null || connection.endpointUrl.isBlank()) {
+                Spacer(modifier = Modifier.height(Spacing.xs))
+                Text(
+                    text = "Connect your coding agent and watch it work through your pet",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun agentDotColor(connection: com.pixelpal.app.domain.model.AgentConnection?) =
+    when {
+        connection == null -> MaterialTheme.colorScheme.onSurfaceVariant
+        connection.connectionStatus == com.pixelpal.app.domain.model.ConnectionStatus.ERROR ->
+            MaterialTheme.colorScheme.error
+        connection.isConnected && connection.currentStatus in setOf(
+            AgentState.WORKING, AgentState.ONLINE, AgentState.IDLE
+        ) -> MaterialTheme.colorScheme.primary
+        else -> MaterialTheme.colorScheme.onSurfaceVariant
+    }
+
+@Composable
+private fun agentStatusText(connection: com.pixelpal.app.domain.model.AgentConnection?): String =
+    when {
+        connection == null || connection.endpointUrl.isBlank() -> "No agent connected"
+        connection.connectionStatus == com.pixelpal.app.domain.model.ConnectionStatus.ERROR ->
+            "Connection error"
+        else -> "Connected — ${connection.currentStatus.displayName}"
+    }
+
 private fun agentChipValue(state: AgentState?): String = when (state) {
     null, AgentState.DISCONNECTED -> "Off"
     AgentState.WORKING -> "Working"
@@ -191,7 +306,8 @@ private fun agentChipValue(state: AgentState?): String = when (state) {
 private fun HomeHeader(
     userName: String,
     unreadCount: Int,
-    onBellClick: () -> Unit
+    onBellClick: () -> Unit,
+    onSettingsClick: () -> Unit
 ) {
     Row(
         modifier = Modifier
@@ -226,6 +342,13 @@ private fun HomeHeader(
                     tint = MaterialTheme.colorScheme.onSurface
                 )
             }
+        }
+        IconButton(onClick = onSettingsClick) {
+            Icon(
+                imageVector = Icons.Default.Settings,
+                contentDescription = "Settings",
+                tint = MaterialTheme.colorScheme.onSurface
+            )
         }
     }
 }

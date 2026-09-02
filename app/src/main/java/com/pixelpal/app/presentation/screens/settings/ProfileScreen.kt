@@ -220,6 +220,20 @@ fun ProfileScreen(
                             }
                         )
                     }
+
+                    if (viewModel.isUserLoggedIn) {
+                        Spacer(modifier = Modifier.height(Spacing.xs))
+                        com.pixelpal.app.presentation.components.DestructiveButton(
+                            text = "Sign Out",
+                            modifier = Modifier.fillMaxWidth(),
+                            onClick = {
+                                viewModel.signOut()
+                                navController.navigate(com.pixelpal.app.presentation.navigation.Screen.Auth.route) {
+                                    popUpTo(0) { inclusive = true }
+                                }
+                            }
+                        )
+                    }
                 }
             }
 

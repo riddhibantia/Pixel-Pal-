@@ -29,10 +29,9 @@ class BondRepositoryImpl @Inject constructor(
     override suspend fun getAllDirect(): List<Bond> = dao.getAllDirect().map { it.toDomain() }
 
     override suspend fun updateBond(bond: Bond) {
-        dao.insertOrUpdate(bond.toEntity())
-        if (syncEngine.isUserLoggedIn) {
-            syncEngine.syncBondToCloud(bond)
-        }
+        val entity = bond.toEntity().copy(updatedAt = System.currentTimeMillis())
+        dao.insertOrUpdate(entity)
+        syncEngine.pushBondAsync(entity.toDomain())
     }
 
     override suspend fun ensureExists(companionId: Long) {

@@ -33,6 +33,9 @@ class PixelPalApplication : Application(), Configuration.Provider {
     @Inject
     lateinit var agentConnectionRepository: AgentConnectionRepository
 
+    @Inject
+    lateinit var syncCoordinator: com.pixelpal.app.data.remote.firebase.FirestoreSyncCoordinator
+
     override val workManagerConfiguration: Configuration
         get() = Configuration.Builder()
             .setWorkerFactory(workerFactory)
@@ -46,6 +49,9 @@ class PixelPalApplication : Application(), Configuration.Provider {
         }
 
         workerScheduler.schedulePeriodicWork()
+
+        // Real-time cloud → local listeners (no-op until signed in).
+        syncCoordinator.startRealtimeSync()
 
         // Startup reconciliation: one-time fold of legacy multi-companion data
         // into THE companion, fresh-install seeding, bond/personality guarantees,

@@ -37,45 +37,42 @@ class ReminderRepositoryImpl @Inject constructor(
     }
 
     override suspend fun insert(reminder: Reminder): Long {
-        val id = dao.insert(reminder.toEntity())
-        val saved = reminder.copy(id = id)
-        if (syncEngine.isUserLoggedIn) {
-            syncEngine.syncReminderToCloud(saved)
-        }
+        val entity = reminder.toEntity(updatedAt = System.currentTimeMillis())
+        val id = dao.insert(entity)
+        syncEngine.pushReminderAsync(entity.copy(id = id))
         return id
     }
 
     override suspend fun update(reminder: Reminder) {
-        dao.update(reminder.toEntity())
-        if (syncEngine.isUserLoggedIn) {
-            syncEngine.syncReminderToCloud(reminder)
-        }
+        // Preserve the existing cloudId so the update lands on the same cloud doc.
+        val entity = dao.getReminderById(reminder.id)
+            ?.let { reminder.toEntity(cloudId = it.cloudId) }
+            ?.copy(updatedAt = System.currentTimeMillis())
+            ?: reminder.toEntity(updatedAt = System.currentTimeMillis())
+        dao.update(entity)
+        syncEngine.pushReminderAsync(entity)
     }
 
     override suspend fun delete(reminder: Reminder) {
-        dao.delete(reminder.toEntity())
-        if (syncEngine.isUserLoggedIn) {
-            syncEngine.deleteReminderFromCloud(reminder.id)
+        val entity = dao.getReminderById(reminder.id)
+        if (entity != null) {
+            dao.delete(entity)
+            syncEngine.deleteReminderAsync(entity.cloudId)
+        } else {
+            dao.delete(reminder.toEntity())
         }
     }
 
     override suspend fun complete(id: Long) {
         val now = System.currentTimeMillis()
-        dao.updateStatus(id, "COMPLETED", now)
-        if (syncEngine.isUserLoggedIn) {
-            dao.getReminderById(id)?.let {
-                syncEngine.syncReminderToCloud(it.toDomain())
-            }
-        }
+        dao.updateStatus(id, "COMPLETED", now, now)
+        dao.getReminderById(id)?.let(syncEngine::pushReminderAsync)
     }
 
     override suspend fun snooze(id: Long, newTriggerTime: Long) {
-        dao.snooze(id, newTriggerTime)
-        if (syncEngine.isUserLoggedIn) {
-            dao.getReminderById(id)?.let {
-                syncEngine.syncReminderToCloud(it.toDomain())
-            }
-        }
+        val now = System.currentTimeMillis()
+        dao.snooze(id, newTriggerTime, now)
+        dao.getReminderById(id)?.let(syncEngine::pushReminderAsync)
     }
 
     private fun ReminderEntity.toDomain() = Reminder(
@@ -96,7 +93,10 @@ class ReminderRepositoryImpl @Inject constructor(
         companionId = companionId
     )
 
-    private fun Reminder.toEntity() = ReminderEntity(
+    private fun Reminder.toEntity(
+        updatedAt: Long = 0L,
+        cloudId: String = java.util.UUID.randomUUID().toString()
+    ) = ReminderEntity(
         id = id,
         title = title,
         message = message,
@@ -111,6 +111,8 @@ class ReminderRepositoryImpl @Inject constructor(
         snoozeCount = snoozeCount,
         createdAt = createdAt,
         completedAt = completedAt,
-        companionId = companionId
+        companionId = companionId,
+        updatedAt = updatedAt,
+        cloudId = cloudId
     )
 }

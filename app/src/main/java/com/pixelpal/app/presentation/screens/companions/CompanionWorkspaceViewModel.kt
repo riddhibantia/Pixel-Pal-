@@ -40,10 +40,7 @@ import javax.inject.Inject
 data class CompanionWorkspaceUiState(
     val companion: Companion? = null,
     val bond: Bond? = null,
-    val tasks: List<Task> = emptyList(),
-    val reminders: List<Reminder> = emptyList(),
     val agentConnection: AgentConnection? = null,
-    val tasksWidgetEnabled: Boolean = false,
     val checkingAgent: Boolean = false,
     val loading: Boolean = true
 )
@@ -53,16 +50,11 @@ data class CompanionWorkspaceUiState(
 class CompanionWorkspaceViewModel @Inject constructor(
     getActiveCompanionUseCase: GetActiveCompanionUseCase,
     bondRepository: BondRepository,
-    reminderRepository: ReminderRepository,
-    private val taskRepository: TaskRepository,
     getAgentConnectionUseCase: GetAgentConnectionUseCase,
-    private val preferencesManager: PreferencesManager,
     private val agentConnectionRepository: AgentConnectionRepository,
     private val saveAgentConnectionUseCase: SaveAgentConnectionUseCase,
     private val toggleFavoriteUseCase: ToggleFavoriteUseCase,
-    private val updateCompanionUseCase: com.pixelpal.app.domain.usecase.companion.UpdateCompanionUseCase,
-    private val addTaskUseCase: AddTaskUseCase,
-    private val completeTaskUseCase: CompleteTaskUseCase
+    private val updateCompanionUseCase: com.pixelpal.app.domain.usecase.companion.UpdateCompanionUseCase
 ) : ViewModel() {
 
     private val core = getActiveCompanionUseCase.activeCompanion.flatMapLatest { c ->
@@ -70,48 +62,54 @@ class CompanionWorkspaceViewModel @Inject constructor(
         else bondRepository.getBond(c.id).map { bond -> c to bond }
     }
 
-    private data class Extras(
-        val tasks: List<Task>,
-        val reminders: List<Reminder>,
-        val agent: AgentConnection?
-    )
-
     private val extras = getActiveCompanionUseCase.activeCompanion.flatMapLatest { c ->
-        if (c == null) flowOf(Extras(emptyList(), emptyList(), null))
-        else combine(
-            taskRepository.getTasks(c.id),
-            reminderRepository.getPendingForCompanion(c.id),
-            getAgentConnectionUseCase.getConnection(c.id)
-        ) { tasks, reminders, agent ->
-            Extras(tasks, reminders, agent)
-        }
+        if (c == null) flowOf(null) else getAgentConnectionUseCase.getConnection(c.id)
     }
 
-    private val tasksWidgetEnabled = preferencesManager.tasksWidgetEnabled
-        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), false)
-
     val uiState: StateFlow<CompanionWorkspaceUiState> = combine(
-        combine(core, extras) { corePair, extras ->
-            val (companion, bond) = corePair
-            CompanionWorkspaceUiState(
-                companion = companion,
-                bond = bond,
-                tasks = extras.tasks,
-                reminders = extras.reminders,
-                agentConnection = extras.agent,
-                loading = false
-            )
-        },
-        tasksWidgetEnabled
-    ) { state, widgetEnabled ->
-        state.copy(tasksWidgetEnabled = widgetEnabled)
+        core, extras
+    ) { corePair, agent ->
+        val (companion, bond) = corePair
+        CompanionWorkspaceUiState(
+            companion = companion,
+            bond = bond,
+            agentConnection = agent,
+            loading = false
+        )
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), CompanionWorkspaceUiState())
 
     private val _checkingAgent = MutableStateFlow(false)
     val checkingAgent: StateFlow<Boolean> = _checkingAgent.asStateFlow()
 
+    private val _commandFeedback = MutableStateFlow<String?>(null)
+    val commandFeedback: StateFlow<String?> = _commandFeedback.asStateFlow()
+
     private val _snackbarEvents = MutableSharedFlow<SnackbarEvent>()
     val snackbarEvents: SharedFlow<SnackbarEvent> = _snackbarEvents.asSharedFlow()
+
+    fun sendAgentCommand(command: String) {
+        val companionId = uiState.value.companion?.id ?: return
+        if (command.isBlank()) return
+        viewModelScope.launch {
+            val result = agentConnectionRepository.sendCommand(companionId, command.trim())
+            _commandFeedback.value = result.fold(
+                onSuccess = { "Sent \"${command.trim()}\"" },
+                onFailure = { "Couldn't send: ${it.message ?: "unknown error"}" }
+            )
+            // The agent updated its own status in response — surface it now.
+            if (result.isSuccess) {
+                refreshAgentStatus()
+            }
+        }
+    }
+
+    fun reportVoiceUnavailable() {
+        _commandFeedback.value = "Voice input isn't available on this device — type instead."
+    }
+
+    fun clearCommandFeedback() {
+        _commandFeedback.value = null
+    }
 
     fun refreshAgentStatus() {
         val companionId = uiState.value.companion?.id ?: return
@@ -127,7 +125,13 @@ class CompanionWorkspaceViewModel @Inject constructor(
     }
 
     fun saveAgentConnection(connection: AgentConnection) {
-        viewModelScope.launch { saveAgentConnectionUseCase(connection) }
+        viewModelScope.launch {
+            saveAgentConnectionUseCase(connection)
+            // Connect should feel like connecting — run the first check now.
+            if (connection.endpointUrl.isNotBlank()) {
+                agentConnectionRepository.checkNow(connection.companionId)
+            }
+        }
     }
 
     fun disconnectAgent() {
@@ -164,28 +168,4 @@ class CompanionWorkspaceViewModel @Inject constructor(
         viewModelScope.launch { updateCompanionUseCase(current.copy(name = name.take(20))) }
     }
 
-    fun addTask(title: String) {
-        val companionId = uiState.value.companion?.id ?: return
-        if (title.isBlank()) return
-        viewModelScope.launch { addTaskUseCase(companionId, title.trim()) }
-    }
-
-    fun toggleTask(task: Task) {
-        viewModelScope.launch { completeTaskUseCase(task) }
-    }
-
-    fun deleteTask(task: Task) {
-        viewModelScope.launch {
-            taskRepository.deleteTask(task)
-            _snackbarEvents.emit(SnackbarEvent.TaskDeleted(task))
-        }
-    }
-
-    fun undoDeleteTask(task: Task) {
-        viewModelScope.launch { taskRepository.reinsertTask(task) }
-    }
-
-    fun setTasksWidgetEnabled(enabled: Boolean) {
-        viewModelScope.launch { preferencesManager.setTasksWidgetEnabled(enabled) }
-    }
 }

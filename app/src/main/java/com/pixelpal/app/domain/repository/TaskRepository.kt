@@ -4,6 +4,12 @@ import com.pixelpal.app.domain.model.Task
 import kotlinx.coroutines.flow.Flow
 
 interface TaskRepository {
+    /** Reactive single-task stream for the Task Detail screen. */
+    fun getTask(taskId: Long): Flow<Task?>
+
+    /** Edits title/description and syncs the change to the cloud. */
+    suspend fun updateTask(task: Task)
+
     fun getTasks(companionId: Long): Flow<List<Task>>
     suspend fun addTask(task: Task): Long
     /**

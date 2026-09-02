@@ -1,10 +1,21 @@
 package com.pixelpal.app.data.remote.firebase
 
+import android.content.Context
+import androidx.credentials.ClearCredentialStateRequest
+import androidx.credentials.CredentialManager
+import androidx.credentials.CustomCredential
+import androidx.credentials.GetCredentialRequest
+import com.google.android.libraries.identity.googleid.GetGoogleIdOption
+import com.google.android.libraries.identity.googleid.GoogleIdTokenCredential
+import com.google.android.libraries.identity.googleid.GoogleIdTokenParsingException
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.auth.FirebaseUser
+import com.google.firebase.auth.GoogleAuthProvider
+import com.pixelpal.app.R
 import kotlinx.coroutines.channels.awaitClose
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.callbackFlow
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.tasks.await
 import timber.log.Timber
 import javax.inject.Inject
@@ -23,6 +34,7 @@ sealed interface AuthState {
  */
 @Singleton
 class FirebaseAuthManager @Inject constructor(
+    @dagger.hilt.android.qualifiers.ApplicationContext private val context: Context,
     private val auth: FirebaseAuth
 ) {
     val currentUser: FirebaseUser?
@@ -97,9 +109,54 @@ class FirebaseAuthManager @Inject constructor(
     }
 
     /**
+     * Google Sign-In via Android Credential Manager, then Firebase sign-in
+     * with the resulting Google ID token.
+     */
+    suspend fun signInWithGoogle(activityContext: Context): Result<FirebaseUser> {
+        return try {
+            val credentialManager = CredentialManager.create(context)
+            val googleIdOption = GetGoogleIdOption.Builder()
+                .setServerClientId(context.getString(R.string.default_web_client_id))
+                .setFilterByAuthorizedAccounts(false)
+                .build()
+            val request = GetCredentialRequest.Builder()
+                .addCredentialOption(googleIdOption)
+                .build()
+
+            val result = credentialManager.getCredential(activityContext, request)
+            val credential = result.credential
+            if (credential is CustomCredential &&
+                credential.type == GoogleIdTokenCredential.TYPE_GOOGLE_ID_TOKEN_CREDENTIAL
+            ) {
+                val googleCredential = GoogleIdTokenCredential.createFrom(credential.data)
+                val firebaseCredential = GoogleAuthProvider.getCredential(googleCredential.idToken, null)
+                val user = auth.signInWithCredential(firebaseCredential).await().user
+                    ?: throw IllegalStateException("Firebase user was null")
+                Result.success(user)
+            } else {
+                Result.failure(IllegalStateException("Unsupported credential type"))
+            }
+        } catch (e: GoogleIdTokenParsingException) {
+            Timber.e(e, "Google Sign-In: invalid credential response")
+            Result.failure(e)
+        } catch (e: androidx.credentials.exceptions.GetCredentialCancellationException) {
+            Timber.d("Google Sign-In cancelled by user")
+            Result.failure(e)
+        } catch (e: Exception) {
+            Timber.e(e, "Google Sign-In failed")
+            Result.failure(e)
+        }
+    }
+
+    /**
      * Signs out the current user session.
      */
     fun signOut() {
         auth.signOut()
+        // Clear the credential state so the next Google Sign-In shows all accounts.
+        val credentialManager = CredentialManager.create(context)
+        kotlinx.coroutines.CoroutineScope(kotlinx.coroutines.Dispatchers.IO).launch {
+            runCatching { credentialManager.clearCredentialState(ClearCredentialStateRequest()) }
+        }
     }
 }

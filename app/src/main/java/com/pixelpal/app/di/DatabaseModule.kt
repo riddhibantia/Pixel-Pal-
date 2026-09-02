@@ -10,6 +10,7 @@ import com.pixelpal.app.data.local.db.dao.BondDao
 import com.pixelpal.app.data.local.db.dao.CompanionDao
 import com.pixelpal.app.data.local.db.dao.PersonalityDao
 import com.pixelpal.app.data.local.db.dao.ReminderDao
+import com.pixelpal.app.data.local.db.dao.SubtaskDao
 import com.pixelpal.app.data.local.db.dao.TaskDao
 import com.pixelpal.app.util.Constants
 import dagger.Module
@@ -39,7 +40,11 @@ object DatabaseModule {
             DatabaseMigrations.MIGRATION_3_4,
             DatabaseMigrations.MIGRATION_4_5,
             DatabaseMigrations.MIGRATION_5_6,
-            DatabaseMigrations.MIGRATION_6_7
+            DatabaseMigrations.MIGRATION_6_7,
+            DatabaseMigrations.MIGRATION_7_8,
+            DatabaseMigrations.MIGRATION_8_9,
+            DatabaseMigrations.MIGRATION_9_10,
+            DatabaseMigrations.MIGRATION_10_11
         )
         // Dev builds may move between versions freely; wiping on downgrade beats crashing.
         .fallbackToDestructiveMigrationOnDowngrade()
@@ -60,6 +65,9 @@ object DatabaseModule {
 
     @Provides
     fun provideTaskDao(db: PixelPalDatabase): TaskDao = db.taskDao()
+
+    @Provides
+    fun provideSubtaskDao(db: PixelPalDatabase): SubtaskDao = db.subtaskDao()
 
     @Provides
     fun provideAgentConnectionDao(db: PixelPalDatabase): AgentConnectionDao = db.agentConnectionDao()

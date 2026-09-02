@@ -1,6 +1,7 @@
 package com.pixelpal.app.data.local.db.entity
 
 import androidx.room.Entity
+import androidx.room.ColumnInfo
 import androidx.room.ForeignKey
 import androidx.room.PrimaryKey
 
@@ -23,5 +24,7 @@ data class BondEntity(
     val feedsToday: Int = 0,
     val lastInteractionTime: Long = 0L,
     val streakDays: Int = 0,
-    val lastStreakDate: String = ""
+    val lastStreakDate: String = "",
+    // Cloud sync last-write-wins timestamp (0 for pre-v8 rows, backfilled in migration).
+    @ColumnInfo(defaultValue = "0") val updatedAt: Long = 0L
 )

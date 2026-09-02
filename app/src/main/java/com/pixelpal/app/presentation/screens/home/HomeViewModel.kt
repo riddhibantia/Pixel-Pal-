@@ -113,11 +113,9 @@ class HomeViewModel @Inject constructor(
         if (c == null) flowOf(null) else getAgentConnectionUseCase.getConnection(c.id)
     }
 
+
     val uiState: StateFlow<HomeUiState> = combine(
-        companion,
-        bondFlow,
-        features,
-        agentFlow,
+        companion, bondFlow, features, agentFlow,
         combine(userName, unreadActivityCount, overlayEnabled) { user, unread, overlay ->
             Triple(user, unread, overlay)
         }

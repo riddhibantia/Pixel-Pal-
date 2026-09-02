@@ -1,12 +1,11 @@
 package com.pixelpal.app.domain.model
 
-data class Task(
+data class Subtask(
     val id: Long = 0,
-    val companionId: Long,
+    val taskId: Long,
     val title: String,
-    val description: String? = null,
     val isDone: Boolean = false,
-    val dueAt: Long? = null,
+    val sortOrder: Int = 0,
     val createdAt: Long = System.currentTimeMillis(),
     val completedAt: Long? = null
 )

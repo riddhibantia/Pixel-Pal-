@@ -41,6 +41,7 @@ class OverlayService : Service() {
     @Inject lateinit var companionEngine: CompanionEngine
     @Inject lateinit var preferencesManager: PreferencesManager
     @Inject lateinit var companionRepository: CompanionRepository
+    @Inject lateinit var agentConnectionRepository: com.pixelpal.app.domain.repository.AgentConnectionRepository
 
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Main)
 
@@ -86,8 +87,34 @@ class OverlayService : Service() {
                 overlayManager.showCompanionFor(
                     companionId = companion.id,
                     petType = companion.effectiveSpecies,
-                    onTap = { cid -> companionEngine.onTap(cid) },
-                    onDoubleTap = { cid -> companionEngine.onDoubleTap(cid) },
+                    onTap = { cid ->
+                        // Tapping the pixel speaks: show the agent's live status.
+                        // The engine's tap-reaction bubble is intentionally NOT
+                        // fired — it would overwrite this one (single bubble per pet).
+                        scope.launch {
+                            val c = agentConnectionRepository.getConnectionDirect(cid)
+                            val text = when {
+                                c == null || c.endpointUrl.isBlank() -> "No agent connected yet"
+                                else -> buildString {
+                                    append(c.currentStatus.displayName)
+                                    c.currentTask?.let { append(": "); append(it.take(40)) }
+                                    c.progress?.let { append(" ("); append(it); append("%)") }
+                                    if (c.currentTask == null) {
+                                        c.lastMessage?.let { append(" — "); append(it.take(40)) }
+                                    }
+                                }
+                            }
+                            overlayManager.showSpeechBubble(cid, text)
+                        }
+                    },
+                    onDoubleTap = { cid ->
+                        companionEngine.onDoubleTap(cid)
+                        // Double-tapping the overlay opens the app from anywhere.
+                        val openApp = Intent(this, MainActivity::class.java).apply {
+                            flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_SINGLE_TOP
+                        }
+                        startActivity(openApp)
+                    },
                     onLongPress = { cid -> companionEngine.onFeed(cid) }
                 )
             } else {

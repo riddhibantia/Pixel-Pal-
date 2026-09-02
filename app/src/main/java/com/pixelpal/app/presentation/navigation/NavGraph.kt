@@ -7,8 +7,10 @@ import androidx.compose.animation.slideInHorizontally
 import androidx.compose.animation.slideOutHorizontally
 import androidx.compose.runtime.Composable
 import androidx.navigation.NavHostController
+import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
+import androidx.navigation.navArgument
 import com.pixelpal.app.presentation.screens.activity.ActivityCenterScreen
 import com.pixelpal.app.presentation.screens.companions.CompanionWorkspaceScreen
 import com.pixelpal.app.presentation.screens.customize.CustomizeScreen
@@ -21,6 +23,9 @@ import com.pixelpal.app.presentation.screens.settings.OverlaySettingsScreen
 import com.pixelpal.app.presentation.screens.settings.PermissionsScreen
 import com.pixelpal.app.presentation.screens.settings.ProfileScreen
 import com.pixelpal.app.presentation.screens.settings.SettingsScreen
+import com.pixelpal.app.presentation.screens.tasks.NewTaskScreen
+import com.pixelpal.app.presentation.screens.tasks.TaskDetailScreen
+import com.pixelpal.app.presentation.screens.tasks.TasksScreen
 
 sealed class Screen(val route: String) {
     object Onboarding : Screen("onboarding")
@@ -35,6 +40,12 @@ sealed class Screen(val route: String) {
     object About : Screen("about")
     object Permissions : Screen("permissions")
     object CompanionWorkspace : Screen("workspace")
+    object Tasks : Screen("tasks")
+    object NewTask : Screen("new_task")
+    object TaskDetail : Screen("task_detail/{taskId}") {
+
+        fun route(taskId: Long): String = "task_detail/$taskId"
+    }
     object ActivityCenter : Screen("activity_center")
 
     companion object {
@@ -65,7 +76,8 @@ fun PixelPalNavGraph(
         composable(Screen.Onboarding.route) {
             OnboardingScreen(
                 onOnboardingComplete = {
-                    navController.navigate(Screen.Home.route) {
+                    // Every user gets their own profile: onboarding lands on auth first.
+                    navController.navigate(Screen.Auth.route) {
                         popUpTo(Screen.Onboarding.route) { inclusive = true }
                     }
                 }
@@ -109,6 +121,18 @@ fun PixelPalNavGraph(
         }
         composable(Screen.CompanionWorkspace.route) {
             CompanionWorkspaceScreen(navController = navController)
+        }
+        composable(Screen.Tasks.route) {
+            TasksScreen(navController = navController)
+        }
+        composable(Screen.NewTask.route) {
+            NewTaskScreen(navController = navController)
+        }
+        composable(
+            Screen.TaskDetail.route,
+            arguments = listOf(navArgument("taskId") { type = NavType.LongType })
+        ) {
+            TaskDetailScreen(navController = navController)
         }
     }
 }

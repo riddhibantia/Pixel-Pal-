@@ -1,12 +1,11 @@
 package com.pixelpal.app.data.remote.firebase
 
+import com.pixelpal.app.data.local.db.entity.ReminderEntity
+import com.pixelpal.app.data.local.db.entity.TaskEntity
 import com.pixelpal.app.domain.model.Bond
 import com.pixelpal.app.domain.model.Companion
 import com.pixelpal.app.domain.model.CompanionRole
-import com.pixelpal.app.domain.model.Reminder
-import com.pixelpal.app.domain.model.Task
 import org.junit.Assert.assertEquals
-import org.junit.Assert.assertNotNull
 import org.junit.Test
 
 class FirebaseModelsTest {
@@ -47,34 +46,39 @@ class FirebaseModelsTest {
     }
 
     @Test
-    fun task_toFirestore_andBack_preservesFields() {
-        val original = Task(
+    fun taskEntity_toFirestore_keysByCloudId_notLocalRowId() {
+        val original = TaskEntity(
             id = 101L,
             companionId = 1L,
             title = "Implement Cloud Sync",
             isDone = true,
             dueAt = 1700000000L,
             createdAt = 1690000000L,
-            completedAt = 1700000050L
+            completedAt = 1700000050L,
+            cloudId = "stable-uuid-1",
+            updatedAt = 1700000060L
         )
 
         val firestoreModel = original.toFirestore()
-        assertEquals("101", firestoreModel.id)
+        assertEquals("stable-uuid-1", firestoreModel.id)
         assertEquals("Implement Cloud Sync", firestoreModel.title)
         assertEquals(true, firestoreModel.isDone)
+        assertEquals(1700000060L, firestoreModel.updatedAt)
 
-        val restored = firestoreModel.toDomain(companionId = 1L)
-        assertEquals(original.id, restored.id)
-        assertEquals(original.companionId, restored.companionId)
+        val restored = firestoreModel.toEntity(localId = 101L, companionId = 1L)
+        assertEquals("stable-uuid-1", restored.cloudId)
+        assertEquals(101L, restored.id)
+        assertEquals(1L, restored.companionId)
         assertEquals(original.title, restored.title)
         assertEquals(original.isDone, restored.isDone)
         assertEquals(original.dueAt, restored.dueAt)
         assertEquals(original.completedAt, restored.completedAt)
+        assertEquals(original.updatedAt, restored.updatedAt)
     }
 
     @Test
-    fun reminder_toFirestore_andBack_preservesFields() {
-        val original = Reminder(
+    fun reminderEntity_toFirestore_keysByCloudId_notLocalRowId() {
+        val original = ReminderEntity(
             id = 202L,
             title = "Water Plants",
             message = "Don't forget the ferns",
@@ -87,22 +91,27 @@ class FirebaseModelsTest {
             category = "HABIT",
             status = "PENDING",
             snoozeCount = 1,
-            companionId = 1L
+            companionId = 1L,
+            cloudId = "stable-uuid-2",
+            updatedAt = 1750000050L
         )
 
         val firestoreModel = original.toFirestore()
-        assertEquals("202", firestoreModel.id)
+        assertEquals("stable-uuid-2", firestoreModel.id)
         assertEquals("Water Plants", firestoreModel.title)
         assertEquals("DAILY", firestoreModel.recurrence)
+        assertEquals(1750000050L, firestoreModel.updatedAt)
 
-        val restored = firestoreModel.toDomain(companionId = 1L)
-        assertEquals(original.id, restored.id)
+        val restored = firestoreModel.toEntity(localId = 202L, companionId = 1L)
+        assertEquals("stable-uuid-2", restored.cloudId)
+        assertEquals(202L, restored.id)
         assertEquals(original.title, restored.title)
         assertEquals(original.message, restored.message)
         assertEquals(original.triggerTime, restored.triggerTime)
         assertEquals(original.recurrence, restored.recurrence)
         assertEquals(original.status, restored.status)
         assertEquals(original.snoozeCount, restored.snoozeCount)
+        assertEquals(original.updatedAt, restored.updatedAt)
     }
 
     @Test

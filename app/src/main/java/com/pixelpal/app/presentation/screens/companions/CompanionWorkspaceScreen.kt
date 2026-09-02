@@ -20,6 +20,8 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.Mic
+import androidx.compose.material.icons.filled.Send
 import androidx.compose.material.icons.filled.Star
 import androidx.compose.material3.Checkbox
 import androidx.compose.material3.Icon
@@ -82,6 +84,32 @@ fun CompanionWorkspaceScreen(
 ) {
     val uiState by viewModel.uiState.collectAsState()
     val checkingAgent by viewModel.checkingAgent.collectAsState()
+    val commandFeedback by viewModel.commandFeedback.collectAsState()
+
+    val voiceLauncher = androidx.activity.compose.rememberLauncherForActivityResult(
+        androidx.activity.result.contract.ActivityResultContracts.StartActivityForResult()
+    ) { result ->
+        val spoken = result.data
+            ?.getStringArrayListExtra(android.speech.RecognizerIntent.EXTRA_RESULTS)
+            ?.firstOrNull()
+        if (!spoken.isNullOrBlank()) {
+            viewModel.sendAgentCommand(spoken)
+        }
+    }
+    val voiceCommand: () -> Unit = {
+        val intent = android.content.Intent(android.speech.RecognizerIntent.ACTION_RECOGNIZE_SPEECH).apply {
+            putExtra(
+                android.speech.RecognizerIntent.EXTRA_LANGUAGE_MODEL,
+                android.speech.RecognizerIntent.LANGUAGE_MODEL_FREE_FORM
+            )
+            putExtra(android.speech.RecognizerIntent.EXTRA_PROMPT, "Speak your command to the agent")
+        }
+        try {
+            voiceLauncher.launch(intent)
+        } catch (_: android.content.ActivityNotFoundException) {
+            viewModel.reportVoiceUnavailable()
+        }
+    }
     val snackbarHostState = remember { SnackbarHostState() }
     val scope = rememberCoroutineScope()
 
@@ -97,7 +125,6 @@ fun CompanionWorkspaceScreen(
             )
             if (result == SnackbarResult.ActionPerformed) {
                 when (event) {
-                    is SnackbarEvent.TaskDeleted -> viewModel.undoDeleteTask(event.task)
                     is SnackbarEvent.AgentDisconnected -> viewModel.undoDisconnect(event.connection)
                     else -> {}
                 }
@@ -107,7 +134,7 @@ fun CompanionWorkspaceScreen(
 
     if (state.loading || state.companion == null) {
         Column(modifier = Modifier.fillMaxSize()) {
-            AppTopBar(title = "Workspace", onBack = { navController.popBackStack() })
+            AppTopBar(title = "AI Agent", onBack = { navController.popBackStack() })
             LoadingState()
         }
         return
@@ -116,6 +143,12 @@ fun CompanionWorkspaceScreen(
     val companion = state.companion
 
     Scaffold(
+        bottomBar = {
+            com.pixelpal.app.presentation.components.PixelPalBottomBar(
+                navController = navController,
+                selected = Screen.CompanionWorkspace
+            )
+        },
         snackbarHost = { PixelPalSnackbarHost(hostState = snackbarHostState) }
     ) { innerPadding ->
         Column(
@@ -123,7 +156,7 @@ fun CompanionWorkspaceScreen(
                 .fillMaxSize()
                 .padding(innerPadding)
         ) {
-            AppTopBar(title = "Workspace", onBack = { navController.popBackStack() })
+            AppTopBar(title = "AI Agent", onBack = { navController.popBackStack() })
 
             Column(
                 modifier = Modifier
@@ -142,34 +175,16 @@ fun CompanionWorkspaceScreen(
 
                 Spacer(modifier = Modifier.height(Spacing.md))
 
-                // ── Bond & progress ──
-                BondSection(bond = state.bond)
-
-                Spacer(modifier = Modifier.height(Spacing.md))
-
-                // ── Tasks ──
-                TasksSection(
-                    tasks = state.tasks,
-                    viewModel = viewModel,
-                    widgetEnabled = state.tasksWidgetEnabled,
-                    onWidgetToggle = viewModel::setTasksWidgetEnabled
-                )
-                Spacer(modifier = Modifier.height(Spacing.md))
-
-                // ── Reminders ──
-                RemindersSection(
-                    reminders = state.reminders,
-                    onAddReminder = { navController.navigate(Screen.CreateReminder.route) }
-                )
-                Spacer(modifier = Modifier.height(Spacing.md))
-
-                // ── AI Agent Connection ──
+                // ── AI Agent Connection — the workspace's sole purpose ──
                 AgentConnectionSection(
                     connection = state.agentConnection,
                     checking = checkingAgent,
+                    feedbackMessage = commandFeedback,
                     onSave = viewModel::saveAgentConnection,
                     onCheckNow = viewModel::refreshAgentStatus,
-                    onDisconnect = viewModel::disconnectAgent
+                    onDisconnect = viewModel::disconnectAgent,
+                    onSendCommand = viewModel::sendAgentCommand,
+                    onVoiceCommand = voiceCommand
                 )
             }
         }
@@ -245,287 +260,28 @@ private fun speciesLabel(species: String): String =
     species.replaceFirstChar { it.uppercase() }
 
 @Composable
-private fun BondSection(bond: com.pixelpal.app.domain.model.Bond?) {
-    SectionHeader(title = "Bond")
-    Surface(
-        modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(Radius.large),
-        color = MaterialTheme.colorScheme.surface
-    ) {
-        Column(modifier = Modifier.padding(Spacing.md)) {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween
-            ) {
-                Text(
-                    text = "Level ${bond?.level ?: 0}",
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.SemiBold
-                )
-                Text(
-                    text = "${bond?.totalInteractions ?: 0} meaningful interactions",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-            }
-            Spacer(modifier = Modifier.height(Spacing.sm))
-            LinearProgressIndicator(
-                progress = { (bond?.level ?: 0) / 100f },
-                modifier = Modifier.fillMaxWidth()
-            )
-            Spacer(modifier = Modifier.height(Spacing.sm))
-            Text(
-                text = if ((bond?.level ?: 0) >= 100) {
-                    "Max Bond reached — ${bond?.streakDays ?: 0}-day streak"
-                } else {
-                    "${bond?.streakDays ?: 0}-day streak • keep completing tasks and reminders to grow your bond"
-                },
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
-        }
-    }
-}
-
-@Composable
-private fun TasksSection(
-    tasks: List<Task>,
-    viewModel: CompanionWorkspaceViewModel,
-    widgetEnabled: Boolean = false,
-    onWidgetToggle: (Boolean) -> Unit = {}
-) {
-    var newTask by remember { mutableStateOf("") }
-    val context = androidx.compose.ui.platform.LocalContext.current
-
-    SectionHeader(title = "Tasks")
-    Surface(
-        modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(Radius.large),
-        color = MaterialTheme.colorScheme.surface
-    ) {
-        Column(modifier = Modifier.padding(Spacing.md)) {
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                AppTextField(
-                    value = newTask,
-                    onValueChange = { newTask = it },
-                    label = "Add a task",
-                    modifier = Modifier.weight(1f)
-                )
-                Spacer(modifier = Modifier.width(Spacing.sm))
-                PrimaryButton(
-                    text = "Add",
-                    onClick = {
-                        viewModel.addTask(newTask)
-                        newTask = ""
-                    },
-                    enabled = newTask.isNotBlank(),
-                    modifier = Modifier.width(80.dp)
-                )
-            }
-
-            if (tasks.isEmpty()) {
-                Spacer(modifier = Modifier.height(Spacing.sm))
-                Text(
-                    text = "No tasks yet.",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-            } else {
-                tasks.forEachIndexed { index, task ->
-                    if (index > 0) {
-                        GroupDivider()
-                    }
-                    SwipeableTaskRow(
-                        task = task,
-                        onToggle = { viewModel.toggleTask(task) },
-                        onDelete = { viewModel.deleteTask(task) }
-                    )
-                }
-            }
-
-            Spacer(modifier = Modifier.height(Spacing.md))
-            GroupDivider()
-            Spacer(modifier = Modifier.height(Spacing.md))
-
-            // ── Home Screen Widget opt-in ──
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Column(modifier = Modifier.weight(1f)) {
-                    Text(
-                        text = "Home Screen Widget",
-                        style = MaterialTheme.typography.titleSmall,
-                        fontWeight = FontWeight.SemiBold
-                    )
-                    Text(
-                        text = "Show tasks on your Android home screen",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                    if (widgetEnabled) {
-                        Spacer(modifier = Modifier.height(4.dp))
-                        Text(
-                            text = "✓ Widget enabled — add it from your launcher's widget picker",
-                            style = MaterialTheme.typography.labelSmall,
-                            color = MaterialTheme.colorScheme.primary,
-                            fontWeight = FontWeight.Medium
-                        )
-                    }
-                }
-                Spacer(modifier = Modifier.width(Spacing.sm))
-                Switch(
-                    checked = widgetEnabled,
-                    onCheckedChange = { enabled ->
-                        onWidgetToggle(enabled)
-                        if (enabled) {
-                            try {
-                                val appWidgetManager = android.appwidget.AppWidgetManager.getInstance(context)
-                                if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.O &&
-                                    appWidgetManager.isRequestPinAppWidgetSupported
-                                ) {
-                                    val provider = android.content.ComponentName(
-                                        context,
-                                        com.pixelpal.app.widget.TasksWidgetProvider::class.java
-                                    )
-                                    appWidgetManager.requestPinAppWidget(provider, null, null)
-                                }
-                            } catch (_: Exception) { }
-                        }
-                    }
-                )
-            }
-        }
-    }
-}
-
-@Composable
-private fun SwipeableTaskRow(
-    task: Task,
-    onToggle: () -> Unit,
-    onDelete: () -> Unit
-) {
-    val dismissState = rememberSwipeToDismissBoxState(
-        confirmValueChange = { value ->
-            if (value == SwipeToDismissBoxValue.EndToStart) {
-                onDelete()
-                true
-            } else {
-                false
-            }
-        }
-    )
-
-    SwipeToDismissBox(
-        state = dismissState,
-        backgroundContent = {
-            val color by animateColorAsState(
-                targetValue = if (dismissState.targetValue == SwipeToDismissBoxValue.EndToStart) {
-                    MaterialTheme.colorScheme.error.copy(alpha = 0.15f)
-                } else {
-                    MaterialTheme.colorScheme.surface
-                },
-                label = "swipe-bg"
-            )
-            Box(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .background(color, RoundedCornerShape(Radius.small))
-                    .padding(horizontal = Spacing.md),
-                contentAlignment = Alignment.CenterEnd
-            ) {
-                Icon(
-                    imageVector = Icons.Default.Delete,
-                    contentDescription = "Delete",
-                    tint = MaterialTheme.colorScheme.error
-                )
-            }
-        },
-        enableDismissFromStartToEnd = false
-    ) {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .background(MaterialTheme.colorScheme.surface)
-                .clickable { onToggle() },
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Checkbox(checked = task.isDone, onCheckedChange = { onToggle() })
-            Text(
-                text = task.title,
-                style = MaterialTheme.typography.bodyMedium,
-                textDecoration = if (task.isDone) TextDecoration.LineThrough else null,
-                color = if (task.isDone) {
-                    MaterialTheme.colorScheme.onSurfaceVariant
-                } else {
-                    MaterialTheme.colorScheme.onSurface
-                }
-            )
-        }
-    }
-}
-
-@Composable
-private fun RemindersSection(
-    reminders: List<com.pixelpal.app.domain.model.Reminder>,
-    onAddReminder: () -> Unit
-) {
-    SectionHeader(title = "Reminders")
-    Surface(
-        modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(Radius.large),
-        color = MaterialTheme.colorScheme.surface
-    ) {
-        Column(modifier = Modifier.padding(Spacing.md)) {
-            if (reminders.isEmpty()) {
-                Text(
-                    text = "No pending reminders",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-            } else {
-                reminders.forEachIndexed { index, reminder ->
-                    if (index > 0) {
-                        GroupDivider()
-                        Spacer(modifier = Modifier.height(Spacing.sm))
-                    }
-                    Text(
-                        text = reminder.title,
-                        style = MaterialTheme.typography.bodyMedium
-                    )
-                    Text(
-                        text = timeFormat.format(Date(reminder.triggerTime)),
-                        style = MaterialTheme.typography.labelSmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                }
-            }
-            Spacer(modifier = Modifier.height(Spacing.md))
-            PrimaryButton(
-                text = "Add Reminder",
-                onClick = onAddReminder,
-                modifier = Modifier.fillMaxWidth()
-            )
-        }
-    }
-}
-
-@Composable
 private fun AgentConnectionSection(
     connection: AgentConnection?,
     checking: Boolean,
+    feedbackMessage: String?,
     onSave: (AgentConnection) -> Unit,
     onCheckNow: () -> Unit,
-    onDisconnect: () -> Unit
+    onDisconnect: () -> Unit,
+    onSendCommand: (String) -> Unit,
+    onVoiceCommand: () -> Unit
 ) {
     SectionHeader(title = "AI Agent Connection")
 
     var endpoint by remember(connection?.companionId) {
         mutableStateOf(connection?.endpointUrl ?: "")
     }
+    var commandEndpoint by remember(connection?.companionId) {
+        mutableStateOf(connection?.commandUrl ?: "")
+    }
     var agentName by remember(connection?.companionId) {
         mutableStateOf(connection?.agentName ?: "")
     }
+    var commandText by remember { mutableStateOf("") }
     var pollingEnabled by remember(connection?.companionId) {
         mutableStateOf(connection?.pollingEnabled ?: false)
     }
@@ -614,7 +370,14 @@ private fun AgentConnectionSection(
                 value = endpoint,
                 onValueChange = { endpoint = it },
                 label = "Status endpoint URL",
-                placeholder = "https://example.com/agent/status"
+                placeholder = "http://127.0.0.1:8765/status"
+            )
+            Spacer(modifier = Modifier.height(Spacing.sm))
+            AppTextField(
+                value = commandEndpoint,
+                onValueChange = { commandEndpoint = it },
+                label = "Command endpoint (optional)",
+                placeholder = "Defaults to the status URL"
             )
             Spacer(modifier = Modifier.height(Spacing.sm))
 
@@ -646,6 +409,7 @@ private fun AgentConnectionSection(
                         (connection ?: AgentConnection(companionId = companionId)).copy(
                             agentName = agentName.trim(),
                             endpointUrl = endpoint.trim(),
+                            commandUrl = commandEndpoint.trim().takeIf { it.isNotEmpty() },
                             pollingEnabled = pollingEnabled
                         )
                     )
@@ -657,6 +421,66 @@ private fun AgentConnectionSection(
                 onClick = onCheckNow,
                 enabled = !checking && !connection?.endpointUrl.isNullOrBlank()
             )
+
+            // ── Talk to your agent: typed or spoken commands ──
+            if (!connection?.endpointUrl.isNullOrBlank()) {
+                Spacer(modifier = Modifier.height(Spacing.md))
+                GroupDivider()
+                Spacer(modifier = Modifier.height(Spacing.sm))
+                Text(
+                    text = "Talk to your agent",
+                    style = MaterialTheme.typography.titleSmall,
+                    fontWeight = FontWeight.SemiBold
+                )
+                Spacer(modifier = Modifier.height(Spacing.xs))
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    AppTextField(
+                        value = commandText,
+                        onValueChange = { commandText = it },
+                        label = "Send a command…",
+                        placeholder = "e.g. run the test suite",
+                        modifier = Modifier.weight(1f)
+                    )
+                    IconButton(onClick = onVoiceCommand) {
+                        Icon(
+                            imageVector = Icons.Default.Mic,
+                            contentDescription = "Speak a command",
+                            tint = MaterialTheme.colorScheme.primary
+                        )
+                    }
+                    IconButton(
+                        onClick = {
+                            onSendCommand(commandText)
+                            commandText = ""
+                        },
+                        enabled = commandText.isNotBlank()
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Send,
+                            contentDescription = "Send command",
+                            tint = if (commandText.isNotBlank()) {
+                                MaterialTheme.colorScheme.primary
+                            } else {
+                                MaterialTheme.colorScheme.onSurfaceVariant
+                            }
+                        )
+                    }
+                }
+                feedbackMessage?.let {
+                    Text(
+                        text = it,
+                        style = MaterialTheme.typography.bodySmall,
+                        color = if (it.startsWith("Couldn't")) {
+                            MaterialTheme.colorScheme.error
+                        } else {
+                            MaterialTheme.colorScheme.primary
+                        }
+                    )
+                }
+            }
             if (!connection?.endpointUrl.isNullOrBlank()) {
                 Spacer(modifier = Modifier.height(Spacing.sm))
                 DestructiveButton(

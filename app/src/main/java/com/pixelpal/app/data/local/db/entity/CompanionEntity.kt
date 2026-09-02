@@ -1,5 +1,6 @@
 package com.pixelpal.app.data.local.db.entity
 
+import androidx.room.ColumnInfo
 import androidx.room.Entity
 import androidx.room.PrimaryKey
 
@@ -24,5 +25,7 @@ data class CompanionEntity(
     val accessoryId: String? = null,
     val species: String = "cat",
     val color: String = "orange",
-    val pattern: String = "plain"
+    val pattern: String = "plain",
+    // Cloud sync last-write-wins timestamp (0 for pre-v8 rows, backfilled in migration).
+    @ColumnInfo(defaultValue = "0") val updatedAt: Long = 0L
 )

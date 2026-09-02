@@ -37,4 +37,7 @@ interface CompanionDao {
 
     @Query("UPDATE companions SET lastUsedAt = :time WHERE id = :id")
     suspend fun setLastUsed(id: Long, time: Long)
+
+    @Query("DELETE FROM companions")
+    suspend fun deleteAll()
 }

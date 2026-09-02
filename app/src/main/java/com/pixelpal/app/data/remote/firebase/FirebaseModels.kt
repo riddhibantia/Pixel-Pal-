@@ -2,6 +2,8 @@ package com.pixelpal.app.data.remote.firebase
 
 import com.google.firebase.firestore.DocumentId
 import com.google.firebase.firestore.IgnoreExtraProperties
+import com.pixelpal.app.data.local.db.entity.ReminderEntity
+import com.pixelpal.app.data.local.db.entity.TaskEntity
 import com.pixelpal.app.domain.model.Bond
 import com.pixelpal.app.domain.model.Companion
 import com.pixelpal.app.domain.model.CompanionRole
@@ -23,6 +25,7 @@ data class UserProfile(
 
 /**
  * Cloud companion representation stored at `users/{userId}/companion/primary`.
+ * The companion is a single row, so the document id is the fixed "primary".
  */
 @IgnoreExtraProperties
 data class FirestoreCompanion(
@@ -40,7 +43,7 @@ data class FirestoreCompanion(
     val updatedAt: Long = System.currentTimeMillis()
 )
 
-fun Companion.toFirestore(): FirestoreCompanion = FirestoreCompanion(
+fun Companion.toFirestore(updatedAt: Long = System.currentTimeMillis()): FirestoreCompanion = FirestoreCompanion(
     name = name,
     petType = petType,
     role = role.id,
@@ -52,7 +55,7 @@ fun Companion.toFirestore(): FirestoreCompanion = FirestoreCompanion(
     outfitId = outfitId,
     accessoryId = accessoryId,
     isFavorite = isFavorite,
-    updatedAt = System.currentTimeMillis()
+    updatedAt = updatedAt
 )
 
 fun FirestoreCompanion.toDomain(id: Long = 1L): Companion = Companion(
@@ -71,12 +74,14 @@ fun FirestoreCompanion.toDomain(id: Long = 1L): Companion = Companion(
 )
 
 /**
- * Cloud task representation stored at `users/{userId}/tasks/{taskId}`.
+ * Cloud task representation. The Firestore document id is the local row's
+ * stable [TaskEntity.cloudId] UUID, never the device-local Room row id.
  */
 @IgnoreExtraProperties
 data class FirestoreTask(
     @DocumentId val id: String = "",
     val title: String = "",
+    val description: String? = null,
     val isDone: Boolean = false,
     val dueAt: Long? = null,
     val createdAt: Long = System.currentTimeMillis(),
@@ -84,28 +89,33 @@ data class FirestoreTask(
     val updatedAt: Long = System.currentTimeMillis()
 )
 
-fun Task.toFirestore(): FirestoreTask = FirestoreTask(
-    id = id.toString(),
+fun TaskEntity.toFirestore(): FirestoreTask = FirestoreTask(
+    id = cloudId,
     title = title,
+    description = description,
     isDone = isDone,
     dueAt = dueAt,
     createdAt = createdAt,
     completedAt = completedAt,
-    updatedAt = System.currentTimeMillis()
+    updatedAt = updatedAt.takeIf { it > 0L } ?: createdAt
 )
 
-fun FirestoreTask.toDomain(companionId: Long = 1L): Task = Task(
-    id = id.toLongOrNull() ?: 0L,
+/** Maps a cloud task onto a local row. Pass the existing local [localId] when updating, 0 when inserting. */
+fun FirestoreTask.toEntity(localId: Long, companionId: Long): TaskEntity = TaskEntity(
+    id = localId,
     companionId = companionId,
     title = title,
+    description = description,
     isDone = isDone,
     dueAt = dueAt,
     createdAt = createdAt,
-    completedAt = completedAt
+    completedAt = completedAt,
+    cloudId = id,
+    updatedAt = updatedAt
 )
 
 /**
- * Cloud reminder representation stored at `users/{userId}/reminders/{reminderId}`.
+ * Cloud reminder representation, keyed by the stable [ReminderEntity.cloudId] UUID.
  */
 @IgnoreExtraProperties
 data class FirestoreReminder(
@@ -126,8 +136,8 @@ data class FirestoreReminder(
     val updatedAt: Long = System.currentTimeMillis()
 )
 
-fun Reminder.toFirestore(): FirestoreReminder = FirestoreReminder(
-    id = id.toString(),
+fun ReminderEntity.toFirestore(): FirestoreReminder = FirestoreReminder(
+    id = cloudId,
     title = title,
     message = message,
     triggerTime = triggerTime,
@@ -141,11 +151,12 @@ fun Reminder.toFirestore(): FirestoreReminder = FirestoreReminder(
     snoozeCount = snoozeCount,
     createdAt = createdAt,
     completedAt = completedAt,
-    updatedAt = System.currentTimeMillis()
+    updatedAt = updatedAt.takeIf { it > 0L } ?: createdAt
 )
 
-fun FirestoreReminder.toDomain(companionId: Long = 1L): Reminder = Reminder(
-    id = id.toLongOrNull() ?: 0L,
+/** Maps a cloud reminder onto a local row. Pass the existing local [localId] when updating, 0 when inserting. */
+fun FirestoreReminder.toEntity(localId: Long, companionId: Long?): ReminderEntity = ReminderEntity(
+    id = localId,
     title = title,
     message = message,
     triggerTime = triggerTime,
@@ -159,8 +170,51 @@ fun FirestoreReminder.toDomain(companionId: Long = 1L): Reminder = Reminder(
     snoozeCount = snoozeCount,
     createdAt = createdAt,
     completedAt = completedAt,
-    companionId = companionId
+    companionId = companionId,
+    cloudId = id,
+    updatedAt = updatedAt
 )
+
+/**
+ * Cloud subtask representation, keyed by the stable [com.pixelpal.app.data.local.db.entity.SubtaskEntity.cloudId] UUID.
+ * `parentCloudId` links it to its task's cloud document.
+ */
+@IgnoreExtraProperties
+data class FirestoreSubtask(
+    @DocumentId val id: String = "",
+    val parentCloudId: String = "",
+    val title: String = "",
+    val isDone: Boolean = false,
+    val sortOrder: Int = 0,
+    val createdAt: Long = System.currentTimeMillis(),
+    val completedAt: Long? = null,
+    val updatedAt: Long = System.currentTimeMillis()
+)
+
+fun com.pixelpal.app.data.local.db.entity.SubtaskEntity.toFirestore(parentCloudId: String): FirestoreSubtask = FirestoreSubtask(
+    id = cloudId,
+    parentCloudId = parentCloudId,
+    title = title,
+    isDone = isDone,
+    sortOrder = sortOrder,
+    createdAt = createdAt,
+    completedAt = completedAt,
+    updatedAt = updatedAt.takeIf { it > 0L } ?: createdAt
+)
+
+/** Maps a cloud subtask onto a local row. Pass the existing local [localId] when updating, 0 when inserting. */
+fun FirestoreSubtask.toSubtaskEntity(localId: Long, taskId: Long): com.pixelpal.app.data.local.db.entity.SubtaskEntity =
+    com.pixelpal.app.data.local.db.entity.SubtaskEntity(
+        id = localId,
+        taskId = taskId,
+        title = title,
+        isDone = isDone,
+        sortOrder = sortOrder,
+        createdAt = createdAt,
+        completedAt = completedAt,
+        cloudId = id,
+        updatedAt = updatedAt
+    )
 
 /**
  * Cloud bond & streak metrics stored at `users/{userId}/metrics/bond`.
@@ -177,7 +231,7 @@ data class FirestoreBond(
     val updatedAt: Long = System.currentTimeMillis()
 )
 
-fun Bond.toFirestore(): FirestoreBond = FirestoreBond(
+fun Bond.toFirestore(updatedAt: Long = System.currentTimeMillis()): FirestoreBond = FirestoreBond(
     level = level,
     totalInteractions = totalInteractions,
     streakDays = streakDays,
@@ -185,7 +239,7 @@ fun Bond.toFirestore(): FirestoreBond = FirestoreBond(
     lastInteractionTime = lastInteractionTime,
     tapsToday = tapsToday,
     feedsToday = feedsToday,
-    updatedAt = System.currentTimeMillis()
+    updatedAt = updatedAt
 )
 
 fun FirestoreBond.toDomain(companionId: Long = 1L): Bond = Bond(

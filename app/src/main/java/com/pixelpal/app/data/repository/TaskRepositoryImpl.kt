@@ -4,6 +4,7 @@ import android.content.Context
 import androidx.room.withTransaction
 import com.pixelpal.app.data.local.db.PixelPalDatabase
 import com.pixelpal.app.data.local.db.dao.ActivityEventDao
+import com.pixelpal.app.data.local.db.dao.SubtaskDao
 import com.pixelpal.app.data.local.db.dao.TaskDao
 import com.pixelpal.app.data.local.db.entity.ActivityEventEntity
 import com.pixelpal.app.data.local.db.entity.TaskEntity
@@ -24,6 +25,7 @@ class TaskRepositoryImpl @Inject constructor(
     @ApplicationContext private val context: Context,
     private val database: PixelPalDatabase,
     private val taskDao: TaskDao,
+    private val subtaskDao: SubtaskDao,
     private val activityEventDao: ActivityEventDao,
     private val syncEngine: FirestoreSyncEngine
 ) : TaskRepository {
@@ -32,12 +34,26 @@ class TaskRepositoryImpl @Inject constructor(
         return taskDao.getTasks(companionId).map { list -> list.map { it.toDomain() } }
     }
 
+    override fun getTask(taskId: Long): Flow<Task?> {
+        return taskDao.getTaskFlow(taskId).map { it?.toDomain() }
+    }
+
+    override suspend fun updateTask(task: Task) {
+        val existing = taskDao.getTaskById(task.id) ?: return
+        val entity = task.copy(id = existing.id)
+            .toEntity()
+            .copy(
+                cloudId = existing.cloudId,
+                updatedAt = System.currentTimeMillis()
+            )
+        taskDao.update(entity)
+        syncEngine.pushTaskAsync(entity)
+    }
+
     override suspend fun addTask(task: Task): Long {
-        val id = taskDao.insert(task.toEntity())
-        val savedTask = task.copy(id = id)
-        if (syncEngine.isUserLoggedIn) {
-            syncEngine.syncTaskToCloud(savedTask)
-        }
+        val entity = task.toEntity(updatedAt = System.currentTimeMillis())
+        val id = taskDao.insert(entity)
+        syncEngine.pushTaskAsync(entity.copy(id = id))
         TasksWidgetProvider.updateAllWidgets(context)
         HomeWidgetProvider.updateAllWidgets(context)
         return id
@@ -57,9 +73,7 @@ class TaskRepositoryImpl @Inject constructor(
                 )
             )
         }
-        if (syncEngine.isUserLoggedIn) {
-            syncEngine.syncTaskToCloud(task.copy(isDone = true, completedAt = now))
-        }
+        taskDao.getTaskById(task.id)?.let(syncEngine::pushTaskAsync)
         TasksWidgetProvider.updateAllWidgets(context)
         HomeWidgetProvider.updateAllWidgets(context)
         return true
@@ -67,10 +81,8 @@ class TaskRepositoryImpl @Inject constructor(
 
     override suspend fun toggleTask(task: Task) {
         if (task.isDone) {
-            taskDao.markUndone(task.id)
-            if (syncEngine.isUserLoggedIn) {
-                syncEngine.syncTaskToCloud(task.copy(isDone = false, completedAt = null))
-            }
+            taskDao.markUndone(task.id, System.currentTimeMillis())
+            taskDao.getTaskById(task.id)?.let(syncEngine::pushTaskAsync)
         } else {
             completeTask(task)
             return
@@ -80,20 +92,25 @@ class TaskRepositoryImpl @Inject constructor(
     }
 
     override suspend fun deleteTask(task: Task) {
-        taskDao.delete(task.toEntity())
-        if (syncEngine.isUserLoggedIn) {
-            syncEngine.deleteTaskFromCloud(task.id)
+        val entity = taskDao.getTaskById(task.id)
+        if (entity != null) {
+            // Delete cloud subtasks first (local rows cascade with the task).
+            subtaskDao.getByTaskDirect(entity.id).forEach { subtask ->
+                syncEngine.deleteSubtaskAsync(subtask.cloudId)
+            }
+            taskDao.delete(entity)
+            syncEngine.deleteTaskAsync(entity.cloudId)
+        } else {
+            taskDao.delete(task.toEntity())
         }
         TasksWidgetProvider.updateAllWidgets(context)
         HomeWidgetProvider.updateAllWidgets(context)
     }
 
     override suspend fun reinsertTask(task: Task): Long {
-        val id = taskDao.insert(task.toEntity())
-        val savedTask = task.copy(id = id)
-        if (syncEngine.isUserLoggedIn) {
-            syncEngine.syncTaskToCloud(savedTask)
-        }
+        val entity = task.toEntity(updatedAt = System.currentTimeMillis())
+        val id = taskDao.insert(entity)
+        syncEngine.pushTaskAsync(entity.copy(id = id))
         TasksWidgetProvider.updateAllWidgets(context)
         HomeWidgetProvider.updateAllWidgets(context)
         return id
@@ -103,19 +120,22 @@ class TaskRepositoryImpl @Inject constructor(
         id = id,
         companionId = companionId,
         title = title,
+        description = description,
         isDone = isDone,
         dueAt = dueAt,
         createdAt = createdAt,
         completedAt = completedAt
     )
 
-    private fun Task.toEntity() = TaskEntity(
+    private fun Task.toEntity(updatedAt: Long = 0L) = TaskEntity(
         id = id,
         companionId = companionId,
         title = title,
+        description = description,
         isDone = isDone,
         dueAt = dueAt,
         createdAt = createdAt,
-        completedAt = completedAt
+        completedAt = completedAt,
+        updatedAt = updatedAt
     )
 }

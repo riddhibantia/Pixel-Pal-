@@ -13,6 +13,9 @@ interface AgentConnectionRepository {
     /** Saves connection config; caller coordinates polling schedule. */
     suspend fun save(connection: AgentConnection)
 
+    /** POSTs a command to the agent's command endpoint. */
+    suspend fun sendCommand(companionId: Long, command: String): Result<Unit>
+
     /**
      * Polls the configured endpoint, persists the merged result, records
      * meaningful activity and returns what was observed.

@@ -4,6 +4,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.pixelpal.app.data.remote.firebase.AuthState
 import com.pixelpal.app.data.remote.firebase.FirebaseAuthManager
+import com.pixelpal.app.data.remote.firebase.FirestoreSyncCoordinator
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
@@ -26,7 +27,7 @@ data class AuthUiState(
 @HiltViewModel
 class AuthViewModel @Inject constructor(
     private val authManager: FirebaseAuthManager,
-    private val workerScheduler: com.pixelpal.app.worker.WorkerScheduler
+    private val syncCoordinator: FirestoreSyncCoordinator
 ) : ViewModel() {
 
     val authState: StateFlow<AuthState> = authManager.authStateFlow
@@ -70,7 +71,8 @@ class AuthViewModel @Inject constructor(
 
             result.fold(
                 onSuccess = {
-                    workerScheduler.triggerImmediateSync()
+                    // Restore cloud data into Room first, then push local state up.
+                    syncCoordinator.syncInBackground()
                     _uiState.update { it.copy(isLoading = false) }
                 },
                 onFailure = { error ->
@@ -85,13 +87,34 @@ class AuthViewModel @Inject constructor(
         }
     }
 
+    fun signInWithGoogle(activityContext: android.content.Context) {
+        viewModelScope.launch {
+            _uiState.update { it.copy(isLoading = true, errorMessage = null) }
+            val result = authManager.signInWithGoogle(activityContext)
+            result.fold(
+                onSuccess = {
+                    syncCoordinator.syncInBackground()
+                    _uiState.update { it.copy(isLoading = false) }
+                },
+                onFailure = { error ->
+                    _uiState.update {
+                        it.copy(
+                            isLoading = false,
+                            errorMessage = error.localizedMessage ?: "Google sign-in failed"
+                        )
+                    }
+                }
+            )
+        }
+    }
+
     fun signInAsGuest() {
         viewModelScope.launch {
             _uiState.update { it.copy(isLoading = true, errorMessage = null) }
             val result = authManager.signInAnonymously()
             result.fold(
                 onSuccess = {
-                    workerScheduler.triggerImmediateSync()
+                    syncCoordinator.syncInBackground()
                     _uiState.update { it.copy(isLoading = false) }
                 },
                 onFailure = { error ->
@@ -138,6 +161,6 @@ class AuthViewModel @Inject constructor(
     }
 
     fun signOut() {
-        authManager.signOut()
+        syncCoordinator.signOut()
     }
 }

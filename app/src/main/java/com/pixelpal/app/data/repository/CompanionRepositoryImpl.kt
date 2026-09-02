@@ -36,11 +36,10 @@ class CompanionRepositoryImpl @Inject constructor(
 
     override suspend fun create(companion: Companion): CompanionActionResult {
         return try {
-            val id = dao.insert(companion.toEntity())
-            val created = companion.copy(id = id)
-            if (syncEngine.isUserLoggedIn) {
-                syncEngine.syncCompanionToCloud(created)
-            }
+            val entity = companion.toEntity().copy(updatedAt = System.currentTimeMillis())
+            val id = dao.insert(entity)
+            val created = entity.copy(id = id).toDomain()
+            syncEngine.pushCompanionAsync(created)
             CompanionActionResult.Success(created)
         } catch (e: Exception) {
             CompanionActionResult.Error(e.message)
@@ -48,10 +47,9 @@ class CompanionRepositoryImpl @Inject constructor(
     }
 
     override suspend fun update(companion: Companion) {
-        dao.update(companion.toEntity())
-        if (syncEngine.isUserLoggedIn) {
-            syncEngine.syncCompanionToCloud(companion)
-        }
+        val entity = companion.toEntity().copy(updatedAt = System.currentTimeMillis())
+        dao.update(entity)
+        syncEngine.pushCompanionAsync(entity.toDomain())
     }
 
     /** Appearance-only update: never touches identity or feature data. */
@@ -62,10 +60,9 @@ class CompanionRepositoryImpl @Inject constructor(
             color = style.color,
             pattern = style.pattern
         )
-        dao.update(updated)
-        if (syncEngine.isUserLoggedIn) {
-            syncEngine.syncCompanionToCloud(updated.toDomain())
-        }
+        val entity = updated.copy(updatedAt = System.currentTimeMillis())
+        dao.update(entity)
+        syncEngine.pushCompanionAsync(entity.toDomain())
     }
 
     override suspend fun setFavorite(id: Long, favorite: Boolean) {
