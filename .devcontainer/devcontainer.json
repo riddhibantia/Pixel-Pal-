@@ -17,6 +17,6 @@
       ]
     }
   },
-  "postCreateCommand": "java -version && ./gradlew --version || gradle --version",
+  "postCreateCommand": "chmod +x gradlew; java -version; ./gradlew --version || gradle --version",
   "remoteUser": "codespace"
 }
