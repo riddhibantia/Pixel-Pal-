@@ -1,0 +1,22 @@
+{
+  "name": "Pixel-Pal Android",
+  "image": "mcr.microsoft.com/devcontainers/universal:2",
+  "features": {
+    "ghcr.io/devcontainers/features/java:1": {
+      "version": "17",
+      "jdkDistro": "temurin"
+    },
+    "ghcr.io/devcontainers/features/gradle:1": {}
+  },
+  "customizations": {
+    "vscode": {
+      "extensions": [
+        "mathiasfrohlich.Kotlin",
+        "vscjava.vscode-gradle",
+        "redhat.vscode-xml"
+      ]
+    }
+  },
+  "postCreateCommand": "java -version && ./gradlew --version || gradle --version",
+  "remoteUser": "codespace"
+}
