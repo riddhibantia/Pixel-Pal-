@@ -48,8 +48,8 @@ git config --global --add safe.directory /usr/local/flutter
 flutter precache --android || true
 yes | flutter doctor --android-licenses > /dev/null 2>&1 || true
 
-# 4. Setup Bun, OpenCode & Herdr
-echo "--> Setting up Bun, OpenCode AI & Herdr..."
+# 4. Setup Bun, OpenCode, Herdr & OMP
+echo "--> Setting up Bun, OpenCode AI, Herdr & OMP..."
 if ! command -v bun &> /dev/null; then
     curl -fsSL https://bun.sh/install | bash
 fi
@@ -60,6 +60,10 @@ fi
 
 if ! command -v herdr &> /dev/null; then
     curl -fsSL https://herdr.dev/install.sh | sh || true
+fi
+
+if ! command -v omp &> /dev/null; then
+    sudo npm install -g @oh-my-pi/pi-coding-agent || true
 fi
 
 # 5. Pre-cache Gradle for Pixel-Pal
