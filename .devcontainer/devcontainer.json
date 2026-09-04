@@ -1,22 +1,29 @@
 {
-  "name": "Pixel-Pal Android",
-  "image": "mcr.microsoft.com/devcontainers/universal:2",
+  "name": "Pixel-Pal Android & Flutter Dev",
+  "image": "mcr.microsoft.com/devcontainers/base:ubuntu-22.04",
   "features": {
     "ghcr.io/devcontainers/features/java:1": {
       "version": "17",
       "jdkDistro": "temurin"
     },
-    "ghcr.io/devcontainers/features/gradle:1": {}
+    "ghcr.io/devcontainers/features/node:1": {
+      "version": "lts"
+    }
   },
   "customizations": {
     "vscode": {
       "extensions": [
         "mathiasfrohlich.Kotlin",
         "vscjava.vscode-gradle",
-        "redhat.vscode-xml"
-      ]
+        "redhat.vscode-xml",
+        "Dart-Code.flutter",
+        "Dart-Code.dart-code"
+      ],
+      "settings": {
+        "terminal.integrated.defaultProfile.linux": "bash"
+      }
     }
   },
-  "postCreateCommand": "chmod +x gradlew; java -version; ./gradlew --version || gradle --version",
-  "remoteUser": "codespace"
+  "postCreateCommand": "bash .devcontainer/setup.sh",
+  "remoteUser": "vscode"
 }
