@@ -48,14 +48,18 @@ git config --global --add safe.directory /usr/local/flutter
 flutter precache --android || true
 yes | flutter doctor --android-licenses > /dev/null 2>&1 || true
 
-# 4. Setup Bun & OpenCode
-echo "--> Setting up Bun & OpenCode AI..."
+# 4. Setup Bun, OpenCode & Herdr
+echo "--> Setting up Bun, OpenCode AI & Herdr..."
 if ! command -v bun &> /dev/null; then
     curl -fsSL https://bun.sh/install | bash
 fi
 
 if ! command -v opencode &> /dev/null; then
     sudo npm install -g opencode-ai
+fi
+
+if ! command -v herdr &> /dev/null; then
+    curl -fsSL https://herdr.dev/install.sh | sh || true
 fi
 
 # 5. Pre-cache Gradle for Pixel-Pal
@@ -71,7 +75,7 @@ ENV_FILE="/etc/profile.d/android-dev.sh"
 sudo tee "$ENV_FILE" > /dev/null << 'EOF'
 export ANDROID_HOME="/usr/local/android-sdk"
 export ANDROID_SDK_ROOT="/usr/local/android-sdk"
-export PATH="$PATH:/usr/local/android-sdk/cmdline-tools/latest/bin:/usr/local/android-sdk/platform-tools:/usr/local/android-sdk/build-tools/35.0.0:/usr/local/flutter/bin:$HOME/.bun/bin"
+export PATH="$PATH:/usr/local/android-sdk/cmdline-tools/latest/bin:/usr/local/android-sdk/platform-tools:/usr/local/android-sdk/build-tools/35.0.0:/usr/local/flutter/bin:$HOME/.bun/bin:$HOME/.local/bin:$HOME/.herdr/bin"
 EOF
 sudo chmod +x "$ENV_FILE"
 
@@ -79,7 +83,7 @@ sudo chmod +x "$ENV_FILE"
 cat << 'EOF' >> "$HOME/.bashrc"
 export ANDROID_HOME="/usr/local/android-sdk"
 export ANDROID_SDK_ROOT="/usr/local/android-sdk"
-export PATH="$PATH:/usr/local/android-sdk/cmdline-tools/latest/bin:/usr/local/android-sdk/platform-tools:/usr/local/android-sdk/build-tools/35.0.0:/usr/local/flutter/bin:$HOME/.bun/bin"
+export PATH="$PATH:/usr/local/android-sdk/cmdline-tools/latest/bin:/usr/local/android-sdk/platform-tools:/usr/local/android-sdk/build-tools/35.0.0:/usr/local/flutter/bin:$HOME/.bun/bin:$HOME/.local/bin:$HOME/.herdr/bin"
 EOF
 
 echo "=========================================================="
