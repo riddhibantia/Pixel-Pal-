@@ -10,7 +10,7 @@ echo "--> Installing system packages..."
 sudo apt-get update -y
 sudo apt-get install -y --no-install-recommends \
     curl wget unzip zip git openjdk-17-jdk libglu1-mesa \
-    clang cmake ninja-build pkg-config libgtk-3-dev
+    clang cmake ninja-build pkg-config libgtk-3-dev nodejs npm
 
 # 2. Setup Android SDK
 echo "--> Setting up Android SDK..."

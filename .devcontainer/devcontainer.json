@@ -1,15 +1,6 @@
 {
   "name": "Pixel-Pal Android & Flutter Dev",
   "image": "mcr.microsoft.com/devcontainers/base:ubuntu-22.04",
-  "features": {
-    "ghcr.io/devcontainers/features/java:1": {
-      "version": "17",
-      "jdkDistro": "temurin"
-    },
-    "ghcr.io/devcontainers/features/node:1": {
-      "version": "lts"
-    }
-  },
   "customizations": {
     "vscode": {
       "extensions": [
