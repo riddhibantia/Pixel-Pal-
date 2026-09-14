@@ -61,23 +61,24 @@ class CompanionBootstrapInitializer @Inject constructor(
                     val id = extra.id
                     // Pending tasks move (completed ones are history the primary didn't earn).
                     db.execSQL(
-                        "UPDATE tasks SET companionId = $primaryId " +
-                            "WHERE companionId = $id AND isDone = 0"
+                        "UPDATE tasks SET companionId = ? WHERE companionId = ? AND isDone = 0",
+                        arrayOf(primaryId, id)
                     )
                     // Pending reminders move; completed ones stay with their owner's fate.
                     db.execSQL(
-                        "UPDATE reminders SET companionId = $primaryId " +
-                            "WHERE companionId = $id AND status = 'PENDING'"
+                        "UPDATE reminders SET companionId = ? WHERE companionId = ? AND status = 'PENDING'",
+                        arrayOf(primaryId, id)
                     )
                     // Activity history merges into the primary timeline.
                     db.execSQL(
-                        "UPDATE activity_events SET companionId = $primaryId WHERE companionId = $id"
+                        "UPDATE activity_events SET companionId = ? WHERE companionId = ?",
+                        arrayOf(primaryId, id)
                     )
                     // The AI Agent feature moves when the primary lacks one of its own.
                     db.execSQL(
-                        "UPDATE agent_connection SET companionId = $primaryId " +
-                            "WHERE companionId = $id AND NOT EXISTS (" +
-                            "SELECT 1 FROM agent_connection ac WHERE ac.companionId = $primaryId)"
+                        "UPDATE agent_connection SET companionId = ? WHERE companionId = ? AND NOT EXISTS (" +
+                            "SELECT 1 FROM agent_connection ac WHERE ac.companionId = ?)",
+                        arrayOf(primaryId, id, primaryId)
                     )
                 }
 
@@ -99,7 +100,8 @@ class CompanionBootstrapInitializer @Inject constructor(
 
             if (all.isEmpty()) {
                 val name = preferencesManager.getPetName().ifBlank { "Pixel" }
-                val petType = preferencesManager.getSelectedPetType().ifBlank { "cat" }
+                val rawType = preferencesManager.getSelectedPetType().ifBlank { "cat" }
+                val petType = if (rawType.equals("rabbit", ignoreCase = true)) "panda" else rawType
                 when (val result = companionRepository.create(
                     Companion(
                         name = name,
@@ -110,6 +112,20 @@ class CompanionBootstrapInitializer @Inject constructor(
                 )) {
                     is CompanionActionResult.Success -> Unit
                     else -> return@withTransaction
+                }
+            } else {
+                // One-time rabbit -> panda migration for existing installs.
+                all.filter {
+                    it.species.equals("rabbit", ignoreCase = true) ||
+                        it.petType.equals("rabbit", ignoreCase = true)
+                }.forEach { companion ->
+                    companionRepository.update(
+                        companion.copy(species = "panda", petType = "panda")
+                    )
+                }
+                val stored = preferencesManager.getSelectedPetType()
+                if (stored.equals("rabbit", ignoreCase = true)) {
+                    preferencesManager.setSelectedPetType("panda")
                 }
             }
 
