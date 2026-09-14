@@ -18,9 +18,8 @@ white body, black ears, black eye patches, pink cheeks.
 - Delete: `PetType.RABBIT`, `"rabbit"` in `SpeciesStyle.SPECIES`, 12×
   `res/raw/pet_rabbit_*.json`, 3× `res/drawable/pet_rabbit_*.xml`
   (blink/happy/idle).
-- Add: `PetType.PANDA("panda", "Panda", 30, "<description>", true)` in the
-  same slot (unlock level 30 unchanged, progression order unchanged).
-- Update `Companion.kt` KDoc species list (`rabbit` → `panda`).
+- Add: `PetType.PANDA("panda", "Panda", 30, "Gentle, cuddly & bamboo-loving buddy", true)`
+  in the same slot (unlock level 30 unchanged, progression order unchanged).
 - Migration: stored `"rabbit"` (companion row `species`/`petType`,
   DataStore `SELECTED_PET_TYPE`) maps to `"panda"` on load. No
   missing-sprite crash. `bunny` assets untouched.
