@@ -2,10 +2,14 @@ package com.pixelpal.app.presentation.screens.customize
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.pixelpal.app.data.local.datastore.PreferencesManager
 import com.pixelpal.app.domain.model.Companion
 import com.pixelpal.app.domain.model.SpeciesStyle
+import com.pixelpal.app.domain.repository.BondRepository
 import com.pixelpal.app.domain.repository.CompanionRepository
-import com.pixelpal.app.data.local.datastore.PreferencesManager
+import kotlinx.coroutines.flow.flatMapLatest
+import kotlinx.coroutines.flow.flowOf
+import kotlinx.coroutines.flow.map
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
@@ -21,11 +25,16 @@ import javax.inject.Inject
 class CustomizeViewModel @Inject constructor(
     private val preferencesManager: PreferencesManager,
     private val companionRepository: CompanionRepository,
+    bondRepository: BondRepository,
     private val spriteAnimator: com.pixelpal.app.animation.SpriteAnimator
 ) : ViewModel() {
 
     val companion: StateFlow<Companion?> = companionRepository.getPrimary()
         .stateIn(viewModelScope, SharingStarted.Lazily, null)
+
+    val bondLevel: StateFlow<Int> = companion.flatMapLatest { c ->
+        if (c == null) flowOf(0) else bondRepository.getBond(c.id).map { it.level }
+    }.stateIn(viewModelScope, SharingStarted.Lazily, 0)
 
     val currentTheme: StateFlow<String> = preferencesManager.currentTheme
         .stateIn(viewModelScope, SharingStarted.Lazily, "dark")

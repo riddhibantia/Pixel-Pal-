@@ -60,6 +60,7 @@ fun CustomizeScreen(
     viewModel: CustomizeViewModel = hiltViewModel()
 ) {
     val companion by viewModel.companion.collectAsState()
+    val bondLevel by viewModel.bondLevel.collectAsState()
     val currentTheme by viewModel.currentTheme.collectAsState()
 
     val species = companion?.effectiveSpecies ?: "cat"
@@ -197,10 +198,6 @@ fun CustomizeScreen(
                 }
                 // ── AVATAR CREATOR (Duo-style slots) ──
                 SectionHeader(title = "Avatar Creator")
-                val bondLevel = companion?.let {
-                    // bond read moved to ViewModel in review; placeholder:
-                    0
-                } ?: 0
                 AvatarSlotTabs(
                     companion = companion,
                     bondLevel = bondLevel,
