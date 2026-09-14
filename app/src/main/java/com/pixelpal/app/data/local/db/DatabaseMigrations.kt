@@ -443,4 +443,24 @@ object DatabaseMigrations {
             db.execSQL("ALTER TABLE `agent_connection` ADD COLUMN `commandUrl` TEXT")
         }
     }
+
+    /** Version 12 adds indices for query performance (companionId/cloudId/updatedAt). */
+    val MIGRATION_11_12 = object : Migration(11, 12) {
+        override fun migrate(db: SupportSQLiteDatabase) {
+            db.execSQL("CREATE INDEX IF NOT EXISTS `index_tasks_cloudId` ON `tasks` (`cloudId`)")
+            db.execSQL("CREATE INDEX IF NOT EXISTS `index_tasks_companionId_updatedAt` ON `tasks` (`companionId`, `updatedAt`)")
+            db.execSQL("CREATE INDEX IF NOT EXISTS `index_reminders_cloudId` ON `reminders` (`cloudId`)")
+            db.execSQL("CREATE INDEX IF NOT EXISTS `index_reminders_companionId_triggerTime` ON `reminders` (`companionId`, `triggerTime`)")
+            db.execSQL("CREATE INDEX IF NOT EXISTS `index_activity_events_companionId_isRead` ON `activity_events` (`companionId`, `isRead`)")
+            db.execSQL("CREATE INDEX IF NOT EXISTS `index_activity_events_createdAt` ON `activity_events` (`createdAt`)")
+        }
+    }
+
+    /** Version 13 adds avatar-creator eye/ear style columns with base-cat defaults. */
+    val MIGRATION_12_13 = object : Migration(12, 13) {
+        override fun migrate(db: SupportSQLiteDatabase) {
+            db.execSQL("ALTER TABLE `companions` ADD COLUMN `eyeStyle` TEXT NOT NULL DEFAULT 'classic'")
+            db.execSQL("ALTER TABLE `companions` ADD COLUMN `earStyle` TEXT NOT NULL DEFAULT 'pointy-cat'")
+        }
+    }
 }

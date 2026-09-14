@@ -41,4 +41,11 @@ class AvatarLayerTest {
         assertEquals(false, AvatarOptions.isUnlocked(bow, 4))
         assertEquals(true, AvatarOptions.isUnlocked(bow, 5))
     }
+
+    @Test
+    fun migrationDefaults_areBaseCat() {
+        val fresh = Companion()
+        assertEquals("classic", fresh.eyeStyle)
+        assertEquals("pointy-cat", fresh.earStyle)
+    }
 }

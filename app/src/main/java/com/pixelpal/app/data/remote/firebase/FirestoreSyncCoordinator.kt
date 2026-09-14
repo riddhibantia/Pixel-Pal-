@@ -239,6 +239,8 @@ class FirestoreSyncCoordinator @Inject constructor(
             hatId = domain.hatId,
             outfitId = domain.outfitId,
             accessoryId = domain.accessoryId,
+            eyeStyle = domain.eyeStyle,
+            earStyle = domain.earStyle,
             species = domain.species,
             color = domain.color,
             pattern = domain.pattern,

@@ -26,6 +26,8 @@ data class CompanionEntity(
     val species: String = "cat",
     val color: String = "orange",
     val pattern: String = "plain",
+    @ColumnInfo(defaultValue = "'classic'") val eyeStyle: String = "classic",
+    @ColumnInfo(defaultValue = "'pointy-cat'") val earStyle: String = "pointy-cat",
     // Cloud sync last-write-wins timestamp (0 for pre-v8 rows, backfilled in migration).
     @ColumnInfo(defaultValue = "0") val updatedAt: Long = 0L
 )

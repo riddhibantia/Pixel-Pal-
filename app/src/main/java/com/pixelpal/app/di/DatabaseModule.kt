@@ -44,7 +44,9 @@ object DatabaseModule {
             DatabaseMigrations.MIGRATION_7_8,
             DatabaseMigrations.MIGRATION_8_9,
             DatabaseMigrations.MIGRATION_9_10,
-            DatabaseMigrations.MIGRATION_10_11
+            DatabaseMigrations.MIGRATION_10_11,
+            DatabaseMigrations.MIGRATION_11_12,
+            DatabaseMigrations.MIGRATION_12_13
         )
         // Dev builds may move between versions freely; wiping on downgrade beats crashing.
         .fallbackToDestructiveMigrationOnDowngrade()
