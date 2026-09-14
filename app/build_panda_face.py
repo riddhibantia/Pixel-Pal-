@@ -99,11 +99,11 @@ def rebuild(doc, op):
     body = layers["Pixel Body"]
     mouth = layers["Mouth"]
     # HEAD: wide cream oval (wide, NOT circular) + outline below.
-    swap_first_shape(body, lambda it: ellipse_items([330, 250], CREAM))
+    swap_first_shape(body, lambda it: ellipse_items([300, 260], CREAM))
 
     # EARS: perfect circles, dark brown.
     for nm in ("Left Ear", "Right Ear"):
-        swap_first_shape(layers[nm], lambda it: ellipse_items([56, 56], DARK))
+        swap_first_shape(layers[nm], lambda it: ellipse_items([52, 58], DARK))
 
     # EYE PATCHES + PUPILS: unify to dark brown (keep sizes/positions).
     for nm in ("Left Eye", "Right Eye", "Left Pupil", "Right Pupil"):
@@ -123,7 +123,7 @@ def rebuild(doc, op):
     out = list(doc["layers"])
 
     # Head outline: dark ellipse behind head, copies body motion.
-    outline = el_layer("Head Outline", [342, 262], DARK, [0, 0])
+    outline = el_layer("Head Outline", [312, 272], DARK, [0, 0])
     outline["ks"]["p"] = copy.deepcopy(body["ks"]["p"])
     outline["ks"]["s"] = copy.deepcopy(body["ks"]["s"])
     outline["ks"]["r"] = copy.deepcopy(body["ks"]["r"])
@@ -133,7 +133,7 @@ def rebuild(doc, op):
     inners = []
     for nm, pos in (("Left Ear", [145, 100]), ("Right Ear", [255, 100])):
         outer = layers[nm]
-        inner = el_layer(nm + " Inner", [28, 28], DARKER, pos)
+        inner = el_layer(nm + " Inner", [26, 30], DARKER, pos)
         inner["ks"]["r"] = copy.deepcopy(outer["ks"]["r"])
         inner["ip"], inner["op"] = 0, op
         inners.append((nm, inner))
