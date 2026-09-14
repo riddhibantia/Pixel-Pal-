@@ -36,6 +36,21 @@ class CustomizeViewModel @Inject constructor(
             spriteAnimator.setPetType(style.species)
         }
     }
+    fun selectLayer(slot: com.pixelpal.app.domain.model.AvatarSlot, optionId: String) {
+        viewModelScope.launch {
+            val current = companion.value ?: return@launch
+            val known = com.pixelpal.app.domain.model.AvatarOptions.fromId(optionId) ?: return@launch
+            if (known.slot != slot) return@launch
+            val updated = when (slot) {
+                com.pixelpal.app.domain.model.AvatarSlot.EYES -> current.copy(eyeStyle = optionId)
+                com.pixelpal.app.domain.model.AvatarSlot.EARS -> current.copy(earStyle = optionId)
+                com.pixelpal.app.domain.model.AvatarSlot.HEADWEAR -> current.copy(hatId = optionId)
+                com.pixelpal.app.domain.model.AvatarSlot.SCARF -> current.copy(outfitId = optionId)
+                com.pixelpal.app.domain.model.AvatarSlot.AURA -> current.copy(accessoryId = optionId)
+            }
+            companionRepository.update(updated)
+        }
+    }
 
     fun updatePetName(name: String) {
         viewModelScope.launch {

@@ -27,6 +27,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -35,6 +36,7 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
 import com.pixelpal.app.animation.AnimationState
+import com.pixelpal.app.presentation.theme.CompanionColors
 import com.pixelpal.app.domain.model.SpeciesStyle
 import com.pixelpal.app.presentation.components.AppTextField
 import com.pixelpal.app.presentation.components.AppTopBar
@@ -63,6 +65,7 @@ fun CustomizeScreen(
     val species = companion?.effectiveSpecies ?: "cat"
     val color = companion?.color ?: "orange"
     val pattern = companion?.pattern ?: "plain"
+    val accent = CompanionColors.forName(color)
 
     Scaffold(
         bottomBar = {
@@ -96,10 +99,7 @@ fun CustomizeScreen(
                         Box(
                             modifier = Modifier
                                 .size(150.dp)
-                                .background(
-                                    MaterialTheme.colorScheme.primary.copy(alpha = 0.08f),
-                                    CircleShape
-                                )
+                                .background(accent.copy(alpha = 0.12f), CircleShape)
                         )
                         BaseCompanionAvatar(
                             companion = companion ?: com.pixelpal.app.domain.model.Companion(
@@ -107,11 +107,11 @@ fun CustomizeScreen(
                                 color = color,
                                 pattern = pattern
                             ),
-                            size = 170.dp
+                            size = 170.dp,
+                            expression = AnimationState.HAPPY
                         )
                     }
                 }
-
                 Spacer(modifier = Modifier.height(Spacing.md))
 
                 AppTextField(
@@ -195,6 +195,19 @@ fun CustomizeScreen(
                         }
                     }
                 }
+                // ── AVATAR CREATOR (Duo-style slots) ──
+                SectionHeader(title = "Avatar Creator")
+                val bondLevel = companion?.let {
+                    // bond read moved to ViewModel in review; placeholder:
+                    0
+                } ?: 0
+                AvatarSlotTabs(
+                    companion = companion,
+                    bondLevel = bondLevel,
+                    onSelect = { slot, id -> viewModel.selectLayer(slot, id) }
+                )
+
+                Spacer(modifier = Modifier.height(Spacing.md))
 
                 Spacer(modifier = Modifier.height(Spacing.lg))
 
@@ -319,5 +332,71 @@ private fun ColorSwatchCard(
         )
         Spacer(modifier = Modifier.height(Spacing.xs))
         Text(text = label, style = MaterialTheme.typography.labelSmall)
+    }
+}
+
+@Composable
+private fun AvatarSlotTabs(
+    companion: com.pixelpal.app.domain.model.Companion?,
+    bondLevel: Int,
+    onSelect: (com.pixelpal.app.domain.model.AvatarSlot, String) -> Unit
+) {
+    var slot by androidx.compose.runtime.remember {
+        androidx.compose.runtime.mutableStateOf(com.pixelpal.app.domain.model.AvatarSlot.EYES)
+    }
+    androidx.compose.foundation.lazy.LazyRow(
+        horizontalArrangement = Arrangement.spacedBy(Spacing.xs)
+    ) {
+        items(com.pixelpal.app.domain.model.AvatarSlot.entries) { s ->
+            androidx.compose.material3.FilterChip(
+                selected = slot == s,
+                onClick = { slot = s },
+                label = {
+                    Text(
+                        s.name.lowercase().replaceFirstChar { it.uppercase() },
+                        style = MaterialTheme.typography.labelSmall
+                    )
+                }
+            )
+        }
+    }
+    Spacer(modifier = Modifier.height(Spacing.sm))
+    androidx.compose.foundation.lazy.LazyRow(
+        horizontalArrangement = Arrangement.spacedBy(Spacing.sm)
+    ) {
+        items(com.pixelpal.app.domain.model.AvatarOptions.forSlot(slot)) { option ->
+            val unlocked =
+                com.pixelpal.app.domain.model.AvatarOptions.isUnlocked(option, bondLevel)
+            val selected = when (slot) {
+                com.pixelpal.app.domain.model.AvatarSlot.EYES -> companion?.eyeStyle == option.id
+                com.pixelpal.app.domain.model.AvatarSlot.EARS -> companion?.earStyle == option.id
+                com.pixelpal.app.domain.model.AvatarSlot.HEADWEAR -> companion?.hatId == option.id
+                com.pixelpal.app.domain.model.AvatarSlot.SCARF -> companion?.outfitId == option.id
+                com.pixelpal.app.domain.model.AvatarSlot.AURA -> companion?.accessoryId == option.id
+            }
+            OptionCard(
+                label = if (unlocked) option.displayName else "Lv ${option.unlockBondLevel}",
+                selected = selected,
+                onClick = { if (unlocked) onSelect(slot, option.id) }
+            ) {
+                Box(
+                    modifier = Modifier
+                        .size(44.dp)
+                        .background(
+                            if (unlocked) MaterialTheme.colorScheme.primary.copy(alpha = 0.12f)
+                            else MaterialTheme.colorScheme.surfaceVariant,
+                            RoundedCornerShape(Radius.medium)
+                        ),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text(
+                        option.displayName.take(1),
+                        style = MaterialTheme.typography.titleMedium,
+                        color = if (unlocked) MaterialTheme.colorScheme.primary
+                        else MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+            }
+        }
     }
 }
