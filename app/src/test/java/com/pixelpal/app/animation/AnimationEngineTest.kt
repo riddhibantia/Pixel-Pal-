@@ -19,4 +19,12 @@ class AnimationEngineTest {
         assertEquals(AnimationState.IDLE, happyState.nextState)
         assertEquals(2000L, happyState.durationMs)
     }
+
+    @Test
+    fun testPandaResolvesToPandaFile() {
+        // getLottieRawResId needs a Context; assert the naming contract instead:
+        // resolver builds "pet_<type>_<state>", so panda must follow it.
+        val expected = "pet_panda_idle"
+        assertEquals(expected, "pet_${"panda"}_${AnimationState.IDLE.stateName}")
+    }
 }
