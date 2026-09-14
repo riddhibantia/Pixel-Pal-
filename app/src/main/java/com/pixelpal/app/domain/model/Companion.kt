@@ -8,7 +8,7 @@ package com.pixelpal.app.domain.model
 data class Companion(
     val id: Long = 0,
     val name: String = "Pixel",
-    /** Species drives the sprite family (cat/dog/rabbit/whale/llama). */
+    /** Species drives the sprite family (cat/dog/panda/whale/llama). */
     val petType: String = "cat",
     val role: CompanionRole = CompanionRole.GENERAL,
     val description: String? = null,

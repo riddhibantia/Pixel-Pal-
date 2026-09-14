@@ -10,7 +10,7 @@ data class SpeciesStyle(
     val pattern: String
 ) {
     companion object {
-        val SPECIES = listOf("cat", "dog", "rabbit", "whale", "llama")
+        val SPECIES = listOf("cat", "dog", "panda", "bunny", "whale", "llama", "fox", "axolotl")
         val COLORS = listOf("orange", "blue", "purple", "pink", "green")
         val PATTERNS = listOf("plain", "stripes", "spots", "patches")
 
