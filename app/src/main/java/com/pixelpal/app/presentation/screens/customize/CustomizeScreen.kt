@@ -96,20 +96,17 @@ fun CustomizeScreen(
                             .height(220.dp),
                         contentAlignment = Alignment.Center
                     ) {
-                        Box(
-                            modifier = Modifier
-                                .size(150.dp)
-                                .background(accent.copy(alpha = 0.12f), CircleShape)
-                        )
-                        BaseCompanionAvatar(
-                            companion = companion ?: com.pixelpal.app.domain.model.Companion(
-                                species = species,
-                                color = color,
-                                pattern = pattern
-                            ),
-                            size = 170.dp,
-                            expression = AnimationState.HAPPY
-                        )
+                        androidx.compose.runtime.key(species) {
+                            BaseCompanionAvatar(
+                                companion = companion ?: com.pixelpal.app.domain.model.Companion(
+                                    species = species,
+                                    color = color,
+                                    pattern = pattern
+                                ),
+                                size = 170.dp,
+                                expression = AnimationState.IDLE
+                            )
+                        }
                     }
                 }
                 Spacer(modifier = Modifier.height(Spacing.md))
