@@ -90,9 +90,7 @@ class CompanionRepositoryImpl @Inject constructor(
         accessoryId = accessoryId,
         species = species,
         color = color,
-        pattern = pattern,
-        eyeStyle = eyeStyle,
-        earStyle = earStyle
+        pattern = pattern
     )
 
     private fun Companion.toEntity() = CompanionEntity(
@@ -110,8 +108,6 @@ class CompanionRepositoryImpl @Inject constructor(
         accessoryId = accessoryId,
         species = species,
         color = color,
-        pattern = pattern,
-        eyeStyle = eyeStyle,
-        earStyle = earStyle
+        pattern = pattern
     )
 }

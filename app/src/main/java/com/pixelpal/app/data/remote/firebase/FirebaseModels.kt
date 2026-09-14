@@ -39,8 +39,6 @@ data class FirestoreCompanion(
     val hatId: String? = null,
     val outfitId: String? = null,
     val accessoryId: String? = null,
-    val eyeStyle: String = "classic",
-    val earStyle: String = "pointy-cat",
     val isFavorite: Boolean = false,
     val updatedAt: Long = System.currentTimeMillis()
 )
@@ -56,8 +54,6 @@ fun Companion.toFirestore(updatedAt: Long = System.currentTimeMillis()): Firesto
     hatId = hatId,
     outfitId = outfitId,
     accessoryId = accessoryId,
-    eyeStyle = eyeStyle,
-    earStyle = earStyle,
     isFavorite = isFavorite,
     updatedAt = updatedAt
 )
@@ -67,13 +63,9 @@ fun FirestoreCompanion.toDomain(id: Long = 1L): Companion = Companion(
     name = name,
     petType = petType,
     role = CompanionRole.fromId(role),
-    description = description,
-    isFavorite = isFavorite,
     hatId = hatId,
     outfitId = outfitId,
     accessoryId = accessoryId,
-    eyeStyle = eyeStyle,
-    earStyle = earStyle,
     species = species,
     color = color,
     pattern = pattern

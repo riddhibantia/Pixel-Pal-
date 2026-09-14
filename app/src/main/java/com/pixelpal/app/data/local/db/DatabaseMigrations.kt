@@ -455,12 +455,4 @@ object DatabaseMigrations {
             db.execSQL("CREATE INDEX IF NOT EXISTS `index_activity_events_createdAt` ON `activity_events` (`createdAt`)")
         }
     }
-
-    /** Version 13 adds avatar-creator eye/ear style columns with base-cat defaults. */
-    val MIGRATION_12_13 = object : Migration(12, 13) {
-        override fun migrate(db: SupportSQLiteDatabase) {
-            db.execSQL("ALTER TABLE `companions` ADD COLUMN `eyeStyle` TEXT NOT NULL DEFAULT 'classic'")
-            db.execSQL("ALTER TABLE `companions` ADD COLUMN `earStyle` TEXT NOT NULL DEFAULT 'pointy-cat'")
-        }
-    }
 }

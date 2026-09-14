@@ -22,9 +22,7 @@ data class Companion(
     /** Pure appearance — transformation never touches bond/tasks/reminders. */
     val species: String = "cat",
     val color: String = "orange",
-    val pattern: String = "plain",
-    val eyeStyle: String = "classic",
-    val earStyle: String = "pointy-cat"
+    val pattern: String = "plain"
 ) {
     /** Effective species for sprite lookup (species overrides legacy petType). */
     val effectiveSpecies: String get() = species.ifBlank { petType }
