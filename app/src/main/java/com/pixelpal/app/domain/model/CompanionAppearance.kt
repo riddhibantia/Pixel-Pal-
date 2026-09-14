@@ -3,18 +3,10 @@ package com.pixelpal.app.domain.model
 /**
  * Foundation for a modular PixelPal companion appearance system.
  *
- * Phase 1: Only the base species is used; all other layers are nullable
- * extension points. The renderer will ignore null layers and fall back to
- * the original cat's baked-in visuals, guaranteeing pixel-identical output.
- *
- * Future phases will populate these layers one at a time:
- *   Base Companion
- *     + Color Layer (baseColor)
- *     + Ear Layer (earStyle)
- *     + Fur Layer (furStyle)
- *     + Eye Layer (eyeStyle)
- *     + Expression Layer (expression)
- *     + Pattern Layer (pattern)
+ * The renderer is Lottie-first (`res/raw/pet_{species}_{state}.json`, one full
+ * 12-state set per species); color/pattern travel with the companion and tint
+ * the surrounding UI (preview glow, hero aura) while body recolor stays a
+ * future layer. Null layers fall back to the baked-in Lottie visuals.
  */
 data class CompanionAppearance(
     val species: String,
@@ -31,12 +23,12 @@ data class CompanionAppearance(
         fun fromCompanion(companion: com.pixelpal.app.domain.model.Companion): CompanionAppearance =
             CompanionAppearance(
                 species = companion.effectiveSpecies,
-                baseColor = null,
-                earStyle = null,
+                baseColor = companion.color.takeIf { it.isNotBlank() },
+                earStyle = companion.earStyle.takeIf { it.isNotBlank() },
                 furStyle = null,
-                eyeStyle = null,
+                eyeStyle = companion.eyeStyle.takeIf { it.isNotBlank() },
                 expression = null,
-                pattern = null
+                pattern = companion.pattern.takeIf { it.isNotBlank() }
             )
 
         fun defaultCat(): CompanionAppearance =
