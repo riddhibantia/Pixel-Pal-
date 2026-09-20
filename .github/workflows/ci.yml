@@ -46,10 +46,15 @@ jobs:
       - name: Instrumented tests (emulator)
         uses: reactivecircus/android-emulator-runner@v2
         with:
-          api-level: 34
+          api-level: 33
           target: google_apis
           arch: x86_64
           profile: pixel_7_pro
+          cores: 2
+          ram-size: 4096M
+          heap-size: 512M
+          disk-size: 4096M
+          sdcard-path-or-size: 512M
           force-avd-creation: true
           emulator-boot-timeout: 600
           disable-animations: true
@@ -59,6 +64,11 @@ jobs:
             adb -s emulator-5554 wait-for-device
             timeout 180 bash -c 'until adb -s emulator-5554 shell getprop sys.boot_completed | grep -q 1; do sleep 2; done'
             adb -s emulator-5554 shell getprop sys.boot_completed
+            timeout 60 bash -c 'until adb -s emulator-5554 shell pm list packages 2>/dev/null | grep -q com.android.shell; do sleep 2; done'
+            adb -s emulator-5554 shell input keyevent 82 || true
+            adb -s emulator-5554 shell settings put global window_animation_scale 0 || true
+            adb -s emulator-5554 shell settings put global transition_animation_scale 0 || true
+            adb -s emulator-5554 shell settings put global animator_duration_scale 0 || true
             ./gradlew :app:connectedDebugAndroidTest --stacktrace
   rules:
     runs-on: ubuntu-latest
