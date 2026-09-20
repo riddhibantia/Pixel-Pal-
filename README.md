@@ -858,25 +858,39 @@ PixelPal does not assume these permissions are automatically available.
 
 ---
 
-# 📸 Screenshots
+# 📸 Screenshots — Real device (motorola edge 60 stylus)
 
-The repository currently contains several PixelPal UI/visual captures that can be used as the project's GitHub gallery.
+> Main focus is the **AI Agent** — the primary feature. All shots are from a connected debugger device, not an emulator.
 
-### Home / Companion
+### 🤖 AI Agent Connection (main)
 
-![PixelPal Home](panda_home.png)
+![Agent Connection](docs/screenshots/agent.png)
 
-### Companion Interaction
+*Generic HTTP / WebSocket / Gemini, endpoint, QR Scan, polling interval — the core of PixelPal.*
 
-![PixelPal Interaction](shot_interact.png)
+### 🏠 Home
 
-### Companion / Avatar
+![Home](docs/screenshots/home.png)
 
-![PixelPal Companion](panda_face.png)
+*Square pixel cat hero, bond/streak, AI Agent card and Today chips. Single companion, enforced.*
 
-### Custom Companion
+### ✅ Tasks
 
-![PixelPal Customization](panda_sq.png)
+![Tasks](docs/screenshots/tasks.png)
+
+*Tasks with subtasks, progress, swipe-to-delete — feeds Bond +2 and the agent context.*
+
+### ➕ New Task — with subtasks
+
+![New Task](docs/screenshots/new_task.png)
+
+*Title + description + any number of subtasks → Create Task (photo proof on detail).*
+
+### 🎨 Customize Companion
+
+![Customize](docs/screenshots/customize.png)
+
+*Species × Color × Pattern — square cat icon is sampled pixel-for-pixel from the Lottie frame.*
 
 ---
 
