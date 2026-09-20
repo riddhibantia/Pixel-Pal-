@@ -9,12 +9,12 @@ enum class PetType(
     val hasFullAnimationSet: Boolean
 ) {
     CAT("cat", "Cat", 0, "Friendly & balanced default companion", true),
-    DOG("dog", "Dog", 10, "Loyal, playful & energetic friend", true),
-    BUNNY("bunny", "Bunny", 25, "Gentle, curious & sleepy pal", true),
-    PANDA("panda", "Panda", 30, "Gentle, cuddly & bamboo-loving buddy", true),
-    WHALE("whale", "Whale", 40, "Calm, deep & dreamy swimmer", true),
-    AXOLOTL("axolotl", "Axolotl", 50, "Calm, rare & magical companion", true),
-    LLAMA("llama", "Llama", 60, "Chill, quirky & steadfast pal", true);
+    DOG("dog", "Dog", 0, "Loyal, playful & energetic friend", true),
+    BUNNY("bunny", "Bunny", 0, "Gentle, curious & sleepy pal", true),
+    PANDA("panda", "Panda", 0, "Gentle, cuddly & bamboo-loving buddy", true),
+    WHALE("whale", "Whale", 0, "Calm, deep & dreamy swimmer", true),
+    AXOLOTL("axolotl", "Axolotl", 0, "Calm, rare & magical companion", true),
+    LLAMA("llama", "Llama", 0, "Chill, quirky & steadfast pal", true);
 
     companion object {
         fun fromId(id: String): PetType {

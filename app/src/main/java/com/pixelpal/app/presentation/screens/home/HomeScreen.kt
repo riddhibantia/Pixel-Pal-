@@ -547,7 +547,7 @@ private fun CompanionHeroCard(
             )
             Spacer(modifier = Modifier.height(4.dp))
             Text(
-                text = "${state.stateLabel()} \u00B7 Bond Level ${bond?.level ?: 0} \u00B7 ${bond?.streakDays ?: 0}d streak",
+                text = "${state.stateLabel()} \u00B7 ${bond?.streakDays ?: 0}d streak",
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.primary,
                 fontWeight = FontWeight.Medium
@@ -577,7 +577,6 @@ private fun CompanionHeroCard(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween
             ) {
-                StatText("Lv ${bond?.level ?: 0}")
                 StatText("${bond?.totalInteractions ?: 0} interactions")
                 StatText("${bond?.streakDays ?: 0}d streak")
             }

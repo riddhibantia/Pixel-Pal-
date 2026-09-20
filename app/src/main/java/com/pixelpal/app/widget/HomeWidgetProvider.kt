@@ -63,9 +63,9 @@ class HomeWidgetProvider : AppWidgetProvider() {
 
                 views.setTextViewText(R.id.widget_home_name, companion?.name ?: "Pixel")
                 val bond = companionId?.let { db.bondDao().getBondDirect(it) }
-                val level = bond?.level ?: 0
                 val streak = bond?.streakDays ?: 0
-                views.setTextViewText(R.id.widget_home_status, "Bond Lv $level • ${streak}d streak")
+                val interactions = bond?.totalInteractions ?: 0
+                views.setTextViewText(R.id.widget_home_status, "$interactions interactions • ${streak}d streak")
 
                 // Tasks summary
                 var pendingCount = 0

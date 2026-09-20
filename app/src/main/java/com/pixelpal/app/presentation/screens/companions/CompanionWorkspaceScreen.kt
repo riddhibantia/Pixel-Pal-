@@ -264,7 +264,7 @@ private fun ProfileHeader(
                     }
                 }
                 Text(
-                    text = "${speciesLabel(companion.effectiveSpecies)} Companion • Bond Level ${bond?.level ?: 0}",
+                    text = "${speciesLabel(companion.effectiveSpecies)} Companion • ${bond?.streakDays ?: 0}d streak",
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
