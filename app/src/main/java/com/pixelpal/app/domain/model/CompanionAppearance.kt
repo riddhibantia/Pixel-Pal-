@@ -23,12 +23,12 @@ data class CompanionAppearance(
         fun fromCompanion(companion: com.pixelpal.app.domain.model.Companion): CompanionAppearance =
             CompanionAppearance(
                 species = companion.effectiveSpecies,
-                baseColor = null,
+                baseColor = companion.color,
                 earStyle = null,
                 furStyle = null,
                 eyeStyle = null,
                 expression = null,
-                pattern = null
+                pattern = companion.pattern
             )
 
         fun defaultCat(): CompanionAppearance =

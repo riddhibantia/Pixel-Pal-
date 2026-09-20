@@ -11,7 +11,8 @@ class SpeciesRosterTest {
         val ids = PetType.entries.map { it.id }
         assertTrue("panda" in ids, "roster missing panda: $ids")
         assertTrue("rabbit" !in ids, "roster still contains rabbit: $ids")
-        assertEquals(8, ids.size)
+        assertTrue("fox" !in ids, "roster still contains fox: $ids")
+        assertEquals(7, ids.size)
     }
 
     @Test
@@ -26,6 +27,7 @@ class SpeciesRosterTest {
     fun customizeSpecies_hasPanda_noRabbit() {
         assertTrue("panda" in SpeciesStyle.SPECIES)
         assertTrue("rabbit" !in SpeciesStyle.SPECIES)
-        assertEquals(8, SpeciesStyle.SPECIES.size)
+        assertTrue("fox" !in SpeciesStyle.SPECIES)
+        assertEquals(7, SpeciesStyle.SPECIES.size)
     }
 }

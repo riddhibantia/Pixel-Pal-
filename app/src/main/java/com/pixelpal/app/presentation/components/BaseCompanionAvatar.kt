@@ -7,11 +7,12 @@ import androidx.compose.ui.unit.dp
 import com.pixelpal.app.animation.AnimationState
 import com.pixelpal.app.domain.model.Companion
 import com.pixelpal.app.domain.model.CompanionAppearance
+import com.pixelpal.app.domain.model.PetTint
 
 /**
  * Lottie-first avatar: every species renders its full 12-state set from
- * `res/raw/pet_{species}_{state}.json` via [PetRenderer]. Color/pattern travel
- * with the companion and tint surrounding UI; body recolor is a future layer.
+ * `res/raw/pet_{species}_{state}.json` via [PetRenderer]. The companion's
+ * chosen color recolors body+ears, the pattern recolors blush/sparkles.
  */
 @Composable
 fun BaseCompanionAvatar(
@@ -35,9 +36,6 @@ fun BaseCompanionAvatar(
     expression: AnimationState = AnimationState.HAPPY,
     modifier: Modifier = Modifier
 ) {
-    // Lottie-first: every species has a full 12-state set in res/raw
-    // (pet_{species}_{state}.json). Color/pattern travel with the companion
-    // and tint surrounding UI; body recolor is a future layer.
     PetRenderer(
         petType = appearance.species,
         animationState = expression,

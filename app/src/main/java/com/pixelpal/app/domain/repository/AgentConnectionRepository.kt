@@ -17,6 +17,12 @@ interface AgentConnectionRepository {
     suspend fun sendCommand(companionId: Long, command: String): Result<Unit>
 
     /**
+     * Answers an agent approval request: POSTs
+     * `{approvalId, decision: "approve"|"deny"}` to the command endpoint.
+     */
+    suspend fun respondToApproval(companionId: Long, approvalId: String, approved: Boolean): Result<Unit>
+
+    /**
      * Polls the configured provider, persists the merged result, records
      * meaningful activity and returns what was observed.
      */

@@ -27,9 +27,11 @@ class OverlaySession(
     private val preferencesManager: PreferencesManager,
     private val windowManager: WindowManager,
     private val keyboardStateManager: KeyboardStateManager,
-    val slotIndex: Int,
+    val     slotIndex: Int,
     petType: String,
     private val scope: CoroutineScope,
+    private var bodyArgb: Int?,
+    private var accentArgb: Int?,
     private val onTap: (Long) -> Unit,
     private val onDoubleTap: ((Long) -> Unit)?,
     private val onLongPress: ((Long) -> Unit)?
@@ -124,6 +126,7 @@ class OverlaySession(
                 AnimationState.IDLE,
                 renderer.lottieFor(AnimationState.IDLE)
             )
+            overlayView.applyTint(bodyArgb, accentArgb)
             observeKeyboard()
             onReady()
         }
@@ -153,6 +156,13 @@ class OverlaySession(
                 renderer.lottieFor(AnimationState.IDLE)
             )
         }
+    }
+
+    /** Live-update tint when the companion's color/pattern changes. */
+    fun updateTint(bodyColorArgb: Int?, accentColorArgb: Int?) {
+        bodyArgb = bodyColorArgb
+        accentArgb = accentColorArgb
+        view?.applyTint(bodyColorArgb, accentColorArgb)
     }
 
     /** Shows THIS session's speech bubble anchored above ITS OWN pet. */

@@ -17,3 +17,4 @@ pp_device.db
 *.txt
 
 agent-endpoint/commands.log
+agent-endpoint/pet_art/

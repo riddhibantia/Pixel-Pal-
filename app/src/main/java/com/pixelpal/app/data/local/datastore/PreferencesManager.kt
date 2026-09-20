@@ -40,6 +40,9 @@ class PreferencesManager @Inject constructor(
         /** Per-companion overlay positions: overlay_x_<id> / overlay_y_<id>. */
         fun overlayX(companionId: Long) = floatPreferencesKey("${Constants.KEY_OVERLAY_X}_$companionId")
         fun overlayY(companionId: Long) = floatPreferencesKey("${Constants.KEY_OVERLAY_Y}_$companionId")
+
+        /** Last agent approval id already notified: last_approval_id_<companionId>. */
+        fun lastApprovalId(companionId: Long) = stringPreferencesKey("${Constants.KEY_LAST_APPROVAL_ID}_$companionId")
     }
 
     val overlayPosition: Flow<Pair<Float, Float>> = dataStore.data.map { preferences ->
@@ -239,6 +242,16 @@ class PreferencesManager @Inject constructor(
 
     suspend fun getGeminiApiKeyOverride(): String =
         dataStore.data.first()[Keys.GEMINI_API_KEY_OVERRIDE] ?: ""
+
+    /** Last approval id already notified for this companion (null = none). */
+    suspend fun getLastApprovalId(companionId: Long): String? =
+        dataStore.data.first()[Keys.lastApprovalId(companionId)]
+
+    suspend fun setLastApprovalId(companionId: Long, approvalId: String) {
+        dataStore.edit { preferences ->
+            preferences[Keys.lastApprovalId(companionId)] = approvalId
+        }
+    }
 
     suspend fun setCompanionBootstrapDone(done: Boolean) {
         dataStore.edit { preferences ->

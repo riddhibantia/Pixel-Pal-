@@ -1,31 +1,53 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- Adaptive-icon foreground with explicit intrinsic size (108dp).
-     Bare <shape> has no intrinsic size (-1) and crashes some Settings
-     builds when they paint our icon with a Compose Painter. -->
+<!-- Fully matching pet_cat_idle first frame (200,220).
+     Coordinates computed: launcher = 54 + (lottie-200)*0.2052, size*0.2052
+     inside safeZone 0.76. Matches hero + corner pill pixel-for-pixel. -->
 <vector xmlns:android="http://schemas.android.com/apk/res/android"
     android:width="108dp"
     android:height="108dp"
     android:viewportWidth="108"
     android:viewportHeight="108">
-    <!-- Brand tile, full bleed -->
-    <path
-        android:fillColor="#FFDE6F53"
-        android:pathData="M0,0h108v108h-108z" />
-    <!-- Pixel-cat head -->
-    <path
-        android:fillColor="#FF1A1A2E"
-        android:pathData="M32,44 L27,16 L50,31 Z" />
-    <path
-        android:fillColor="#FF1A1A2E"
-        android:pathData="M76,44 L81,16 L58,31 Z" />
-    <path
-        android:fillColor="#FF1A1A2E"
-        android:pathData="M28,60a26,26 0 1,0 52,0a26,26 0 1,0 -52,0" />
-    <!-- Eyes -->
-    <path
-        android:fillColor="#FFFFF3E6"
-        android:pathData="M41,58a4.5,4.5 0 1,0 9,0a4.5,4.5 0 1,0 -9,0" />
-    <path
-        android:fillColor="#FFFFF3E6"
-        android:pathData="M58,58a4.5,4.5 0 1,0 9,0a4.5,4.5 0 1,0 -9,0" />
+    <group
+        android:name="safeZone"
+        android:pivotX="54"
+        android:pivotY="54"
+        android:scaleX="0.76"
+        android:scaleY="0.76">
+        <!-- Pixel Body #DF6C50 184x205 at 200,220 -->
+        <path
+            android:fillColor="#FFDF6C50"
+            android:pathData="M35.12,37.07 L72.88,37.07 L72.88,79.14 L35.12,79.14 Z" />
+        <!-- Ears #D93434 58x72 -->
+        <path
+            android:fillColor="#FFD93434"
+            android:pathData="M35.12,24.66 L47.02,24.66 L47.02,39.43 L35.12,39.43 Z" />
+        <path
+            android:fillColor="#FFD93434"
+            android:pathData="M60.98,24.66 L72.88,24.66 L72.88,39.43 L60.98,39.43 Z" />
+        <!-- Cheeks #EF9A8C 27x13 -->
+        <path
+            android:fillColor="#FFEF9A8C"
+            android:pathData="M36.76,59.95 L42.30,59.95 L42.30,62.62 L36.76,62.62 Z" />
+        <path
+            android:fillColor="#FFEF9A8C"
+            android:pathData="M65.70,59.95 L71.24,59.95 L71.24,62.62 L65.70,62.62 Z" />
+        <!-- Mouth #EF9A8C 12x9 -->
+        <path
+            android:fillColor="#FFEF9A8C"
+            android:pathData="M52.77,60.46 L55.23,60.46 L55.23,62.31 L52.77,62.31 Z" />
+        <!-- Eyes #171A21 38x56 ellipses at 161,196 and 239,196 -->
+        <path
+            android:fillColor="#FF171A21"
+            android:pathData="M42.10,53.18 a3.90,5.75 0 1,0 7.80,0 a3.90,5.75 0 1,0 -7.80,0 Z" />
+        <path
+            android:fillColor="#FF171A21"
+            android:pathData="M58.10,53.18 a3.90,5.75 0 1,0 7.80,0 a3.90,5.75 0 1,0 -7.80,0 Z" />
+        <!-- Highlights white 7.4x10 -->
+        <path
+            android:fillColor="#FFFFFFFF"
+            android:pathData="M46.26,51.33 a0.76,1.03 0 1,0 1.52,0 a0.76,1.03 0 1,0 -1.52,0 Z" />
+        <path
+            android:fillColor="#FFFFFFFF"
+            android:pathData="M62.27,51.33 a0.76,1.03 0 1,0 1.52,0 a0.76,1.03 0 1,0 -1.52,0 Z" />
+    </group>
 </vector>

@@ -10,5 +10,7 @@ data class AgentCheckResult(
     /** Structured update fields (OpenCode-style payloads); null when absent. */
     val currentTask: String? = null,
     val progress: Int? = null,
+    /** Agent is waiting on the user; null when nothing needs approval. */
+    val pendingApproval: PendingApproval? = null,
     val checkedAt: Long = System.currentTimeMillis()
 )

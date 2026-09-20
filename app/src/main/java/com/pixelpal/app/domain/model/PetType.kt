@@ -12,10 +12,9 @@ enum class PetType(
     DOG("dog", "Dog", 10, "Loyal, playful & energetic friend", true),
     BUNNY("bunny", "Bunny", 25, "Gentle, curious & sleepy pal", true),
     PANDA("panda", "Panda", 30, "Gentle, cuddly & bamboo-loving buddy", true),
-    FOX("fox", "Fox", 40, "Clever, confident & independent fox", true),
-    WHALE("whale", "Whale", 50, "Calm, deep & dreamy swimmer", true),
-    AXOLOTL("axolotl", "Axolotl", 60, "Calm, rare & magical companion", true),
-    LLAMA("llama", "Llama", 75, "Chill, quirky & steadfast pal", true);
+    WHALE("whale", "Whale", 40, "Calm, deep & dreamy swimmer", true),
+    AXOLOTL("axolotl", "Axolotl", 50, "Calm, rare & magical companion", true),
+    LLAMA("llama", "Llama", 60, "Chill, quirky & steadfast pal", true);
 
     companion object {
         fun fromId(id: String): PetType {

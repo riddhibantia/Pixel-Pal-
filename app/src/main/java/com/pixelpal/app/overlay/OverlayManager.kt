@@ -45,7 +45,9 @@ class OverlayManager @Inject constructor(
         petType: String,
         onTap: (Long) -> Unit,
         onDoubleTap: ((Long) -> Unit)? = null,
-        onLongPress: ((Long) -> Unit)?
+        onLongPress: ((Long) -> Unit)?,
+        bodyColorArgb: Int? = null,
+        accentColorArgb: Int? = null
     ) {
         if (sessions.containsKey(companionId)) return
         val slot = sessions.size.coerceAtMost(Constants.MAX_SIMULTANEOUS_OVERLAYS - 1)
@@ -58,6 +60,8 @@ class OverlayManager @Inject constructor(
             slotIndex = slot,
             petType = petType,
             scope = scope,
+            bodyArgb = bodyColorArgb,
+            accentArgb = accentColorArgb,
             onTap = onTap,
             onDoubleTap = onDoubleTap,
             onLongPress = onLongPress
@@ -88,6 +92,19 @@ class OverlayManager @Inject constructor(
     /** Keeps a running session's sprite in sync when the companion's pet type changes. */
     fun updatePetTypeFor(companionId: Long, petType: String) {
         sessions[companionId]?.updatePetType(petType)
+    }
+
+    /** Keeps a running session's tint in sync with color/pattern changes. */
+    fun updateAppearanceFor(
+        companionId: Long,
+        petType: String,
+        bodyColorArgb: Int?,
+        accentColorArgb: Int?
+    ) {
+        sessions[companionId]?.let {
+            it.updatePetType(petType)
+            it.updateTint(bodyColorArgb, accentColorArgb)
+        }
     }
 
     // ── Per-companion speech ───────────────────────────────────────────────

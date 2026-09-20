@@ -2,6 +2,7 @@ package com.pixelpal.app.data.repository
 
 import com.pixelpal.app.data.local.db.dao.AgentConnectionDao
 import com.pixelpal.app.data.local.db.entity.AgentConnectionEntity
+import com.pixelpal.app.data.local.datastore.PreferencesManager
 import com.pixelpal.app.data.remote.AgentConnector
 import com.pixelpal.app.data.remote.GeminiAgentConnector
 import com.pixelpal.app.data.remote.GenericHttpAgentConnector
@@ -40,7 +41,8 @@ class AgentConnectionRepositoryImpl @Inject constructor(
     private val wsConnector: WebSocketAgentConnector,
     private val client: OkHttpClient,
     private val activityEventRepository: ActivityEventRepository,
-    private val agentNotificationHelper: AgentNotificationHelper
+    private val agentNotificationHelper: AgentNotificationHelper,
+    private val preferencesManager: PreferencesManager
 ) : AgentConnectionRepository {
 
     override fun getConnection(companionId: Long): Flow<AgentConnection?> =
@@ -127,7 +129,7 @@ class AgentConnectionRepositoryImpl @Inject constructor(
 
             if (!GenericHttpAgentConnector.isAllowedEndpoint(url)) {
                 return@withContext Result.failure(
-                    IllegalStateException("HTTPS required (cleartext only for localhost)")
+                    IllegalStateException("HTTPS required (cleartext only for localhost or private LAN)")
                 )
             }
             try {
@@ -219,7 +221,65 @@ class AgentConnectionRepositoryImpl @Inject constructor(
             agentNotificationHelper.notify(companionId, "AI Agent", result)
         }
 
+        // Approval gate: notify once per approval id, never re-notify polls.
+        result.pendingApproval?.let { approval ->
+            val lastSeen = preferencesManager.getLastApprovalId(companionId)
+            if (approval.id != lastSeen) {
+                preferencesManager.setLastApprovalId(companionId, approval.id)
+                activityEventRepository.record(
+                    companionId = companionId,
+                    type = ActivityType.AGENT_STATUS_CHANGED,
+                    title = "Agent asks: \"${approval.action.take(60)}\"",
+                    description = approval.detail
+                )
+                agentNotificationHelper.notifyApproval(companionId, "AI Agent", approval)
+            }
+        }
+
         return result
+    }
+
+    /**
+     * Answers a pending approval: POSTs `{approvalId, decision}` to the
+     * command endpoint (or status endpoint fallback), records the decision
+     * and dismisses the notification.
+     */
+    override suspend fun respondToApproval(companionId: Long, approvalId: String, approved: Boolean): Result<Unit> {
+        if (approvalId.isBlank()) return Result.failure(IllegalArgumentException("Empty approval id"))
+        return withContext(Dispatchers.IO) {
+            val current = dao.getConnectionDirect(companionId)?.toDomain()
+                ?: return@withContext Result.failure(IllegalStateException("No agent configured"))
+            val url = current.commandUrl?.takeIf { it.isNotBlank() }
+                ?: current.endpointUrl.takeIf { it.isNotBlank() }
+                ?: return@withContext Result.failure(IllegalStateException("No agent endpoint configured"))
+            if (!GenericHttpAgentConnector.isAllowedEndpoint(url)) {
+                return@withContext Result.failure(
+                    IllegalStateException("HTTPS required (cleartext only for localhost or private LAN)")
+                )
+            }
+            try {
+                val decision = if (approved) "approve" else "deny"
+                val body = JSONObject()
+                    .put("approvalId", approvalId)
+                    .put("decision", decision)
+                    .toString()
+                    .toRequestBody("application/json".toMediaType())
+                client.newCall(Request.Builder().url(url).post(body).build()).execute().use { response ->
+                    if (!response.isSuccessful) {
+                        return@withContext Result.failure(IllegalStateException("HTTP ${response.code}"))
+                    }
+                }
+                activityEventRepository.record(
+                    companionId = companionId,
+                    type = ActivityType.AGENT_APPROVAL_DECIDED,
+                    title = "Agent request ${if (approved) "approved" else "denied"}: \"${approvalId.take(40)}\""
+                )
+                agentNotificationHelper.cancelApproval(companionId, approvalId)
+                Result.success(Unit)
+            } catch (e: Exception) {
+                Result.failure(e)
+            }
+        }
     }
 
     override fun streamAgentUpdates(companionId: Long): Flow<AgentCheckResult> =

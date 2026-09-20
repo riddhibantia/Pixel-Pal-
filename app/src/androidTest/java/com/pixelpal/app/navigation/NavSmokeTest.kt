@@ -30,7 +30,8 @@ class NavSmokeTest {
             Screen.Tasks.route,
             Screen.NewTask.route,
             Screen.TaskDetail.route,
-            Screen.ActivityCenter.route
+            Screen.ActivityCenter.route,
+            Screen.QrScan.route
         )
         assert(routes.all { it.isNotBlank() }) { "blank route in $routes" }
         // TaskDetail carries an arg placeholder; everything else must be unique as-is.

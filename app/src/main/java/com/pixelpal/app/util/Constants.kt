@@ -69,6 +69,9 @@ object Constants {
     // Notification action intents
     const val ACTION_COMPLETE_REMINDER = "com.pixelpal.app.action.COMPLETE_REMINDER"
     const val ACTION_SNOOZE_REMINDER = "com.pixelpal.app.action.SNOOZE_REMINDER"
+    const val ACTION_APPROVE_AGENT = "com.pixelpal.app.action.APPROVE_AGENT"
+    const val ACTION_DENY_AGENT = "com.pixelpal.app.action.DENY_AGENT"
+    const val KEY_LAST_APPROVAL_ID = "last_approval_id"
 
     // Room database
     const val DATABASE_NAME = "pixelpal_database_v2"

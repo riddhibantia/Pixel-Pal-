@@ -29,7 +29,8 @@ data class TasksUiState(
 @OptIn(ExperimentalCoroutinesApi::class)
 @HiltViewModel
 class TasksViewModel @Inject constructor(
-    getActiveCompanionUseCase: GetActiveCompanionUseCase,
+    private val getActiveCompanionUseCase: GetActiveCompanionUseCase,
+    private val activeCompanionManager: com.pixelpal.app.domain.engine.ActiveCompanionManager,
     private val taskRepository: TaskRepository,
     private val subtaskRepository: SubtaskRepository,
     private val completeTaskUseCase: CompleteTaskUseCase,
@@ -70,11 +71,14 @@ class TasksViewModel @Inject constructor(
 
     /**
      * Creates the task from the New Task screen, then its subtasks in order.
+     * Uses a direct DB read so it never silently drops when the StateFlow hasn't emitted yet.
      */
     fun createTask(title: String, description: String?, subtaskTitles: List<String>) {
-        val companionId = activeCompanion.value?.id ?: return
         if (title.isBlank()) return
         viewModelScope.launch {
+            val companionId = activeCompanion.value?.id
+                ?: activeCompanionManager.getActiveCompanionDirect()?.id
+                ?: return@launch
             val id = taskRepository.addTask(
                 Task(
                     companionId = companionId,

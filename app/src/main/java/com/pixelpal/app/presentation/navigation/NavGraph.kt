@@ -47,6 +47,7 @@ sealed class Screen(val route: String) {
         fun route(taskId: Long): String = "task_detail/$taskId"
     }
     object ActivityCenter : Screen("activity_center")
+    object QrScan : Screen("qr_scan")
 
     companion object {
         /** THE companion's workspace — no id, there is only one. */
@@ -122,6 +123,9 @@ fun PixelPalNavGraph(
         }
         composable(Screen.CompanionWorkspace.route) {
             CompanionWorkspaceScreen(navController = navController)
+        }
+        composable(Screen.QrScan.route) {
+            com.pixelpal.app.presentation.screens.agent.QrScanScreen(navController = navController)
         }
         composable(Screen.Tasks.route) {
             TasksScreen(navController = navController)

@@ -116,6 +116,13 @@ fun CompanionWorkspaceScreen(
 
     val state = uiState
 
+    // QR pairing result lands on THIS entry's handle (QrScanScreen writes to
+    // previousBackStackEntry before popping). Consumed once below.
+    val savedStateHandle = navController.currentBackStackEntry?.savedStateHandle
+    val scannedUrl by (savedStateHandle?.getStateFlow(
+        com.pixelpal.app.presentation.screens.agent.SCANNED_URL_KEY, ""
+    )?.collectAsState() ?: remember { mutableStateOf("") })
+
     // Collect snackbar events from ViewModel
     LaunchedEffect(Unit) {
         viewModel.snackbarEvents.collect { event ->
@@ -182,6 +189,13 @@ fun CompanionWorkspaceScreen(
                     checking = checkingAgent,
                     feedbackMessage = commandFeedback,
                     geminiKeyOverride = geminiKeyOverride,
+                    scannedUrl = scannedUrl.takeIf { it.isNotBlank() },
+                    onScannedConsumed = {
+                        savedStateHandle?.remove<String>(
+                            com.pixelpal.app.presentation.screens.agent.SCANNED_URL_KEY
+                        )
+                    },
+                    onScanQr = { navController.navigate(Screen.QrScan.route) },
                     onSave = viewModel::saveAgentConnection,
                     onCheckNow = viewModel::refreshAgentStatus,
                     onDisconnect = viewModel::disconnectAgent,
@@ -268,6 +282,9 @@ private fun AgentConnectionSection(
     checking: Boolean,
     feedbackMessage: String?,
     geminiKeyOverride: String,
+    scannedUrl: String? = null,
+    onScannedConsumed: () -> Unit = {},
+    onScanQr: () -> Unit = {},
     onSave: (AgentConnection) -> Unit,
     onCheckNow: () -> Unit,
     onDisconnect: () -> Unit,
@@ -308,6 +325,14 @@ private fun AgentConnectionSection(
     val isConfigured = if (isGemini) true else endpoint.trim().isNotBlank()
     // Check Now acts on the SAVED connection, not the draft form.
     val canCheck = !checking && (connection?.isGemini == true || connection?.endpointUrl?.isNotBlank() == true)
+
+    // QR pairing fills the endpoint draft (once) when returning from the scanner.
+    androidx.compose.runtime.LaunchedEffect(scannedUrl) {
+        if (!scannedUrl.isNullOrBlank()) {
+            endpoint = scannedUrl
+            onScannedConsumed()
+        }
+    }
 
     if (showDisconnectConfirm) {
         ConfirmationDialog(
@@ -440,9 +465,15 @@ private fun AgentConnectionSection(
                     supportingText = if (isWebSocket) {
                         "Must start with ws:// or wss://. Live messages stream while this screen is open."
                     } else {
-                        "HTTPS required (cleartext only for 127.0.0.1 / 10.0.2.2 / localhost). Must return {status, message?, currentTask?, progress?}."
+                        "HTTPS required (cleartext only for localhost or private LAN like 192.168.x.x). Must return {status, message?, currentTask?, progress?}."
                     }
                 )
+                Spacer(modifier = Modifier.height(Spacing.xs))
+                SecondaryButton(
+                    text = "Scan QR instead",
+                    onClick = onScanQr
+                )
+                Spacer(modifier = Modifier.height(Spacing.sm))
                 Spacer(modifier = Modifier.height(Spacing.sm))
                 AppTextField(
                     value = commandEndpoint,
@@ -518,16 +549,17 @@ private fun AgentConnectionSection(
             )
 
             // ── Talk to your agent: typed or spoken commands ──
+            // Always visible: when unconfigured it explains what to do first.
+            Spacer(modifier = Modifier.height(Spacing.md))
+            GroupDivider()
+            Spacer(modifier = Modifier.height(Spacing.sm))
+            Text(
+                text = "Talk to your agent",
+                style = MaterialTheme.typography.titleSmall,
+                fontWeight = FontWeight.SemiBold
+            )
+            Spacer(modifier = Modifier.height(Spacing.xs))
             if (isConfigured) {
-                Spacer(modifier = Modifier.height(Spacing.md))
-                GroupDivider()
-                Spacer(modifier = Modifier.height(Spacing.sm))
-                Text(
-                    text = "Talk to your agent",
-                    style = MaterialTheme.typography.titleSmall,
-                    fontWeight = FontWeight.SemiBold
-                )
-                Spacer(modifier = Modifier.height(Spacing.xs))
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     verticalAlignment = Alignment.CenterVertically
@@ -575,6 +607,16 @@ private fun AgentConnectionSection(
                         }
                     )
                 }
+            } else {
+                Text(
+                    text = if (isGemini) {
+                        "Send your first message after saving — chat runs directly against Google AI."
+                    } else {
+                        "Enter the status endpoint above and tap Connect — then you can send commands here."
+                    },
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
             }
             if (isConfigured) {
                 Spacer(modifier = Modifier.height(Spacing.sm))

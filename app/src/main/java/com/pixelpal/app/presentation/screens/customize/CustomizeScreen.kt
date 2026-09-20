@@ -65,7 +65,6 @@ fun CustomizeScreen(
     val species = companion?.effectiveSpecies ?: "cat"
     val color = companion?.color ?: "orange"
     val pattern = companion?.pattern ?: "plain"
-    val accent = CompanionColors.forName(color)
 
     Scaffold(
         bottomBar = {
@@ -153,47 +152,6 @@ fun CustomizeScreen(
 
                 Spacer(modifier = Modifier.height(Spacing.md))
 
-                // ── COLOR ──
-                SectionHeader(title = "Color")
-                LazyRow(horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
-                    items(SpeciesStyle.COLORS) { candidate ->
-                        ColorSwatchCard(
-                            label = speciesLabel(candidate),
-                            selected = color == candidate,
-                            onClick = {
-                                viewModel.transformAppearance(
-                                    SpeciesStyle(species, candidate, pattern)
-                                )
-                            }
-                        )
-                    }
-                }
-
-                Spacer(modifier = Modifier.height(Spacing.md))
-
-                // ── PATTERN ──
-                SectionHeader(title = "Pattern")
-                LazyRow(horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
-                    items(SpeciesStyle.PATTERNS) { candidate ->
-                        OptionCard(
-                            label = speciesLabel(candidate),
-                            selected = pattern == candidate,
-                            onClick = {
-                                viewModel.transformAppearance(
-                                    SpeciesStyle(species, color, candidate)
-                                )
-                            }
-                        ) {
-                            Box(
-                                modifier = Modifier
-                                    .size(44.dp)
-                                    .background(patternPreview(candidate), RoundedCornerShape(Radius.medium))
-                            )
-                        }
-                    }
-                }
-                Spacer(modifier = Modifier.height(Spacing.lg))
-
                 // ── APP APPEARANCE ──
                 SectionHeader(title = "App Appearance")
                 Row(
@@ -216,13 +174,6 @@ fun CustomizeScreen(
 
 private fun speciesLabel(value: String): String =
     value.replaceFirstChar { it.uppercase() }
-
-private fun patternPreview(pattern: String): Color = when (pattern) {
-    "stripes" -> Color(0xFF7E57C2)
-    "spots" -> Color(0xFFEF6C00)
-    "patches" -> Color(0xFF2E7D32)
-    else -> Color(0xFF90A4AE)
-}
 
 @Composable
 private fun OptionCard(
@@ -269,51 +220,5 @@ private fun OptionCard(
             style = MaterialTheme.typography.labelSmall,
             fontWeight = if (selected) FontWeight.Bold else FontWeight.Normal
         )
-    }
-}
-
-@Composable
-private fun ColorSwatchCard(
-    label: String,
-    selected: Boolean,
-    onClick: () -> Unit
-) {
-    val swatch = when (label.lowercase()) {
-        "blue" -> Color(0xFF42A5F5)
-        "purple" -> Color(0xFFAB47BC)
-        "pink" -> Color(0xFFEC407A)
-        "green" -> Color(0xFF66BB6A)
-        else -> Color(0xFFFF8A65) // orange
-    }
-    Column(
-        modifier = Modifier
-            .width(88.dp)
-            .clickable { onClick() }
-            .background(
-                color = if (selected) {
-                    MaterialTheme.colorScheme.primary.copy(alpha = 0.08f)
-                } else {
-                    MaterialTheme.colorScheme.surface
-                },
-                shape = RoundedCornerShape(Radius.medium)
-            )
-            .border(
-                androidx.compose.foundation.BorderStroke(
-                    width = if (selected) 2.dp else 1.dp,
-                    color = if (selected) MaterialTheme.colorScheme.primary
-                    else MaterialTheme.colorScheme.outline.copy(alpha = 0.5f)
-                ),
-                RoundedCornerShape(Radius.medium)
-            )
-            .padding(Spacing.sm),
-        horizontalAlignment = Alignment.CenterHorizontally
-    ) {
-        Box(
-            modifier = Modifier
-                .size(36.dp)
-                .background(swatch, CircleShape)
-        )
-        Spacer(modifier = Modifier.height(Spacing.xs))
-        Text(text = label, style = MaterialTheme.typography.labelSmall)
     }
 }
