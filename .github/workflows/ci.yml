@@ -46,10 +46,20 @@ jobs:
       - name: Instrumented tests (emulator)
         uses: reactivecircus/android-emulator-runner@v2
         with:
-          api-level: 30
-          target: default
+          api-level: 34
+          target: google_apis
           arch: x86_64
-          script: ./gradlew :app:connectedDebugAndroidTest --stacktrace
+          profile: pixel_7_pro
+          force-avd-creation: true
+          emulator-boot-timeout: 600
+          disable-animations: true
+          emulator-options: "-no-window -gpu swiftshader_indirect -no-snapshot -noaudio -no-boot-anim -camera-back none"
+          script: |
+            adb devices
+            adb -s emulator-5554 wait-for-device
+            timeout 180 bash -c 'until adb -s emulator-5554 shell getprop sys.boot_completed | grep -q 1; do sleep 2; done'
+            adb -s emulator-5554 shell getprop sys.boot_completed
+            ./gradlew :app:connectedDebugAndroidTest --stacktrace
   rules:
     runs-on: ubuntu-latest
     if: github.ref == 'refs/heads/main'
