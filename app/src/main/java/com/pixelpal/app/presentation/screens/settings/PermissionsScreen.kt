@@ -24,13 +24,13 @@ import androidx.compose.material.icons.filled.Pets
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.runtime.LaunchedEffect
 import androidx.navigation.NavController
 import androidx.core.content.ContextCompat
 import com.pixelpal.app.presentation.components.AppTopBar
@@ -69,17 +69,16 @@ fun PermissionsScreen(
 
     // Re-check statuses whenever the screen resumes to the foreground.
     val lifecycleOwner = androidx.lifecycle.compose.LocalLifecycleOwner.current
-    val observer = remember {
-        androidx.lifecycle.LifecycleEventObserver { _, event ->
+    DisposableEffect(lifecycleOwner) {
+        val observer = androidx.lifecycle.LifecycleEventObserver { _, event ->
             if (event == androidx.lifecycle.Lifecycle.Event.ON_RESUME) {
                 overlayGranted = PermissionHelper.canDrawOverlays(context)
                 notificationGrantedState = notificationGranted(context)
                 alarmGranted = PermissionHelper.canScheduleExactAlarms(context)
             }
         }
-    }
-    LaunchedEffect(lifecycleOwner) {
         lifecycleOwner.lifecycle.addObserver(observer)
+        onDispose { lifecycleOwner.lifecycle.removeObserver(observer) }
     }
 
     val notifPermissionLauncher = rememberLauncherForActivityResult(

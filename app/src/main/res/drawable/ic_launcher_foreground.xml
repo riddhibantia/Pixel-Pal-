@@ -1,8 +1,31 @@
 <?xml version="1.0" encoding="utf-8"?>
-<inset xmlns:android="http://schemas.android.com/apk/res/android"
-    android:drawable="@drawable/pet_cat_idle"
-    android:inset="12%"
-    android:insetLeft="12%"
-    android:insetTop="12%"
-    android:insetRight="12%"
-    android:insetBottom="12%" />
+<!-- Adaptive-icon foreground with explicit intrinsic size (108dp).
+     Bare <shape> has no intrinsic size (-1) and crashes some Settings
+     builds when they paint our icon with a Compose Painter. -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+    <!-- Brand tile, full bleed -->
+    <path
+        android:fillColor="#FFDE6F53"
+        android:pathData="M0,0h108v108h-108z" />
+    <!-- Pixel-cat head -->
+    <path
+        android:fillColor="#FF1A1A2E"
+        android:pathData="M32,44 L27,16 L50,31 Z" />
+    <path
+        android:fillColor="#FF1A1A2E"
+        android:pathData="M76,44 L81,16 L58,31 Z" />
+    <path
+        android:fillColor="#FF1A1A2E"
+        android:pathData="M28,60a26,26 0 1,0 52,0a26,26 0 1,0 -52,0" />
+    <!-- Eyes -->
+    <path
+        android:fillColor="#FFFFF3E6"
+        android:pathData="M41,58a4.5,4.5 0 1,0 9,0a4.5,4.5 0 1,0 -9,0" />
+    <path
+        android:fillColor="#FFFFF3E6"
+        android:pathData="M58,58a4.5,4.5 0 1,0 9,0a4.5,4.5 0 1,0 -9,0" />
+</vector>

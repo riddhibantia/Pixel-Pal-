@@ -22,11 +22,27 @@ import javax.inject.Singleton
 class GeminiAgentConnector @Inject constructor() : AgentConnector {
 
     private var generativeModel: GenerativeModel? = null
+    private var activeKey: String = ""
 
     init {
         val defaultKey = com.pixelpal.app.BuildConfig.GEMINI_API_KEY
-        if (defaultKey.isNotBlank()) {
+        if (isUsableKey(defaultKey)) {
             initialize(defaultKey)
+        }
+    }
+
+    /** True when a real (non-placeholder) key is active. */
+    fun isConfigured(): Boolean = generativeModel != null && isUsableKey(activeKey)
+
+    companion object {
+        /** Gradle injects "" or the literal placeholder when no key is set. */
+        fun isUsableKey(key: String): Boolean {
+            if (key.isBlank()) return false
+            val t = key.trim()
+            if (t.length < 20) return false
+            val u = t.uppercase()
+            return !(u.contains("YOUR_") || u.contains("PLACEHOLDER") || u.contains("REPLACE") ||
+                u == "YOUR_GEMINI_API_KEY_HERE")
         }
     }
 
@@ -34,14 +50,22 @@ class GeminiAgentConnector @Inject constructor() : AgentConnector {
      * Initializes the Gemini Generative Model with the provided API key and model type.
      */
     fun initialize(apiKey: String, modelName: String = "gemini-1.5-flash") {
-        if (apiKey.isBlank()) {
+        if (!isUsableKey(apiKey)) {
             generativeModel = null
+            activeKey = ""
             return
         }
+        activeKey = apiKey.trim()
         generativeModel = GenerativeModel(
             modelName = modelName,
-            apiKey = apiKey
+            apiKey = activeKey
         )
+    }
+
+    /** Clears the in-memory key (e.g. on logout / key removal). */
+    fun clear() {
+        generativeModel = null
+        activeKey = ""
     }
 
     /**
@@ -49,7 +73,10 @@ class GeminiAgentConnector @Inject constructor() : AgentConnector {
      */
     override suspend fun checkNow(endpointUrl: String): AgentCheckResult {
         val model = generativeModel
-            ?: return AgentCheckResult(AgentState.DISCONNECTED, "Gemini API key not configured")
+            ?: return AgentCheckResult(
+                AgentState.DISCONNECTED,
+                "Gemini API key not configured — add one in AI Agent settings"
+            )
 
         return withContext(Dispatchers.IO) {
             try {
@@ -99,4 +126,31 @@ class GeminiAgentConnector @Inject constructor() : AgentConnector {
             emit("\n[Connection error: ${e.localizedMessage ?: "Unknown error"}]")
         }
     }.flowOn(Dispatchers.IO)
+
+    /**
+     * One-shot reply used by "Talk to your agent" and reaction fallbacks.
+     * Returns the text or null when unconfigured/failed (caller falls back).
+     */
+    suspend fun generateReply(
+        prompt: String,
+        companionName: String = "PixelPal",
+        personality: String = "friendly",
+        bondLevel: Int = 0
+    ): String? {
+        val model = generativeModel ?: return null
+        return withContext(Dispatchers.IO) {
+            try {
+                val systemInstruction = """
+                    You are $companionName, a loyal virtual companion with a $personality personality.
+                    Bond Level: $bondLevel.
+                    Respond in character. Keep responses concise, warm, helpful, and under 3 sentences.
+                """.trimIndent()
+                val response = model.generateContent("$systemInstruction\n\nUser: $prompt\n$companionName:")
+                response.text?.trim()?.takeIf { it.isNotBlank() }
+            } catch (e: Exception) {
+                Timber.e(e, "Gemini reply failed")
+                null
+            }
+        }
+    }
 }

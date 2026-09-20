@@ -13,12 +13,24 @@ interface AgentConnectionRepository {
     /** Saves connection config; caller coordinates polling schedule. */
     suspend fun save(connection: AgentConnection)
 
-    /** POSTs a command to the agent's command endpoint. */
+    /** POSTs a command to the agent (or chats with Gemini when provider is gemini). */
     suspend fun sendCommand(companionId: Long, command: String): Result<Unit>
 
     /**
-     * Polls the configured endpoint, persists the merged result, records
+     * Polls the configured provider, persists the merged result, records
      * meaningful activity and returns what was observed.
      */
     suspend fun checkNow(companionId: Long): AgentCheckResult
+
+    /**
+     * Live WebSocket feed for ws:// providers. Empty flow for other providers.
+     * Caller collects while the workspace is visible.
+     */
+    fun streamAgentUpdates(companionId: Long): Flow<AgentCheckResult>
+
+    /**
+     * One-shot Gemini reply in the companion's voice. Null when Gemini is
+     * unconfigured/failed — caller falls back to local dialogue.
+     */
+    suspend fun chatWithGemini(companionId: Long, prompt: String): String?
 }

@@ -35,6 +35,7 @@ class PreferencesManager @Inject constructor(
         val COMPANION_BOOTSTRAP_DONE = booleanPreferencesKey(Constants.KEY_COMPANION_BOOTSTRAP_DONE)
         val SINGLE_COMPANION_FOLD_DONE = booleanPreferencesKey(Constants.KEY_SINGLE_COMPANION_FOLD_DONE)
         val TASKS_WIDGET_ENABLED = booleanPreferencesKey(Constants.KEY_TASKS_WIDGET_ENABLED)
+        val GEMINI_API_KEY_OVERRIDE = stringPreferencesKey(Constants.KEY_GEMINI_API_KEY_OVERRIDE)
 
         /** Per-companion overlay positions: overlay_x_<id> / overlay_y_<id>. */
         fun overlayX(companionId: Long) = floatPreferencesKey("${Constants.KEY_OVERLAY_X}_$companionId")
@@ -107,6 +108,11 @@ class PreferencesManager @Inject constructor(
 
     val tasksWidgetEnabled: Flow<Boolean> = dataStore.data.map { preferences ->
         preferences[Keys.TASKS_WIDGET_ENABLED] ?: false
+    }
+
+    /** User-supplied Gemini key override (workspace settings). Blank = use BuildConfig. */
+    val geminiApiKeyOverride: Flow<String> = dataStore.data.map { preferences ->
+        preferences[Keys.GEMINI_API_KEY_OVERRIDE] ?: ""
     }
 
     suspend fun updateOverlayPosition(x: Float, y: Float) {
@@ -223,6 +229,16 @@ class PreferencesManager @Inject constructor(
             preferences[Keys.TASKS_WIDGET_ENABLED] = enabled
         }
     }
+
+    suspend fun setGeminiApiKeyOverride(key: String) {
+        dataStore.edit { preferences ->
+            if (key.isBlank()) preferences.remove(Keys.GEMINI_API_KEY_OVERRIDE)
+            else preferences[Keys.GEMINI_API_KEY_OVERRIDE] = key.trim()
+        }
+    }
+
+    suspend fun getGeminiApiKeyOverride(): String =
+        dataStore.data.first()[Keys.GEMINI_API_KEY_OVERRIDE] ?: ""
 
     suspend fun setCompanionBootstrapDone(done: Boolean) {
         dataStore.edit { preferences ->

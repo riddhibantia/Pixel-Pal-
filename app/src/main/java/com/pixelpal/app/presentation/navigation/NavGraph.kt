@@ -116,6 +116,7 @@ fun PixelPalNavGraph(
         composable(Screen.About.route) {
             AboutScreen(navController = navController)
         }
+        composable(Screen.Permissions.route) { PermissionsScreen(navController = navController) }
         composable(Screen.ActivityCenter.route) {
             ActivityCenterScreen(navController = navController)
         }

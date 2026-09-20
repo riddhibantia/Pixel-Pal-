@@ -12,6 +12,8 @@ local.properties
 .cursor/
 .kilo/
 .kilo.json
+.kotlin/
+pp_device.db
 *.txt
 
 agent-endpoint/commands.log

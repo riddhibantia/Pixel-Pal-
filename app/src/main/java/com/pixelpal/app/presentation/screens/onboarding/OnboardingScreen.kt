@@ -14,6 +14,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.rememberPagerState
+import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -65,7 +66,10 @@ fun OnboardingScreen(
         ) { page ->
             when (page) {
                 0 -> PageWelcome()
-                1 -> PageChoosePet(selectedPetType)
+                1 -> PageChoosePet(
+                    selectedType = selectedPetType,
+                    onSelect = { viewModel.selectPetType(it) }
+                )
                 2 -> PageNamePet(petName, onNameChange = { viewModel.updatePetName(it) })
                 3 -> PageEnableOverlay(petName = petName, activity = activity)
             }
@@ -138,7 +142,7 @@ private fun PageWelcome() {
 }
 
 @Composable
-private fun PageChoosePet(selectedType: String) {
+private fun PageChoosePet(selectedType: String, onSelect: (String) -> Unit) {
     Column(
         modifier = Modifier.fillMaxSize(),
         horizontalAlignment = Alignment.CenterHorizontally,
@@ -152,17 +156,35 @@ private fun PageChoosePet(selectedType: String) {
             color = MaterialTheme.colorScheme.onSurface
         )
         Spacer(modifier = Modifier.height(Spacing.lg))
-        PetRenderer(petType = selectedType.ifBlank { "cat" }, animationState = AnimationState.HAPPY, size = 180.dp)
+        PetRenderer(
+            petType = selectedType.ifBlank { "cat" },
+            animationState = AnimationState.HAPPY,
+            size = 180.dp
+        )
         Spacer(modifier = Modifier.height(Spacing.md))
         Text(
-            text = "Cat (Unlocked)",
+            text = selectedType.replaceFirstChar { it.uppercase() }.ifBlank { "Cat" },
             style = MaterialTheme.typography.titleLarge,
             fontWeight = FontWeight.SemiBold,
             color = MaterialTheme.colorScheme.onSurface
         )
         Spacer(modifier = Modifier.height(Spacing.sm))
+        androidx.compose.foundation.lazy.LazyRow(
+            horizontalArrangement = Arrangement.spacedBy(Spacing.sm)
+        ) {
+            items(com.pixelpal.app.domain.model.PetType.entries.size) { index ->
+                val entry = com.pixelpal.app.domain.model.PetType.entries[index]
+                val selected = selectedType.equals(entry.id, ignoreCase = true)
+                androidx.compose.material3.FilterChip(
+                    selected = selected,
+                    onClick = { onSelect(entry.id) },
+                    label = { Text(entry.displayName) }
+                )
+            }
+        }
+        Spacer(modifier = Modifier.height(Spacing.sm))
         Text(
-            text = "Dog, Bunny, Fox, and Axolotl unlock as your bond grows!",
+            text = com.pixelpal.app.domain.model.PetType.fromId(selectedType.ifBlank { "cat" }).description,
             style = MaterialTheme.typography.bodyMedium,
             textAlign = TextAlign.Center,
             color = MaterialTheme.colorScheme.onSurfaceVariant

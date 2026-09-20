@@ -8,7 +8,8 @@ import androidx.compose.ui.graphics.Color
  * Screens and components must consume colors through [androidx.compose.material3.MaterialTheme]
  * colorScheme slots — never raw Color values. These palettes exist to feed Theme.kt mappings.
  *
- * Identity: cozy dark brown foundation, warm gold primary, purple secondary, cream text.
+ * Identity: modern neutral dark (near-black zinc surfaces, white text) with a
+ * gold primary accent and purple secondary.
  */
 
 /** Semantic state colors shared by every theme. */
@@ -16,28 +17,28 @@ val PixelSuccess = Color(0xFF6BCB77)
 val PixelWarning = Color(0xFFFFD166)
 
 object DarkPalette {
-    val Background = Color(0xFF1F1712)
-    val Surface = Color(0xFF2A1F16)
-    val SurfaceElevated = Color(0xFF33261C)
+    val Background = Color(0xFF0F0F13)
+    val Surface = Color(0xFF17171C)
+    val SurfaceElevated = Color(0xFF1E1E25)
 
     val Primary = Color(0xFFF6C453)
-    val OnPrimary = Color(0xFF1A1208)
-    val PrimaryContainer = Color(0xFF4A3814)
-    val OnPrimaryContainer = Color(0xFFF6C453)
+    val OnPrimary = Color(0xFF1C1607)
+    val PrimaryContainer = Color(0xFF3A2E10)
+    val OnPrimaryContainer = Color(0xFFF8D47E)
 
     val Secondary = Color(0xFF8B6CF6)
-    val OnSecondary = Color(0xFFF5E9D2)
-    val SecondaryContainer = Color(0xFF33294D)
-    val OnSecondaryContainer = Color(0xFFC9BBF9)
+    val OnSecondary = Color(0xFFF4F4F5)
+    val SecondaryContainer = Color(0xFF2B2545)
+    val OnSecondaryContainer = Color(0xFFCFC2FA)
 
-    val TextPrimary = Color(0xFFF5E9D2)
-    val TextSecondary = Color(0xFFCBB89A)
+    val TextPrimary = Color(0xFFF4F4F5)
+    val TextSecondary = Color(0xFFA1A1AA)
 
-    val Outline = Color(0xFF5B4535)
-    val Divider = Color(0xFF3D2F24)
+    val Outline = Color(0xFF3F3F46)
+    val Divider = Color(0xFF27272A)
 
     val Error = Color(0xFFFF6B6B)
-    val OnError = Color(0xFF1A1208)
+    val OnError = Color(0xFF200D0D)
 }
 
 object LightPalette {

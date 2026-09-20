@@ -1,14 +1,9 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <style name="Theme.PixelPal" parent="android:Theme.Material.NoActionBar">
-        <item name="android:statusBarColor">#FF1A1A2E</item>
-        <item name="android:navigationBarColor">#FF1A1A2E</item>
-        <item name="android:windowBackground">#FF1A1A2E</item>
+        <item name="android:statusBarColor">#FF0F0F13</item>
+        <item name="android:navigationBarColor">#FF0F0F13</item>
+        <item name="android:windowBackground">#FF0F0F13</item>
     </style>
 
-    <style name="Theme.PixelPal.Starting" parent="Theme.SplashScreen">
-        <item name="windowSplashScreenBackground">@color/pixel_dark_background</item>
-        <item name="windowSplashScreenAnimatedIcon">@drawable/ic_launcher_foreground</item>
-        <item name="postSplashScreenTheme">@style/Theme.PixelPal</item>
-    </style>
 </resources>

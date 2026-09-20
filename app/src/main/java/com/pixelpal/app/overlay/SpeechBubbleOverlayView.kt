@@ -27,11 +27,11 @@ class SpeechBubbleOverlayView(context: Context) : FrameLayout(context) {
     private val handler = Handler(Looper.getMainLooper())
     private var typewriterRunnable: Runnable? = null
 
-    // Warm brown/gold palette — aligned with the app's DarkPalette
-    private val bubbleBg = Color.parseColor("#2A1F16")       // Surface
+    // Neutral dark palette — aligned with the app's DarkPalette
+    private val bubbleBg = Color.parseColor("#17171C")       // Surface
     private val bubbleBorder = Color.parseColor("#F6C453")   // Primary gold
-    private val textPrimary = Color.parseColor("#F5E9D2")   // Cream text
-    private val textMuted = Color.parseColor("#CBB89A")     // Secondary text
+    private val textPrimary = Color.parseColor("#F4F4F5")   // White text
+    private val textMuted = Color.parseColor("#A1A1AA")     // Secondary text
     private val accentGreen = Color.parseColor("#6BCB77")   // PixelSuccess
     private val accentYellow = Color.parseColor("#FFD166")  // PixelWarning
     private val accentRed = Color.parseColor("#FF6B6B")     // Error
@@ -52,8 +52,8 @@ class SpeechBubbleOverlayView(context: Context) : FrameLayout(context) {
         val backgroundDrawable = GradientDrawable().apply {
             gradientType = GradientDrawable.LINEAR_GRADIENT
             colors = intArrayOf(
-                Color.parseColor("#33261C"),  // SurfaceElevated
-                Color.parseColor("#2A1F16")   // Surface
+                Color.parseColor("#1E1E25"),  // SurfaceElevated
+                Color.parseColor("#17171C")   // Surface
             )
             orientation = GradientDrawable.Orientation.TOP_BOTTOM
             setStroke((1.5 * density).toInt(), bubbleBorder)

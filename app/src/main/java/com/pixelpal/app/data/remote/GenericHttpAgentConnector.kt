@@ -10,37 +10,27 @@ import okhttp3.OkHttpClient
 import okhttp3.Request
 import timber.log.Timber
 import java.io.IOException
-import java.util.concurrent.TimeUnit
 import javax.inject.Inject
 import javax.inject.Singleton
 
 /**
  * Generic connector that polls a user-configured JSON status endpoint.
- *
- * Understood envelope (superset — unknown keys ignored, missing fields null):
- *   {
- *     "status": "WORKING",
- *     "currentTask": "Implementing authentication",
- *     "progress": 65,
- *     "message": "Database integration completed"
- *   }
- *
- * No API keys or credentials are sent or stored. Network failures map to
- * [AgentState.OFFLINE]; non-2xx responses map to [AgentState.ERROR].
+ * HTTPS is enforced; cleartext only for loopback (127.0.0.1/10.0.2.2/localhost)
+ * which is allowed by network_security_config.
  */
 @Singleton
-class GenericHttpAgentConnector @Inject constructor() : AgentConnector {
-
-    private val client = OkHttpClient.Builder()
-        .connectTimeout(10, TimeUnit.SECONDS)
-        .readTimeout(10, TimeUnit.SECONDS)
-        .build()
+class GenericHttpAgentConnector @Inject constructor(
+    private val client: OkHttpClient
+) : AgentConnector {
 
     private val json = Json { ignoreUnknownKeys = true }
 
     override suspend fun checkNow(endpointUrl: String): AgentCheckResult {
         if (endpointUrl.isBlank()) {
             return AgentCheckResult(AgentState.DISCONNECTED, "No endpoint configured")
+        }
+        if (!isAllowedEndpoint(endpointUrl)) {
+            return AgentCheckResult(AgentState.ERROR, "HTTPS required (cleartext only for localhost)")
         }
         return withContext(Dispatchers.IO) {
             try {
@@ -51,7 +41,8 @@ class GenericHttpAgentConnector @Inject constructor() : AgentConnector {
                     } else {
                         val body = response.body?.string().orEmpty()
                         parseEnvelope(body)
-                            ?: AgentCheckResult(AgentState.OFFLINE, "Unrecognized response")
+                            // Malformed JSON is a server/config bug, not "offline".
+                            ?: AgentCheckResult(AgentState.ERROR, "Unrecognized response — expected {status, message?, currentTask?, progress?}")
                     }
                 }
             } catch (e: IOException) {
@@ -60,6 +51,25 @@ class GenericHttpAgentConnector @Inject constructor() : AgentConnector {
             }
         }
     }
+
+    companion object {
+        /** Shared allowlist: HTTPS everywhere, cleartext only for loopback dev. */
+        fun isAllowedEndpoint(url: String): Boolean {
+            val lower = url.trim().lowercase()
+            if (lower.startsWith("https://")) return true
+            // Allow cleartext only for local dev
+            return lower.startsWith("http://127.0.0.1") ||
+                lower.startsWith("http://10.0.2.2") ||
+                lower.startsWith("http://localhost")
+        }
+
+        fun isWebSocketUrl(url: String): Boolean {
+            val lower = url.trim().lowercase()
+            return lower.startsWith("ws://") || lower.startsWith("wss://")
+        }
+    }
+
+    private fun isAllowedScheme(url: String): Boolean = isAllowedEndpoint(url)
 
     private fun parseEnvelope(body: String): AgentCheckResult? {
         return try {

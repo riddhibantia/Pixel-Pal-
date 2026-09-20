@@ -6,7 +6,10 @@ import com.pixelpal.app.data.remote.GeminiAgentConnector
 import com.pixelpal.app.domain.model.AgentState
 import com.pixelpal.app.domain.model.Companion
 import com.pixelpal.app.domain.model.Emotion
+import com.pixelpal.app.domain.model.Personality
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.withTimeoutOrNull
+import timber.log.Timber
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -52,7 +55,10 @@ class CompanionReactionProvider @Inject constructor(
             )
         }
 
-        val personality = personalityEngine.getPersonalityDirect(companion.id)
+        val personality: Personality? = personalityEngine.getPersonalityDirect(companion.id)
+        // Gemini first (when configured) for fresh, in-character lines — fast
+        // timeout keeps taps snappy, fallback keeps us offline-capable.
+        tryGeminiLine(companion, personality, bondLevel, interaction, pendingTaskCount)?.let { return it }
         val emotion = when (interaction) {
             Interaction.DOUBLE_TAP -> Emotion.EXCITED
             else -> Emotion.HAPPY
@@ -105,4 +111,56 @@ class CompanionReactionProvider @Inject constructor(
         lines.randomOrNull()?.let { line ->
             vars.entries.fold(line) { acc, (key, value) -> acc.replace("{$key}", value) }
         }
+
+    /**
+     * Best-effort Gemini line. Returns null when unconfigured, timed out, or
+     * failed so callers transparently fall back to local dialogue packs.
+     */
+    private suspend fun tryGeminiLine(
+        companion: Companion,
+        personality: Personality?,
+        bondLevel: Int,
+        interaction: Interaction,
+        pendingTaskCount: Int
+    ): String? {
+        if (!geminiConnector.isConfigured()) return null
+        return try {
+            withTimeoutOrNull(4_000L) {
+                val hint = when (interaction) {
+                    Interaction.DOUBLE_TAP -> "The user just double-tapped you excitedly"
+                    Interaction.FEED -> "The user just fed you a treat"
+                    Interaction.TAP ->
+                        if (pendingTaskCount > 0) "The user just tapped you; they have $pendingTaskCount tasks left today"
+                        else "The user just tapped you affectionately"
+                }
+                geminiConnector.generateReply(
+                    prompt = "$hint. Reply with one short playful reaction line.",
+                    companionName = companion.name,
+                    personality = personalityDescriptor(personality),
+                    bondLevel = bondLevel
+                )?.takeIf { it.isNotBlank() }?.take(180)
+            }
+        } catch (e: Exception) {
+            Timber.d(e, "Gemini reaction fallback to local dialogue")
+            null
+        }
+    }
+
+    /**
+     * Map a numeric [Personality] profile to a short Gemini descriptor. Picks
+     * the dominant trait so prompts stay stable and in-character without
+     * forcing the model to interpret raw floats.
+     */
+    private fun personalityDescriptor(personality: Personality?): String {
+        if (personality == null) return "friendly"
+        val traits = listOf(
+            "friendly" to personality.friendliness,
+            "curious" to personality.curiosity,
+            "playful" to personality.playfulness,
+            "sleepy" to personality.sleepiness,
+            "confident" to personality.confidence,
+            "independent" to personality.independence
+        )
+        return traits.maxByOrNull { it.second }?.first ?: "friendly"
+    }
 }

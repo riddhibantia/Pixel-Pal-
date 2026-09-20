@@ -20,8 +20,7 @@ import javax.inject.Inject
 @HiltViewModel
 class CustomizeViewModel @Inject constructor(
     private val preferencesManager: PreferencesManager,
-    private val companionRepository: CompanionRepository,
-    private val spriteAnimator: com.pixelpal.app.animation.SpriteAnimator
+    private val companionRepository: CompanionRepository
 ) : ViewModel() {
 
     val companion: StateFlow<Companion?> = companionRepository.getPrimary()
@@ -33,7 +32,6 @@ class CustomizeViewModel @Inject constructor(
     fun transformAppearance(style: SpeciesStyle) {
         viewModelScope.launch {
             companionRepository.transformAppearance(style)
-            spriteAnimator.setPetType(style.species)
         }
     }
 

@@ -62,14 +62,24 @@ class WorkerScheduler @Inject constructor(
      * Unique periodic polling for one agent companion. Network-constrained and
      * keyed by companion id so re-saving config never duplicates work.
      */
+    /**
+     * Unique periodic polling for one agent companion. Network-constrained and
+     * keyed by companion id so re-saving config never duplicates work.
+     * Battery-not-low avoids draining; exponential backoff bounds retry storms.
+     */
     fun scheduleAgentPolling(companionId: Long, intervalMinutes: Long) {
-        // WorkManager enforces a ~15-minute minimum for periodic work.
         val interval = intervalMinutes.coerceAtLeast(Constants.DEFAULT_AGENT_POLL_INTERVAL_MIN)
         val request = PeriodicWorkRequestBuilder<AgentStatusWorker>(interval, TimeUnit.MINUTES)
             .setConstraints(
                 Constraints.Builder()
                     .setRequiredNetworkType(NetworkType.CONNECTED)
+                    .setRequiresBatteryNotLow(true)
                     .build()
+            )
+            .setBackoffCriteria(
+                androidx.work.BackoffPolicy.EXPONENTIAL,
+                30_000L,
+                TimeUnit.MILLISECONDS
             )
             .setInputData(workDataOf("companion_id" to companionId))
             .build()

@@ -22,6 +22,7 @@ object Constants {
     const val KEY_COMPANION_BOOTSTRAP_DONE = "companion_bootstrap_done"
     const val KEY_SINGLE_COMPANION_FOLD_DONE = "single_companion_fold_done"
     const val KEY_TASKS_WIDGET_ENABLED = "tasks_widget_enabled"
+    const val KEY_GEMINI_API_KEY_OVERRIDE = "gemini_api_key_override"
 
     // Notification channels
     const val CHANNEL_COMPANION = "companion_channel"
@@ -62,6 +63,8 @@ object Constants {
     const val BOND_GRANTING_TAPS_PER_DAY = 3
     const val DEFAULT_AGENT_POLL_INTERVAL_MIN = 15L
     const val AGENT_WORK_PREFIX = "agent_poll_"
+    /** Polling interval choices offered in the workspace (WorkManager floor is 15 min). */
+    val AGENT_POLL_INTERVAL_OPTIONS_MIN = listOf(15L, 30L, 60L, 120L)
 
     // Notification action intents
     const val ACTION_COMPLETE_REMINDER = "com.pixelpal.app.action.COMPLETE_REMINDER"
@@ -69,5 +72,5 @@ object Constants {
 
     // Room database
     const val DATABASE_NAME = "pixelpal_database_v2"
-    const val DATABASE_VERSION = 7
+    const val DATABASE_VERSION = 12
 }

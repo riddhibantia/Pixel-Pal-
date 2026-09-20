@@ -10,8 +10,7 @@ import dagger.assisted.AssistedInject
 import timber.log.Timber
 
 /**
- * Periodic agent poll. WorkManager intervals are scheduling hints, not exact
- * timers; the worker re-checks `pollingEnabled` and bails when polling is off.
+ * Periodic agent poll. WorkManager intervals are hints; bounded retry prevents storm.
  */
 @HiltWorker
 class AgentStatusWorker @AssistedInject constructor(
@@ -26,7 +25,10 @@ class AgentStatusWorker @AssistedInject constructor(
 
         val connection = agentConnectionRepository.getConnectionDirect(companionId)
             ?: return Result.success()
-        if (!connection.pollingEnabled || connection.endpointUrl.isBlank()) {
+        // Gemini needs no endpoint; other providers poll only with a URL set.
+        val pollable = connection.pollingEnabled &&
+            (connection.endpointUrl.isNotBlank() || connection.isGemini)
+        if (!pollable) {
             return Result.success()
         }
 
@@ -34,8 +36,9 @@ class AgentStatusWorker @AssistedInject constructor(
             agentConnectionRepository.checkNow(companionId)
             Result.success()
         } catch (e: Exception) {
-            Timber.e(e, "Agent poll failed for companion $companionId")
-            Result.retry()
+            Timber.e(e, "Agent poll failed for companion $companionId (attempt ${runAttemptCount + 1})")
+            // Bounded retry — 3 attempts max, then give up until next periodic tick
+            if (runAttemptCount < 2) Result.retry() else Result.failure()
         }
     }
 }

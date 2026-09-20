@@ -65,8 +65,8 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
 import com.pixelpal.app.animation.AnimationState
 import com.pixelpal.app.domain.model.AgentState
-import com.pixelpal.app.presentation.components.BaseCompanionAvatar
 import com.pixelpal.app.presentation.components.EmptyState
+import com.pixelpal.app.presentation.components.LottiePetView
 import com.pixelpal.app.presentation.components.LoadingState
 import com.pixelpal.app.presentation.components.PixelPalBottomBar
 import com.pixelpal.app.presentation.components.PrimaryButton
@@ -114,7 +114,7 @@ fun HomeScreen(
                 uiState.companion == null && !uiState.isLoading -> EmptyState(
                     title = "No companion yet",
                     message = "Your digital companion will appear here once created.",
-                    icon = Icons.Default.SmartToy
+                    petState = AnimationState.WAVE
                 )
 
                 else -> Column(modifier = Modifier.padding(horizontal = Spacing.screenHorizontal)) {
@@ -508,10 +508,10 @@ private fun CompanionHeroCard(
                         ),
                     contentAlignment = Alignment.Center
                 ) {
-                    BaseCompanionAvatar(
-                        companion = companion,
-                        size = 180.dp,
-                        expression = currentExpression
+                    LottiePetView(
+                        petType = companion.effectiveSpecies,
+                        animationState = currentExpression,
+                        size = 180.dp
                     )
                 }
             }

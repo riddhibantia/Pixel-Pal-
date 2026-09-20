@@ -2,24 +2,20 @@ package com.pixelpal.app.presentation.screens.companions
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.pixelpal.app.BuildConfig
+import com.pixelpal.app.data.local.datastore.PreferencesManager
+import com.pixelpal.app.data.remote.GeminiAgentConnector
 import com.pixelpal.app.domain.model.AgentConnection
 import com.pixelpal.app.domain.model.Bond
 import com.pixelpal.app.domain.model.Companion
-import com.pixelpal.app.domain.model.Reminder
-import com.pixelpal.app.domain.model.Task
 import com.pixelpal.app.domain.model.AgentState
-import com.pixelpal.app.data.local.datastore.PreferencesManager
 import com.pixelpal.app.domain.repository.AgentConnectionRepository
 import com.pixelpal.app.domain.repository.BondRepository
-import com.pixelpal.app.domain.repository.ReminderRepository
-import com.pixelpal.app.domain.repository.TaskRepository
 import kotlinx.coroutines.flow.map
 import com.pixelpal.app.domain.usecase.agent.GetAgentConnectionUseCase
 import com.pixelpal.app.domain.usecase.agent.SaveAgentConnectionUseCase
 import com.pixelpal.app.domain.usecase.companion.GetActiveCompanionUseCase
 import com.pixelpal.app.domain.usecase.companion.ToggleFavoriteUseCase
-import com.pixelpal.app.domain.usecase.task.AddTaskUseCase
-import com.pixelpal.app.domain.usecase.task.CompleteTaskUseCase
 import com.pixelpal.app.presentation.components.SnackbarEvent
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -41,7 +37,6 @@ data class CompanionWorkspaceUiState(
     val companion: Companion? = null,
     val bond: Bond? = null,
     val agentConnection: AgentConnection? = null,
-    val checkingAgent: Boolean = false,
     val loading: Boolean = true
 )
 
@@ -54,7 +49,9 @@ class CompanionWorkspaceViewModel @Inject constructor(
     private val agentConnectionRepository: AgentConnectionRepository,
     private val saveAgentConnectionUseCase: SaveAgentConnectionUseCase,
     private val toggleFavoriteUseCase: ToggleFavoriteUseCase,
-    private val updateCompanionUseCase: com.pixelpal.app.domain.usecase.companion.UpdateCompanionUseCase
+    private val updateCompanionUseCase: com.pixelpal.app.domain.usecase.companion.UpdateCompanionUseCase,
+    private val preferencesManager: PreferencesManager,
+    private val geminiAgentConnector: GeminiAgentConnector
 ) : ViewModel() {
 
     private val core = getActiveCompanionUseCase.activeCompanion.flatMapLatest { c ->
@@ -84,6 +81,10 @@ class CompanionWorkspaceViewModel @Inject constructor(
     private val _commandFeedback = MutableStateFlow<String?>(null)
     val commandFeedback: StateFlow<String?> = _commandFeedback.asStateFlow()
 
+    /** Raw override text from DataStore; blank = using BuildConfig key. */
+    val geminiKeyOverride: StateFlow<String> = preferencesManager.geminiApiKeyOverride
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), "")
+
     private val _snackbarEvents = MutableSharedFlow<SnackbarEvent>()
     val snackbarEvents: SharedFlow<SnackbarEvent> = _snackbarEvents.asSharedFlow()
 
@@ -91,8 +92,14 @@ class CompanionWorkspaceViewModel @Inject constructor(
         val companionId = uiState.value.companion?.id ?: return
         if (command.isBlank()) return
         viewModelScope.launch {
+            val wasGemini = uiState.value.agentConnection?.isGemini == true
             val result = agentConnectionRepository.sendCommand(companionId, command.trim())
-            _commandFeedback.value = result.fold(
+            _commandFeedback.value = if (result.isSuccess && wasGemini) {
+                // Surface Gemini's actual reply instead of a generic "Sent".
+                val updated = agentConnectionRepository.getConnectionDirect(companionId)
+                updated?.lastMessage?.takeIf { it.isNotBlank() }?.let { "Agent: $it" }
+                    ?: "Sent \"${command.trim()}\""
+            } else result.fold(
                 onSuccess = { "Sent \"${command.trim()}\"" },
                 onFailure = { "Couldn't send: ${it.message ?: "unknown error"}" }
             )
@@ -128,8 +135,27 @@ class CompanionWorkspaceViewModel @Inject constructor(
         viewModelScope.launch {
             saveAgentConnectionUseCase(connection)
             // Connect should feel like connecting — run the first check now.
-            if (connection.endpointUrl.isNotBlank()) {
+            // Gemini needs no endpoint; everything else needs its URL.
+            if (connection.endpointUrl.isNotBlank() || connection.isGemini) {
                 agentConnectionRepository.checkNow(connection.companionId)
+            }
+        }
+    }
+
+    /** Persists a user-supplied Gemini key and activates it immediately. */
+    fun saveGeminiKey(key: String) {
+        viewModelScope.launch {
+            val trimmed = key.trim()
+            preferencesManager.setGeminiApiKeyOverride(trimmed)
+            when {
+                GeminiAgentConnector.isUsableKey(trimmed) -> geminiAgentConnector.initialize(trimmed)
+                trimmed.isBlank() -> {
+                    // Fall back to the bundled BuildConfig key, if any.
+                    val bundled = BuildConfig.GEMINI_API_KEY
+                    if (GeminiAgentConnector.isUsableKey(bundled)) geminiAgentConnector.initialize(bundled)
+                    else geminiAgentConnector.clear()
+                }
+                else -> geminiAgentConnector.clear()
             }
         }
     }
@@ -140,6 +166,7 @@ class CompanionWorkspaceViewModel @Inject constructor(
             saveAgentConnectionUseCase(
                 connection.copy(
                     endpointUrl = "",
+                    commandUrl = null,
                     pollingEnabled = false,
                     connectionStatus = com.pixelpal.app.domain.model.ConnectionStatus.DISCONNECTED,
                     currentStatus = AgentState.DISCONNECTED,

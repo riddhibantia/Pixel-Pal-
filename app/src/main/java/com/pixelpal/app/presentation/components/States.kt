@@ -21,11 +21,13 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.pixelpal.app.presentation.theme.Radius
+import com.pixelpal.app.animation.AnimationState
 import com.pixelpal.app.presentation.theme.Spacing
 
 /**
- * Standard empty state: soft circular icon, title, message, optional action.
- * Used by reminder lists and any screen that can be empty.
+ * Standard empty state: animated companion mascot, title, message, optional action.
+ * The mascot replaces the old static icon circle (icon slot kept only for
+ * legacy callers with showPet=false). Used by home/tasks/reminders/activity.
  */
 @Composable
 fun EmptyState(
@@ -33,7 +35,10 @@ fun EmptyState(
     message: String,
     modifier: Modifier = Modifier,
     icon: ImageVector? = null,
-    content: (@Composable () -> Unit)? = null
+    content: (@Composable () -> Unit)? = null,
+    petType: String = "cat",
+    petState: AnimationState = AnimationState.HAPPY,
+    showPet: Boolean = true
 ) {
     Column(
         modifier = modifier
@@ -41,7 +46,15 @@ fun EmptyState(
             .padding(horizontal = Spacing.lg, vertical = Spacing.xl),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
-        if (icon != null) {
+        if (showPet) {
+            LottiePetView(
+                petType = petType,
+                animationState = petState,
+                size = 96.dp
+            )
+            Spacer(modifier = Modifier.height(Spacing.md))
+        }
+        if (icon != null && !showPet) {
             Surface(
                 shape = CircleShape,
                 color = MaterialTheme.colorScheme.surface

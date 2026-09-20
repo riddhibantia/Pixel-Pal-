@@ -24,10 +24,12 @@ object FirebaseModule {
     @Singleton
     fun provideFirebaseFirestore(): FirebaseFirestore {
         val firestore = FirebaseFirestore.getInstance()
+        // Cap cache at 100MB — unlimited caused OOM on large task histories.
+        // LWW via updatedAt still works; cache eviction is LRU.
         val settings = FirebaseFirestoreSettings.Builder()
             .setLocalCacheSettings(
                 PersistentCacheSettings.newBuilder()
-                    .setSizeBytes(FirebaseFirestoreSettings.CACHE_SIZE_UNLIMITED)
+                    .setSizeBytes((100L * 1024 * 1024))
                     .build()
             )
             .build()

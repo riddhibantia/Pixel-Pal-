@@ -38,6 +38,8 @@ class TasksViewModel @Inject constructor(
 
     private val activeCompanion = getActiveCompanionUseCase.activeCompanion
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), null)
+    /** Exposed so empty states render the active companion's species mascot. */
+    val companion: StateFlow<com.pixelpal.app.domain.model.Companion?> = activeCompanion
 
     private val tasks = activeCompanion.flatMapLatest { companion ->
         if (companion == null) flowOf(emptyList()) else taskRepository.getTasks(companion.id)

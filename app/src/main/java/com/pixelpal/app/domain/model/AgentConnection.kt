@@ -20,10 +20,13 @@ enum class AgentState(
     OFFLINE("OFFLINE", "Offline", true);
 
     companion object {
-        fun fromId(id: String): AgentState = when {
-            id.equals("FAILED", ignoreCase = true) -> ERROR
-            id.equals("STOPPED", ignoreCase = true) -> IDLE
-            else -> entries.find { it.id.equals(id, ignoreCase = true) } ?: DISCONNECTED
+        fun fromId(id: String): AgentState {
+            if (id.isBlank()) return DISCONNECTED
+            if (id.equals("FAILED", ignoreCase = true)) return ERROR
+            if (id.equals("STOPPED", ignoreCase = true)) return IDLE
+            // Unknown non-blank values are config/server bugs — surface as ERROR
+            // (needsAttention) instead of silently looking "not connected".
+            return entries.find { it.id.equals(id, ignoreCase = true) } ?: ERROR
         }
     }
 }
@@ -37,6 +40,31 @@ enum class ConnectionStatus { DISCONNECTED, CONNECTED, ERROR;
     }
 }
 
+/**
+ * Supported agent providers. Stored in [AgentConnection.provider] (lowercase).
+ * - generic: user HTTP(S) status endpoint polled as JSON
+ * - gemini: direct Google Gemini AI (no endpoint needed)
+ * - websocket: live ws:// / wss:// feed (polled via one-shot, streamed live)
+ */
+object AgentProviders {
+    const val GENERIC = "generic"
+    const val GEMINI = "gemini"
+    const val WEBSOCKET = "websocket"
+
+    val ALL = listOf(GENERIC, GEMINI, WEBSOCKET)
+
+    fun normalize(raw: String): String = when (raw.trim().lowercase()) {
+        GEMINI -> GEMINI
+        WEBSOCKET, "ws", "socket" -> WEBSOCKET
+        else -> GENERIC
+    }
+
+    fun displayName(provider: String): String = when (normalize(provider)) {
+        GEMINI -> "Gemini AI"
+        WEBSOCKET -> "WebSocket"
+        else -> "Generic HTTP"
+    }
+}
 /**
  * The AI Agent INTEGRATION of the single companion. One row; created lazily.
  */
@@ -58,4 +86,13 @@ data class AgentConnection(
     val updatedAt: Long = System.currentTimeMillis()
 ) {
     val isConnected: Boolean get() = connectionStatus == ConnectionStatus.CONNECTED
+
+    /** Normalized provider id — always one of [AgentProviders.ALL]. */
+    val normalizedProvider: String get() = AgentProviders.normalize(provider)
+
+    val isGemini: Boolean get() = normalizedProvider == AgentProviders.GEMINI
+    val isWebSocket: Boolean get() = normalizedProvider == AgentProviders.WEBSOCKET
+
+    /** Gemini needs no endpoint; others require a status/WebSocket URL. */
+    val requiresEndpoint: Boolean get() = !isGemini
 }

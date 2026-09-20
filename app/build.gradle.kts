@@ -9,7 +9,6 @@ plugins {
     id("com.google.devtools.ksp")
     id("com.google.gms.google-services")
 }
-
 android {
     namespace = "com.pixelpal.app"
     compileSdk = 35
@@ -65,7 +64,6 @@ android {
             excludes += "/META-INF/{AL2.0,LGPL2.1,LICENSE,LICENSE.txt,NOTICE,NOTICE.txt}"
         }
     }
-
     buildTypes {
         release {
             isMinifyEnabled = true
@@ -104,6 +102,7 @@ dependencies {
     implementation(libs.androidx.activity.compose)
     implementation(libs.androidx.lifecycle.runtime.ktx)
     implementation(libs.androidx.lifecycle.viewmodel.compose)
+    implementation(libs.androidx.lifecycle.runtime.compose)
 
     // Material3 & Compose BOM
     implementation(platform(libs.androidx.compose.bom))
@@ -130,6 +129,7 @@ dependencies {
     implementation(libs.coil.compose)
     implementation(libs.coil.gif)
     implementation(libs.lottie.compose)
+    implementation(libs.lottie)
 
     // Gemini AI SDK
     implementation(libs.google.generativeai)
@@ -140,9 +140,9 @@ dependencies {
     implementation(libs.firebase.firestore)
 
     // Google Sign-In via Credential Manager
-    implementation("androidx.credentials:credentials:1.3.0")
-    implementation("androidx.credentials:credentials-play-services-auth:1.3.0")
-    implementation("com.google.android.libraries.identity.googleid:googleid:1.1.1")
+    implementation(libs.androidx.credentials)
+    implementation(libs.androidx.credentials.play.services)
+    implementation(libs.google.id)
 
     // Timber Logging
     implementation(libs.timber)
@@ -156,6 +156,7 @@ dependencies {
 
     // OkHttp (agent connector & web sockets)
     implementation(libs.okhttp)
+    implementation(libs.okhttp.logging)
 
     // WorkManager
     implementation(libs.androidx.work.runtime.ktx)
@@ -163,7 +164,11 @@ dependencies {
     // Testing
     testImplementation(libs.junit)
     testImplementation(libs.kotlin.test.junit)
-    androidTestImplementation(libs.androidx.test.junit)
+    androidTestImplementation(libs.junit)
+    androidTestImplementation(libs.kotlin.test.junit)
+    androidTestImplementation(libs.androidx.room.testing)
+    androidTestImplementation(libs.androidx.test.core)
+    androidTestImplementation(libs.androidx.test.rules)
     androidTestImplementation(libs.androidx.test.espresso.core)
     androidTestImplementation(platform(libs.androidx.compose.bom))
     androidTestImplementation(libs.androidx.compose.ui.test.junit4)

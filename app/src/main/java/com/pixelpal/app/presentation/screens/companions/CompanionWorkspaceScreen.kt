@@ -85,6 +85,7 @@ fun CompanionWorkspaceScreen(
     val uiState by viewModel.uiState.collectAsState()
     val checkingAgent by viewModel.checkingAgent.collectAsState()
     val commandFeedback by viewModel.commandFeedback.collectAsState()
+    val geminiKeyOverride by viewModel.geminiKeyOverride.collectAsState()
 
     val voiceLauncher = androidx.activity.compose.rememberLauncherForActivityResult(
         androidx.activity.result.contract.ActivityResultContracts.StartActivityForResult()
@@ -180,11 +181,13 @@ fun CompanionWorkspaceScreen(
                     connection = state.agentConnection,
                     checking = checkingAgent,
                     feedbackMessage = commandFeedback,
+                    geminiKeyOverride = geminiKeyOverride,
                     onSave = viewModel::saveAgentConnection,
                     onCheckNow = viewModel::refreshAgentStatus,
                     onDisconnect = viewModel::disconnectAgent,
                     onSendCommand = viewModel::sendAgentCommand,
-                    onVoiceCommand = voiceCommand
+                    onVoiceCommand = voiceCommand,
+                    onSaveGeminiKey = viewModel::saveGeminiKey
                 )
             }
         }
@@ -264,14 +267,17 @@ private fun AgentConnectionSection(
     connection: AgentConnection?,
     checking: Boolean,
     feedbackMessage: String?,
+    geminiKeyOverride: String,
     onSave: (AgentConnection) -> Unit,
     onCheckNow: () -> Unit,
     onDisconnect: () -> Unit,
     onSendCommand: (String) -> Unit,
-    onVoiceCommand: () -> Unit
+    onVoiceCommand: () -> Unit,
+    onSaveGeminiKey: (String) -> Unit
 ) {
     SectionHeader(title = "AI Agent Connection")
 
+    val currentProvider = com.pixelpal.app.domain.model.AgentProviders.normalize(connection?.provider ?: "")
     var endpoint by remember(connection?.companionId) {
         mutableStateOf(connection?.endpointUrl ?: "")
     }
@@ -281,16 +287,32 @@ private fun AgentConnectionSection(
     var agentName by remember(connection?.companionId) {
         mutableStateOf(connection?.agentName ?: "")
     }
+    var provider by remember(connection?.companionId, currentProvider) {
+        mutableStateOf(currentProvider)
+    }
+    var intervalMinutes by remember(connection?.companionId) {
+        mutableStateOf(connection?.pollingIntervalMinutes ?: com.pixelpal.app.util.Constants.DEFAULT_AGENT_POLL_INTERVAL_MIN)
+    }
+    var geminiKeyInput by remember(connection?.companionId, geminiKeyOverride) {
+        mutableStateOf(geminiKeyOverride)
+    }
     var commandText by remember { mutableStateOf("") }
     var pollingEnabled by remember(connection?.companionId) {
         mutableStateOf(connection?.pollingEnabled ?: false)
     }
     var showDisconnectConfirm by remember { mutableStateOf(false) }
 
+    val isGemini = provider == com.pixelpal.app.domain.model.AgentProviders.GEMINI
+    val isWebSocket = provider == com.pixelpal.app.domain.model.AgentProviders.WEBSOCKET
+    // Gemini is configured without any endpoint; others need their URL.
+    val isConfigured = if (isGemini) true else endpoint.trim().isNotBlank()
+    // Check Now acts on the SAVED connection, not the draft form.
+    val canCheck = !checking && (connection?.isGemini == true || connection?.endpointUrl?.isNotBlank() == true)
+
     if (showDisconnectConfirm) {
         ConfirmationDialog(
             title = "Disconnect Agent?",
-            message = "This will clear the endpoint and stop polling. You can reconnect later.",
+            message = "This will clear the endpoint and stop polling. Your provider choice is kept so you can reconnect later.",
             confirmLabel = "Disconnect",
             dismissLabel = "Cancel",
             destructive = true,
@@ -359,6 +381,28 @@ private fun AgentConnectionSection(
 
             Spacer(modifier = Modifier.height(Spacing.md))
 
+            Text(
+                text = "Provider",
+                style = MaterialTheme.typography.bodyMedium,
+                fontWeight = FontWeight.SemiBold
+            )
+            Spacer(modifier = Modifier.height(Spacing.xs))
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(Spacing.sm)
+            ) {
+                com.pixelpal.app.domain.model.AgentProviders.ALL.forEach { option ->
+                    androidx.compose.material3.FilterChip(
+                        selected = provider == option,
+                        onClick = { provider = option },
+                        label = {
+                            Text(com.pixelpal.app.domain.model.AgentProviders.displayName(option))
+                        }
+                    )
+                }
+            }
+
+            Spacer(modifier = Modifier.height(Spacing.sm))
             AppTextField(
                 value = agentName,
                 onValueChange = { agentName = it },
@@ -366,19 +410,67 @@ private fun AgentConnectionSection(
                 placeholder = "e.g. OpenCode Development Agent"
             )
             Spacer(modifier = Modifier.height(Spacing.sm))
-            AppTextField(
-                value = endpoint,
-                onValueChange = { endpoint = it },
-                label = "Status endpoint URL",
-                placeholder = "http://127.0.0.1:8765/status"
-            )
+            if (isGemini) {
+                AppTextField(
+                    value = geminiKeyInput,
+                    onValueChange = {
+                        geminiKeyInput = it
+                        onSaveGeminiKey(it)
+                    },
+                    label = "Gemini API key",
+                    placeholder = "Paste from Google AI Studio",
+                    supportingText = if (geminiKeyOverride.isBlank()) {
+                        "No key saved on this device — using the bundled key, if any. Stored only on this device."
+                    } else {
+                        "Key saved on this device. Clear the field to fall back to the bundled key."
+                    }
+                )
+                Spacer(modifier = Modifier.height(Spacing.xs))
+                Text(
+                    text = "Gemini needs no endpoint — chat and status run directly against Google AI.",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            } else {
+                AppTextField(
+                    value = endpoint,
+                    onValueChange = { endpoint = it },
+                    label = if (isWebSocket) "WebSocket URL" else "Status endpoint URL",
+                    placeholder = if (isWebSocket) "wss://example.com/agent" else "https://example.com/status",
+                    supportingText = if (isWebSocket) {
+                        "Must start with ws:// or wss://. Live messages stream while this screen is open."
+                    } else {
+                        "HTTPS required (cleartext only for 127.0.0.1 / 10.0.2.2 / localhost). Must return {status, message?, currentTask?, progress?}."
+                    }
+                )
+                Spacer(modifier = Modifier.height(Spacing.sm))
+                AppTextField(
+                    value = commandEndpoint,
+                    onValueChange = { commandEndpoint = it },
+                    label = "Command endpoint (optional)",
+                    placeholder = "Defaults to the status URL"
+                )
+            }
             Spacer(modifier = Modifier.height(Spacing.sm))
-            AppTextField(
-                value = commandEndpoint,
-                onValueChange = { commandEndpoint = it },
-                label = "Command endpoint (optional)",
-                placeholder = "Defaults to the status URL"
+
+            Text(
+                text = "Check interval",
+                style = MaterialTheme.typography.bodyMedium,
+                fontWeight = FontWeight.SemiBold
             )
+            Spacer(modifier = Modifier.height(Spacing.xs))
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(Spacing.sm)
+            ) {
+                com.pixelpal.app.util.Constants.AGENT_POLL_INTERVAL_OPTIONS_MIN.forEach { option ->
+                    androidx.compose.material3.FilterChip(
+                        selected = intervalMinutes == option,
+                        onClick = { intervalMinutes = option },
+                        label = { Text(if (option >= 60) "${option / 60}h" else "${option}m") }
+                    )
+                }
+            }
             Spacer(modifier = Modifier.height(Spacing.sm))
 
             Row(
@@ -388,7 +480,7 @@ private fun AgentConnectionSection(
                 Column(modifier = Modifier.weight(1f)) {
                     Text("Polling enabled", style = MaterialTheme.typography.bodyMedium)
                     Text(
-                        text = "Checks every ${connection?.pollingIntervalMinutes ?: 15} min",
+                        text = "Checks every ${intervalMinutes} min",
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
@@ -402,28 +494,31 @@ private fun AgentConnectionSection(
             Spacer(modifier = Modifier.height(Spacing.md))
 
             PrimaryButton(
-                text = if (connection?.endpointUrl.isNullOrBlank()) "Connect" else "Save",
+                text = if (connection?.endpointUrl.isNullOrBlank() && !isGemini) "Connect" else "Save",
                 onClick = {
                     val companionId = connection?.companionId ?: return@PrimaryButton
                     onSave(
                         (connection ?: AgentConnection(companionId = companionId)).copy(
                             agentName = agentName.trim(),
-                            endpointUrl = endpoint.trim(),
-                            commandUrl = commandEndpoint.trim().takeIf { it.isNotEmpty() },
-                            pollingEnabled = pollingEnabled
+                            provider = provider,
+                            endpointUrl = if (isGemini) "" else endpoint.trim(),
+                            commandUrl = if (isGemini) null else commandEndpoint.trim().takeIf { it.isNotEmpty() },
+                            pollingEnabled = pollingEnabled,
+                            pollingIntervalMinutes = intervalMinutes
                         )
                     )
-                }
+                },
+                enabled = !checking && isConfigured
             )
             Spacer(modifier = Modifier.height(Spacing.sm))
             SecondaryButton(
                 text = if (checking) "Checking…" else "Check Now",
                 onClick = onCheckNow,
-                enabled = !checking && !connection?.endpointUrl.isNullOrBlank()
+                enabled = canCheck
             )
 
             // ── Talk to your agent: typed or spoken commands ──
-            if (!connection?.endpointUrl.isNullOrBlank()) {
+            if (isConfigured) {
                 Spacer(modifier = Modifier.height(Spacing.md))
                 GroupDivider()
                 Spacer(modifier = Modifier.height(Spacing.sm))
@@ -481,7 +576,7 @@ private fun AgentConnectionSection(
                     )
                 }
             }
-            if (!connection?.endpointUrl.isNullOrBlank()) {
+            if (isConfigured) {
                 Spacer(modifier = Modifier.height(Spacing.sm))
                 DestructiveButton(
                     text = "Disconnect",
@@ -520,6 +615,11 @@ private fun statusColor(connection: AgentConnection?): androidx.compose.ui.graph
 private fun connectionStatusText(connection: AgentConnection?): String =
     when {
         connection == null -> "Not connected"
+        connection.isGemini && connection.connectionStatus == com.pixelpal.app.domain.model.ConnectionStatus.ERROR ->
+            "Gemini error"
+        connection.isGemini && connection.currentStatus == com.pixelpal.app.domain.model.AgentState.DISCONNECTED ->
+            "Gemini not configured — add an API key"
+        connection.isGemini -> "Gemini AI — ${connection.currentStatus.displayName}"
         connection.endpointUrl.isBlank() -> "Not connected"
         connection.connectionStatus == com.pixelpal.app.domain.model.ConnectionStatus.ERROR ->
             "Connection error"

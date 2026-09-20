@@ -33,6 +33,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
+import com.pixelpal.app.animation.AnimationState
 import com.pixelpal.app.presentation.components.AppTopBar
 import com.pixelpal.app.presentation.components.EmptyState
 import com.pixelpal.app.presentation.components.PixelPalBottomBar
@@ -52,6 +53,7 @@ fun ReminderListScreen(
 ) {
     val pendingReminders by viewModel.pendingReminders.collectAsState()
     val completedReminders by viewModel.completedReminders.collectAsState()
+    val companion by viewModel.companion.collectAsState()
     var filter by remember { mutableStateOf(ReminderFilter.UPCOMING) }
     val snackbarHostState = remember { SnackbarHostState() }
 
@@ -137,7 +139,8 @@ fun ReminderListScreen(
                         EmptyState(
                             title = "Nothing planned yet",
                             message = "Create a reminder and Pixel will help you remember.",
-                            icon = Icons.Default.Notifications,
+                            petType = companion?.effectiveSpecies ?: "cat",
+                            petState = AnimationState.WAVE,
                             content = {
                                 PrimaryButton(
                                     text = "Create Reminder",
@@ -149,7 +152,8 @@ fun ReminderListScreen(
                         EmptyState(
                             title = "No completed reminders",
                             message = "Reminders you complete will show up here.",
-                            icon = Icons.Default.Notifications
+                            petType = companion?.effectiveSpecies ?: "cat",
+                            petState = AnimationState.SLEEP
                         )
                     }
                 }

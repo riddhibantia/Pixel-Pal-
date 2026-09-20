@@ -7,6 +7,7 @@ import com.pixelpal.app.domain.repository.BondRepository
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.flowOf
+import kotlinx.coroutines.flow.map
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
@@ -29,7 +30,7 @@ class BondEngine @Inject constructor(
     private val companionNameResolver: CompanionNameResolver
 ) {
     /** Bond of the primary companion (empty sentinel when none exists). */
-    val bond: Flow<Bond> = activeCompanionManager.activeCompanionId.flatMapLatest { id ->
+    val bond: Flow<Bond> = activeCompanionManager.activeCompanion.map { it?.id }.flatMapLatest { id ->
         if (id == null) flowOf(Bond(companionId = -1))
         else bondRepository.getBond(id)
     }

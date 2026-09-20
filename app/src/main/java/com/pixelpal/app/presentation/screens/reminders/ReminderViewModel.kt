@@ -47,6 +47,9 @@ class ReminderViewModel @Inject constructor(
 
     val completedReminders: StateFlow<List<Reminder>> = getRemindersUseCase.getCompletedReminders()
         .stateIn(viewModelScope, SharingStarted.Lazily, emptyList())
+    /** Exposed so empty states render the active companion's species mascot. */
+    val companion = getActiveCompanionUseCase.activeCompanion
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), null)
 
     fun createReminder(
         title: String,

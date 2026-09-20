@@ -5,12 +5,15 @@ import android.content.Context
 /**
  * Every visual state a companion can be in.
  *
- * The drawable lookup is fully data-driven:
- *   PetType + AnimationState  →  R.drawable.pet_{type}_{state}
+ * Lottie-only (`res/raw/pet_{type}_{state}.json`, see `LottiePetView`).
  *
  * Adding a new state only requires:
  *   1. Add the enum entry here
- *   2. Drop a vector drawable named pet_{type}_{state}.xml into res/drawable
+ *   2. Drop `pet_{type}_{state}.json` into res/raw
+ *
+ * One-shot (`loops = false`) durations MUST match the Lottie file length
+ * (`op / fr * 1000` ms) — otherwise the last frame holds frozen until the
+ * state machine advances. Looping states use Long.MAX_VALUE.
  */
 enum class AnimationState(
     val stateName: String,
@@ -26,19 +29,10 @@ enum class AnimationState(
     THINKING("thinking", Long.MAX_VALUE, true, null),
     WAVE("wave", 1500L, false, IDLE),
     JUMP("jump", 800L, false, IDLE),
-    EXCITED("excited", 2500L, false, HAPPY),
+    EXCITED("excited", 1400L, false, HAPPY),
     CELEBRATE("celebrate", 3000L, false, HAPPY),
     EAT("eat", 2000L, false, HAPPY),
     WALK("walk", 2000L, true, IDLE);
-
-    /**
-     * Resolves the drawable resource for this state and the given pet type.
-     * Returns 0 if no matching drawable exists (caller should fall back to IDLE).
-     */
-    fun getDrawableResId(petType: String, context: Context): Int {
-        val name = "pet_${petType.lowercase()}_$stateName"
-        return context.resources.getIdentifier(name, "drawable", context.packageName)
-    }
 
     /**
      * Resolves the Lottie raw JSON resource for this state and pet type.

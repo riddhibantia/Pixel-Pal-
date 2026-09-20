@@ -11,12 +11,21 @@ class SaveAgentConnectionUseCase @Inject constructor(
     private val workerScheduler: WorkerScheduler
 ) {
     suspend operator fun invoke(connection: AgentConnection) {
-        val saved = connection.copy(updatedAt = System.currentTimeMillis())
-        agentConnectionRepository.save(saved)
-        if (saved.pollingEnabled && saved.endpointUrl.isNotBlank()) {
-            workerScheduler.scheduleAgentPolling(saved.companionId, saved.pollingIntervalMinutes)
+        val normalized = connection.copy(
+            provider = com.pixelpal.app.domain.model.AgentProviders.normalize(connection.provider),
+            pollingIntervalMinutes = connection.pollingIntervalMinutes.coerceAtLeast(
+                com.pixelpal.app.util.Constants.DEFAULT_AGENT_POLL_INTERVAL_MIN
+            ),
+            updatedAt = System.currentTimeMillis()
+        )
+        agentConnectionRepository.save(normalized)
+        // Gemini needs no endpoint — polling is valid with pollingEnabled alone.
+        val pollable = normalized.pollingEnabled &&
+            (normalized.endpointUrl.isNotBlank() || normalized.isGemini)
+        if (pollable) {
+            workerScheduler.scheduleAgentPolling(normalized.companionId, normalized.pollingIntervalMinutes)
         } else {
-            workerScheduler.cancelAgentPolling(saved.companionId)
+            workerScheduler.cancelAgentPolling(normalized.companionId)
         }
     }
 }

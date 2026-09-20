@@ -43,6 +43,7 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
 import com.pixelpal.app.domain.model.ActivityEvent
+import com.pixelpal.app.animation.AnimationState
 import com.pixelpal.app.domain.model.ActivityType
 import com.pixelpal.app.presentation.components.AppTopBar
 import com.pixelpal.app.presentation.components.EmptyState
@@ -92,7 +93,7 @@ fun ActivityCenterScreen(
                 title = "No activity yet",
                 message = "Meaningful moments — bond milestones, completed tasks and " +
                     "reminders, agent updates — will appear here.",
-                icon = Icons.Default.History,
+                petState = AnimationState.SLEEP,
                 modifier = Modifier.weight(1f)
             )
         } else {

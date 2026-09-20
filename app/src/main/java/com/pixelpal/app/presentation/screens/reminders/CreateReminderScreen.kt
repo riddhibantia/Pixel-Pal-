@@ -19,6 +19,8 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.imePadding
+import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
@@ -210,7 +212,11 @@ fun CreateReminderScreen(
         }
     }
 
-    Column(modifier = Modifier.fillMaxSize()) {
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .imePadding()
+    ) {
         AppTopBar(title = "New Reminder", onBack = { navController.popBackStack() })
 
         Column(
@@ -219,6 +225,7 @@ fun CreateReminderScreen(
                 .verticalScroll(rememberScrollState())
                 .padding(horizontal = Spacing.screenHorizontal)
                 .padding(bottom = Spacing.xl)
+                .navigationBarsPadding()
         ) {
             // ── WHAT ──
             SectionHeader(title = "What")

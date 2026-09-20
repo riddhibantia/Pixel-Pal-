@@ -36,6 +36,10 @@
 -keep class androidx.datastore.preferences.protobuf.** { *; }
 -dontwarn androidx.datastore.**
 
+# Lottie — keep runtime + compose wrappers (minify is on)
+-keep class com.airbnb.lottie.** { *; }
+-keep class com.airbnb.lottie.compose.** { *; }
+
 # AndroidX / general
 -keepclassmembers class * implements android.os.Parcelable {
     static ** CREATOR;

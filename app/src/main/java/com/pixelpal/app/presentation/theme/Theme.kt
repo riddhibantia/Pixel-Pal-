@@ -1,9 +1,13 @@
 package com.pixelpal.app.presentation.theme
 
+import android.os.Build
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.darkColorScheme
+import androidx.compose.material3.dynamicDarkColorScheme
+import androidx.compose.material3.dynamicLightColorScheme
 import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.platform.LocalContext
 
 private val DarkColorScheme = darkColorScheme(
     primary = DarkPalette.Primary,
@@ -110,11 +114,17 @@ fun PixelPalTheme(
     theme: String = "dark",
     content: @Composable () -> Unit
 ) {
-    val colorScheme = when (theme.lowercase()) {
-        "light" -> LightColorScheme
-        "spring" -> SpringColorScheme
-        "autumn" -> AutumnColorScheme
-        else -> DarkColorScheme
+    val context = LocalContext.current
+    val useDynamic = theme.equals("system", ignoreCase = true) && Build.VERSION.SDK_INT >= Build.VERSION_CODES.S
+    val colorScheme = when {
+        useDynamic && isSystemInDarkThemeCompat() -> dynamicDarkColorScheme(context)
+        useDynamic -> dynamicLightColorScheme(context)
+        else -> when (theme.lowercase()) {
+            "light" -> LightColorScheme
+            "spring" -> SpringColorScheme
+            "autumn" -> AutumnColorScheme
+            else -> DarkColorScheme
+        }
     }
 
     MaterialTheme(
@@ -123,4 +133,9 @@ fun PixelPalTheme(
         shapes = PixelPalShapes,
         content = content
     )
+}
+
+@Composable
+private fun isSystemInDarkThemeCompat(): Boolean {
+    return androidx.compose.foundation.isSystemInDarkTheme()
 }

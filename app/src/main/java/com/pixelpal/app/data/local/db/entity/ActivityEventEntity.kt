@@ -15,7 +15,7 @@ import androidx.room.PrimaryKey
             onDelete = ForeignKey.CASCADE
         )
     ],
-    indices = [Index("companionId")]
+    indices = [Index("companionId"), Index(value = ["companionId", "isRead"]), Index("createdAt")]
 )
 data class ActivityEventEntity(
     @PrimaryKey(autoGenerate = true) val id: Long = 0,

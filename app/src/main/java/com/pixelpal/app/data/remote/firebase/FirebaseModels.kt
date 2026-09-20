@@ -63,6 +63,8 @@ fun FirestoreCompanion.toDomain(id: Long = 1L): Companion = Companion(
     name = name,
     petType = petType,
     role = CompanionRole.fromId(role),
+    description = description,
+    isFavorite = isFavorite,
     hatId = hatId,
     outfitId = outfitId,
     accessoryId = accessoryId,

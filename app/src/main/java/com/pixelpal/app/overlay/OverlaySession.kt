@@ -120,9 +120,10 @@ class OverlaySession(
                 return@launch
             }
 
-            renderer.drawableFor(AnimationState.IDLE).takeIf { it != 0 }?.let {
-                overlayView.updateSprite(it)
-            }
+            overlayView.playState(
+                AnimationState.IDLE,
+                renderer.lottieFor(AnimationState.IDLE)
+            )
             observeKeyboard()
             onReady()
         }
@@ -147,9 +148,10 @@ class OverlaySession(
     fun updatePetType(petType: String) {
         if (renderer.petType != petType) {
             renderer.updatePetType(petType)
-            renderer.drawableFor(AnimationState.IDLE).takeIf { it != 0 }?.let {
-                view?.updateSprite(it)
-            }
+            view?.playState(
+                AnimationState.IDLE,
+                renderer.lottieFor(AnimationState.IDLE)
+            )
         }
     }
 
@@ -223,13 +225,18 @@ class OverlaySession(
     }
 
     private fun flashReaction(state: AnimationState) {
-        val idle = renderer.drawableFor(AnimationState.IDLE).takeIf { it != 0 } ?: return
-        val target = renderer.drawableFor(state).takeIf { it != 0 } ?: return
         reactionJob?.cancel()
         reactionJob = scope.launch {
-            view?.updateSprite(target)
-            delay(700)
-            view?.updateSprite(idle)
+            view?.playState(
+                state,
+                renderer.lottieFor(state)
+            )
+            // Let one-shots (happy bounce, celebrate…) finish; cap loops.
+            delay(state.durationMs.coerceAtMost(3000))
+            view?.playState(
+                AnimationState.IDLE,
+                renderer.lottieFor(AnimationState.IDLE)
+            )
         }
     }
 

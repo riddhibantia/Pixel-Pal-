@@ -44,6 +44,7 @@ import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
+import com.pixelpal.app.animation.AnimationState
 import com.pixelpal.app.presentation.components.AppTopBar
 import com.pixelpal.app.presentation.components.EmptyState
 import com.pixelpal.app.presentation.components.LoadingState
@@ -61,6 +62,7 @@ fun TasksScreen(
     viewModel: TasksViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsState()
+    val companion by viewModel.companion.collectAsState()
     val widgetEnabled by viewModel.tasksWidgetEnabled.collectAsState()
     val context = androidx.compose.ui.platform.LocalContext.current
 
@@ -101,7 +103,8 @@ fun TasksScreen(
                     EmptyState(
                         title = "No tasks yet",
                         message = "Tap + to add your first task. Break it down into sub-points if you like.",
-                        icon = Icons.Default.Add
+                        petType = companion?.effectiveSpecies ?: "cat",
+                        petState = AnimationState.THINKING
                     )
                 }
                 else -> LazyColumn(

@@ -485,19 +485,35 @@ class FirestoreSyncEngine @Inject constructor(
         val uid = currentUserId ?: return Result.failure(IllegalStateException("No user logged in"))
         return withContext(Dispatchers.IO) {
             try {
-                val batch = firestore.batch()
+                // Firestore batches are capped at 500 writes — chunk via chunked(400) to stay well under limit.
+                val BATCH_LIMIT = 400
+                var batch = firestore.batch()
+                var writes = 0
+                suspend fun flushIfFull() {
+                    if (writes >= BATCH_LIMIT) {
+                        batch.commit().await()
+                        batch = firestore.batch()
+                        writes = 0
+                    }
+                }
 
                 if (companion != null) {
                     val compRef = firestore.collection("users").document(uid).collection("companion").document("primary")
                     batch.set(compRef, companion.toFirestore(), SetOptions.merge())
+                    writes++
+                    flushIfFull()
                 }
 
                 tasks.filter { it.cloudId.isNotBlank() }.forEach { task ->
                     batch.set(tasksRef(uid).document(task.cloudId), task.toFirestore(), SetOptions.merge())
+                    writes++
+                    flushIfFull()
                 }
 
                 reminders.filter { it.cloudId.isNotBlank() }.forEach { reminder ->
                     batch.set(remindersRef(uid).document(reminder.cloudId), reminder.toFirestore(), SetOptions.merge())
+                    writes++
+                    flushIfFull()
                 }
 
                 val taskCloudIdById = tasks.associate { it.id to it.cloudId }
@@ -509,15 +525,18 @@ class FirestoreSyncEngine @Inject constructor(
                             subtask.toFirestore(parentCloudId),
                             SetOptions.merge()
                         )
+                        writes++
+                        flushIfFull()
                     }
                 }
 
                 if (bond != null) {
                     val bondRef = firestore.collection("users").document(uid).collection("metrics").document("bond")
                     batch.set(bondRef, bond.toFirestore(), SetOptions.merge())
+                    writes++
                 }
 
-                batch.commit().await()
+                if (writes > 0) batch.commit().await()
                 Timber.d(
                     "Pushed %d tasks, %d subtasks and %d reminders to Cloud Firestore",
                     tasks.size, subtasks.size, reminders.size

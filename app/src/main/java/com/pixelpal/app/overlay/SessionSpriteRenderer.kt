@@ -19,11 +19,12 @@ class SessionSpriteRenderer(
         this.petType = petType
     }
 
-    fun drawableFor(state: AnimationState): Int {
-        val resId = state.getDrawableResId(petType, context)
+    /** Lottie raw res, IDLE fallback, else 0. */
+    fun lottieFor(state: AnimationState): Int {
+        val resId = state.getLottieRawResId(petType, context)
         if (resId != 0) return resId
         if (state != AnimationState.IDLE) {
-            return AnimationState.IDLE.getDrawableResId(petType, context)
+            return AnimationState.IDLE.getLottieRawResId(petType, context)
         }
         return 0
     }
