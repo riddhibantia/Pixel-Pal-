@@ -111,14 +111,6 @@ pythonw agent-endpoint/mini_pet.py cat
 
 ---
 
-## Resume
-
-**PixelPal — AI Companion (Kotlin, Compose, Firebase)** — Single-companion OS (Room v13, offline-first `cloudId` + retry), pluggable agent (HTTP/WS/Gemini, QR LAN, Approve/Deny, live typing), tasks with photo proof + reminders → streaks.
-
-Put in resume: `github.com/riddhibantia/Pixel-Pal-` + one screenshot + one line above. Pair with a 30s screen-record for the best response rate.
-
----
-
 ## License
 
 MIT — see [LICENSE](LICENSE). Copyright © 2026 Riddhi Bantia. Use your own `google-services.json` and `GEMINI_API_KEY` when forking.
