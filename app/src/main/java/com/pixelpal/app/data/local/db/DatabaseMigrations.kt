@@ -455,4 +455,11 @@ object DatabaseMigrations {
             db.execSQL("CREATE INDEX IF NOT EXISTS `index_activity_events_createdAt` ON `activity_events` (`createdAt`)")
         }
     }
+
+    /** Version 13 adds photo proof for tasks (optional image uri, local-only). */
+    val MIGRATION_12_13 = object : Migration(12, 13) {
+        override fun migrate(db: SupportSQLiteDatabase) {
+            db.execSQL("ALTER TABLE `tasks` ADD COLUMN `photoUri` TEXT NOT NULL DEFAULT ''")
+        }
+    }
 }

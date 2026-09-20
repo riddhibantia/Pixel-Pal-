@@ -30,5 +30,6 @@ data class TaskEntity(
     // Stable cross-device identity for Cloud Firestore documents (Room row ids
     // are device-local autoincrement values and must never key cloud docs).
     @ColumnInfo(defaultValue = "") val cloudId: String = java.util.UUID.randomUUID().toString(),
-    @ColumnInfo(defaultValue = "0") val updatedAt: Long = 0L
+    @ColumnInfo(defaultValue = "0") val updatedAt: Long = 0L,
+    @ColumnInfo(defaultValue = "") val photoUri: String = ""
 )

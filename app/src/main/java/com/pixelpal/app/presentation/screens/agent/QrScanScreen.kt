@@ -1,3 +1,5 @@
+@file:OptIn(androidx.camera.core.ExperimentalGetImage::class)
+
 package com.pixelpal.app.presentation.screens.agent
 
 import android.Manifest
@@ -37,6 +39,7 @@ import androidx.core.content.ContextCompat
 import androidx.navigation.NavController
 import com.google.mlkit.vision.barcode.BarcodeScanning
 import com.google.mlkit.vision.common.InputImage
+import androidx.camera.core.ExperimentalGetImage
 import com.pixelpal.app.data.remote.GenericHttpAgentConnector
 import com.pixelpal.app.presentation.components.AppTopBar
 import com.pixelpal.app.presentation.components.LoadingState
@@ -49,6 +52,7 @@ import com.pixelpal.app.presentation.theme.Spacing
  * Only http(s)/ws(s) URLs that pass [GenericHttpAgentConnector.isAllowedEndpoint]
  * are accepted — anything else is ignored so random QRs can't hijack pairing.
  */
+@OptIn(ExperimentalGetImage::class)
 @Composable
 fun QrScanScreen(navController: NavController) {
     val context = LocalContext.current

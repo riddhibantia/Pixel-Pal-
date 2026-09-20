@@ -88,4 +88,14 @@ class TaskDetailViewModel @Inject constructor(
     fun deleteSubtask(subtask: Subtask) {
         viewModelScope.launch { subtaskRepository.delete(subtask) }
     }
+
+    fun setPhoto(uri: String) {
+        val current = uiState.value.task ?: return
+        viewModelScope.launch { taskRepository.updateTask(current.copy(photoUri = uri)) }
+    }
+
+    fun clearPhoto() {
+        val current = uiState.value.task ?: return
+        viewModelScope.launch { taskRepository.updateTask(current.copy(photoUri = "")) }
+    }
 }

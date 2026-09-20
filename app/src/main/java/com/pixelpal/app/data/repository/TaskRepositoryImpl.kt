@@ -132,7 +132,8 @@ class TaskRepositoryImpl @Inject constructor(
         isDone = isDone,
         dueAt = dueAt,
         createdAt = createdAt,
-        completedAt = completedAt
+        completedAt = completedAt,
+        photoUri = photoUri
     )
 
     private fun enqueuePush(type: String, cloudId: String) {
@@ -154,6 +155,7 @@ class TaskRepositoryImpl @Inject constructor(
         dueAt = dueAt,
         createdAt = createdAt,
         completedAt = completedAt,
-        updatedAt = updatedAt
+        updatedAt = updatedAt,
+        photoUri = photoUri
     )
 }

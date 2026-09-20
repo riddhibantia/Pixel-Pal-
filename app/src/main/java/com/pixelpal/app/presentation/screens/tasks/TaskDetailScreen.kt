@@ -1,5 +1,8 @@
 package com.pixelpal.app.presentation.screens.tasks
 
+import android.net.Uri
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -17,6 +20,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.Image
 import androidx.compose.material3.Checkbox
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
@@ -39,12 +43,15 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.focus.onFocusChanged
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
+import coil.compose.AsyncImage
 import com.pixelpal.app.domain.model.Subtask
 import com.pixelpal.app.presentation.components.AppTopBar
 import com.pixelpal.app.presentation.components.AppTextField
@@ -251,6 +258,14 @@ fun TaskDetailScreen(
 
                 Spacer(modifier = Modifier.height(Spacing.lg))
 
+                PhotoProofSection(
+                    photoUri = task.photoUri,
+                    onPick = { uri -> viewModel.setPhoto(uri) },
+                    onClear = { viewModel.clearPhoto() }
+                )
+
+                Spacer(modifier = Modifier.height(Spacing.lg))
+
                 // ── Edit & delete actions ──
                 PrimaryButton(
                     text = "Save Changes",
@@ -285,6 +300,69 @@ fun TaskDetailScreen(
             },
             onDismiss = { showDeleteDialog = false }
         )
+    }
+}
+
+@Composable
+private fun PhotoProofSection(
+    photoUri: String,
+    onPick: (String) -> Unit,
+    onClear: () -> Unit
+) {
+    val launcher = rememberLauncherForActivityResult(ActivityResultContracts.GetContent()) { uri: Uri? ->
+        if (uri != null) onPick(uri.toString())
+    }
+    SectionHeader(title = "Photo proof")
+    Spacer(modifier = Modifier.height(Spacing.sm))
+    Surface(
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(Radius.large),
+        color = MaterialTheme.colorScheme.surface,
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.35f))
+    ) {
+        Column(modifier = Modifier.padding(Spacing.md)) {
+            if (photoUri.isNotBlank()) {
+                AsyncImage(
+                    model = photoUri,
+                    contentDescription = "Task photo proof",
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(180.dp)
+                        .clip(RoundedCornerShape(Radius.medium)),
+                    contentScale = ContentScale.Crop
+                )
+                Spacer(modifier = Modifier.height(Spacing.sm))
+                Row(horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
+                    PrimaryButton(text = "Change photo", onClick = { launcher.launch("image/*") }, modifier = Modifier.weight(1f))
+                    DestructiveButton(text = "Remove", onClick = onClear, modifier = Modifier.weight(1f))
+                }
+            } else {
+                Text(
+                    text = "Attach a photo as proof you did it — visible in the detail screen and local-first (Coil).",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+                Spacer(modifier = Modifier.height(Spacing.sm))
+                Surface(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clickable { launcher.launch("image/*") },
+                    shape = RoundedCornerShape(Radius.medium),
+                    color = MaterialTheme.colorScheme.primaryContainer,
+                    border = BorderStroke(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.3f))
+                ) {
+                    Row(
+                        modifier = Modifier.padding(vertical = 14.dp),
+                        horizontalArrangement = Arrangement.Center,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Icon(Icons.Default.Image, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
+                        Spacer(modifier = Modifier.padding(horizontal = 4.dp))
+                        Text("Attach photo", style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.primary)
+                    }
+                }
+            }
+        }
     }
 }
 

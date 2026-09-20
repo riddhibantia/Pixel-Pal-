@@ -60,9 +60,39 @@ fun ActivityCenterScreen(
     val events by viewModel.events.collectAsState()
     val companion by viewModel.companion.collectAsState()
     val selectedFilter by viewModel.selectedFilter.collectAsState()
+    val liveAgent by viewModel.liveAgent.collectAsState()
 
     Column(modifier = Modifier.fillMaxSize()) {
         AppTopBar(title = "Activity", onBack = { navController.popBackStack() })
+
+        // WebSocket live typing banner — shows when agent is WORKING/ONLINE with a task
+        if (liveAgent != null) {
+            Card(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = Spacing.screenHorizontal, vertical = Spacing.xs),
+                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.primaryContainer)
+            ) {
+                Row(
+                    modifier = Modifier.padding(horizontal = Spacing.md, vertical = Spacing.sm),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Box(
+                        modifier = Modifier
+                            .size(8.dp)
+                            .background(MaterialTheme.colorScheme.primary, CircleShape)
+                    )
+                    Spacer(modifier = Modifier.width(Spacing.sm))
+                    Text(
+                        text = liveAgent!!,
+                        style = MaterialTheme.typography.labelMedium,
+                        color = MaterialTheme.colorScheme.onPrimaryContainer,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis
+                    )
+                }
+            }
+        }
 
         // Companion filter chips (All + one per companion)
         Row(
