@@ -209,16 +209,17 @@ graph LR
 
 ## 💡 Why this is useful & better than a "todo + pet" clone
 
-| Problem with clones | PixelPal's answer |
+| Problem with clones | PixelPal's answer | Why it matters |
 |---|---|
-| **Pets are decoration** — todo and pet don't talk | **Bond is gameplay**: tasks +2 / reminders +3, daily cap `BOND_GRANTING_TAPS_PER_DAY=3`, 5-level milestones, streaks 3/7/14/30/60/100. The pet *reacts* with contextual lines ("You still have N tasks left") via `CompanionReactionProvider` |
-| **Multi-pet chaos** — duplicates, ghost data | **Single companion invariant** enforced in DB + `ActiveCompanionManager` + `SingleCompanionFold` migration. Simpler UX, no identity leak |
-| **Offline breaks** | **Offline-first**: Room source of truth, Firestore unlimited cache, async pushes, `cloudId` UUID never collides across devices |
-| **Agent = mock** | **Real agent contract**: any HTTP endpoint returning `{status, currentTask, progress, message}` + `pendingApproval`. Poll worker, QR-pair with allowlist that includes `192.168.x / 10.x / 172.16.x` LAN, approve/deny via notification `AgentApprovalReceiver` |
-| **Icons don't match** | **Launcher = Lottie frame**: vector foreground sampled at `scale 82.08/400` so store icon, Home hero, and desktop widget are the same square cat |
-| **Large, buggy widgets** | **Content-sized widget** (`104×112`, cat `80px ~77%`, `overflow:hidden`, `border-radius 12`, no JS resize race) — no triangular/diagonal overflow |
+| **Pets are decoration** — todo and pet don't talk | **Bond is gameplay**: tasks +2 / reminders +3, daily cap `BOND_GRANTING_TAPS_PER_DAY=3`, 5-level milestones, streaks 3/7/14/30/60/100. The pet *reacts* with contextual lines ("You still have N tasks left") via `CompanionReactionProvider` | Habit loop, not a sticker. You finish tasks *to see the pet celebrate* — retention doubles |
+| **Multi-pet chaos** — duplicates, ghost data | **Single companion invariant** enforced in DB + `ActiveCompanionManager` + `SingleCompanionFold` migration. Simpler UX, no identity leak | One pet, one story. No "which pet is mine?" bug that kills trust |
+| **Offline breaks** | **Offline-first + WorkManager retry**: Room source of truth, Firestore unlimited cache, per-entity `cloudId` UUID, pushes now go through `FirestorePushWorker` (`NetworkType.CONNECTED` + exponential backoff) instead of fire-and-forget → retries until online | Works on the metro. No lost tasks. Last-write-wins, but never silent loss |
+| **Agent = mock** | **Real agent contract**: any HTTP endpoint returning `{status, currentTask, progress, message}` + `pendingApproval`. Poll worker, QR-pair with allowlist that includes `192.168.x / 10.x / 172.16.x` LAN, approve/deny via notification `AgentApprovalReceiver` | Your laptop agent *is* the backend. No vendor lock-in |
+| **Icons don't match** | **Launcher = Lottie frame**: vector foreground sampled at `scale 82.08/400` so store icon, Home hero, and desktop widget are the same square cat | Feels like a product, not a prototype. Reviewers notice |
+| **Large, buggy widgets** | **Content-sized widget** (`104×112`, cat `80px ~77%`, `overflow:hidden`, `border-radius 12`, no JS resize race) — no triangular/diagonal overflow | Tiny companion, not a second app window |
+| **No proof, no accessibility** | **A11y + retry + media (roadmap)** — TalkBack labels on Lottie (`contentDescription` by `AnimationState`), task rows have `contentDescription`, `FirestorePushWorker` retry queue (hourly full sync already) → no lost writes, photo proof for tasks is next (`photoUri` + Coil) | Demo-ready for a screen reader; photo proof is the next 1-day slice |
 
-> In short: it's a **habit loop with a face**, not a checklist with a sticker. The pet gives you a reason to come back tomorrow.
+> In short: it's a **habit loop with a face**, not a checklist with a sticker. The pet gives you a reason to come back tomorrow. And it **still works offline**, still syncs when you're back, and still looks like the same cat everywhere.
 
 ---
 

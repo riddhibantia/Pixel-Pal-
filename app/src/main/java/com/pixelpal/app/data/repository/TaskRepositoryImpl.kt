@@ -9,11 +9,17 @@ import com.pixelpal.app.data.local.db.dao.TaskDao
 import com.pixelpal.app.data.local.db.entity.ActivityEventEntity
 import com.pixelpal.app.data.local.db.entity.TaskEntity
 import com.pixelpal.app.data.remote.firebase.FirestoreSyncEngine
+import androidx.work.Constraints
+import androidx.work.NetworkType
+import androidx.work.OneTimeWorkRequestBuilder
+import androidx.work.WorkManager
+import androidx.work.workDataOf
 import com.pixelpal.app.domain.model.ActivityType
 import com.pixelpal.app.domain.model.Task
 import com.pixelpal.app.domain.repository.TaskRepository
 import com.pixelpal.app.widget.TasksWidgetProvider
 import com.pixelpal.app.widget.HomeWidgetProvider
+import com.pixelpal.app.worker.FirestorePushWorker
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
@@ -53,7 +59,9 @@ class TaskRepositoryImpl @Inject constructor(
     override suspend fun addTask(task: Task): Long {
         val entity = task.toEntity(updatedAt = System.currentTimeMillis())
         val id = taskDao.insert(entity)
+        // Fire-and-forget for instant UI + WorkManager retry for offline (Blue Man Group roadmap)
         syncEngine.pushTaskAsync(entity.copy(id = id))
+        enqueuePush(FirestorePushWorker.TYPE_TASK, entity.cloudId)
         TasksWidgetProvider.updateAllWidgets(context)
         HomeWidgetProvider.updateAllWidgets(context)
         return id
@@ -126,6 +134,16 @@ class TaskRepositoryImpl @Inject constructor(
         createdAt = createdAt,
         completedAt = completedAt
     )
+
+    private fun enqueuePush(type: String, cloudId: String) {
+        if (cloudId.isBlank()) return
+        val req = OneTimeWorkRequestBuilder<FirestorePushWorker>()
+            .setConstraints(Constraints.Builder().setRequiredNetworkType(NetworkType.CONNECTED).build())
+            .setBackoffCriteria(androidx.work.BackoffPolicy.EXPONENTIAL, 10_000L, java.util.concurrent.TimeUnit.MILLISECONDS)
+            .setInputData(workDataOf(FirestorePushWorker.KEY_TYPE to type, FirestorePushWorker.KEY_CLOUD_ID to cloudId))
+            .build()
+        WorkManager.getInstance(context).enqueue(req)
+    }
 
     private fun Task.toEntity(updatedAt: Long = 0L) = TaskEntity(
         id = id,
