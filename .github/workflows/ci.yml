@@ -43,32 +43,26 @@ jobs:
         uses: gradle/actions/setup-gradle@v3
       - name: Create local.properties (CI stub)
         run: echo "GEMINI_API_KEY=dummy" > local.properties
-      - name: Instrumented tests (emulator)
+      - name: Enable KVM
+        run: |
+          echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
+          sudo udevadm control --reload-rules
+          sudo udevadm trigger --name-match=kvm
+      - name: Instrumented tests
         uses: reactivecircus/android-emulator-runner@v2
         with:
-          api-level: 33
+          api-level: 35
           target: google_apis
           arch: x86_64
           profile: pixel_7_pro
-          cores: 2
-          ram-size: 4096M
-          heap-size: 512M
-          disk-size: 4096M
-          sdcard-path-or-size: 512M
           force-avd-creation: true
-          emulator-boot-timeout: 600
+          emulator-boot-timeout: 900
+          emulator-options: '-no-snapshot-save -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim -camera-back none'
           disable-animations: true
-          emulator-options: "-no-window -gpu swiftshader_indirect -no-snapshot -noaudio -no-boot-anim -camera-back none"
           script: |
             adb devices
-            adb -s emulator-5554 wait-for-device
-            timeout 180 bash -c 'until adb -s emulator-5554 shell getprop sys.boot_completed | grep -q 1; do sleep 2; done'
+            adb -s emulator-5554 shell getprop ro.build.version.sdk
             adb -s emulator-5554 shell getprop sys.boot_completed
-            timeout 60 bash -c 'until adb -s emulator-5554 shell pm list packages 2>/dev/null | grep -q com.android.shell; do sleep 2; done'
-            adb -s emulator-5554 shell input keyevent 82 || true
-            adb -s emulator-5554 shell settings put global window_animation_scale 0 || true
-            adb -s emulator-5554 shell settings put global transition_animation_scale 0 || true
-            adb -s emulator-5554 shell settings put global animator_duration_scale 0 || true
             ./gradlew :app:connectedDebugAndroidTest --stacktrace
   rules:
     runs-on: ubuntu-latest
