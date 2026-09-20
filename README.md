@@ -1,258 +1,991 @@
-# PixelPal — Your AI Companion on Android
+# 🐾 PixelPal — Your AI-Powered Digital Companion
 
-> **One pixel pet, one story — powered by an AI agent you connect yourself.**
-> PixelPal is not a todo app with a sticker. It's a **single-companion OS** where your tasks, reminders, and streaks *are the pet's life*. The main feature is the **AI agent connection** — you paste any HTTP/WebSocket/Gemini endpoint, the pet talks to it, and you approve what it does.
+> **A pixel companion that lives with you, grows with your habits, and connects to the AI agent you choose.**
 
-**Live Demo →** `https://github.com/riddhibantia/Pixel-Pal-` · **Package** `com.pixelpal.app` · **minSdk 26 / targetSdk 35** · **Kotlin 2.0 + Jetpack Compose**
+PixelPal is an Android digital-companion application built with **Kotlin and Jetpack Compose**. Instead of treating a pet as a decorative feature, PixelPal makes the companion the center of the experience: **tasks, reminders, interactions, bond, personality, notifications, widgets, and AI-agent activity all belong to the same companion.**
 
----
+The project is designed around a simple loop:
 
-## Summary — what the app actually is
-
-PixelPal is a **single-companion** Android app. You get **one** pixel cat (Dog/Whale/Axolotl/Llama unlock as bond grows) for the entire install. Everything else is a feature *of that companion*:
-
-- **Tasks + subtasks + photo proof** and **reminders with exact alarms** → they feed **Bond & streaks** (tasks +2, reminders +3, daily cap 3, 5-level milestones) → Bond unlocks **species** and evolves **personality** daily.
-- **That bond/personality is what you show the AI** — the agent sees *your* companion's state and reacts in context ("You still have 3 tasks left").
-- **Floating overlay, widgets, activity feed** — all read the same companion.
-
-In one line: **your habits grow a pet that your AI talks through.**
+**Do something → your companion reacts → bond grows → personality evolves → your AI agent gets context → the companion reacts again.**
 
 ---
 
-## Why AI is the main feature (and why tasks/reminders exist at all)
+## ✨ What is PixelPal?
 
-Most todo apps bolt on a chatbot. PixelPal does the opposite — **the agent is the product, the habits are the fuel.**
+PixelPal is a **single-companion Android experience** that combines:
+
+- 🐾 A customizable animated digital companion
+- ✅ Tasks and subtasks
+- 📸 Photo proof for completed tasks
+- ⏰ Reminders with scheduled alarms
+- 💗 Bond progression and streaks
+- 🧠 Personality that evolves from interaction
+- 🤖 AI-agent connectivity through HTTP, WebSocket, or Gemini
+- 🔐 Agent approval through Android notifications
+- 🪟 A floating companion overlay
+- 📱 Android home-screen widgets
+- ☁️ Firebase Authentication and Firestore synchronization
+- 🔄 Offline-first local storage with cloud synchronization
+- 📷 QR-based agent pairing
+- 🧪 Unit, Room/DAO, migration, and UI smoke tests
+- ⚙️ GitHub Actions CI
+
+### The idea
+
+PixelPal is not simply a task manager with a pet placed on top.
+
+The **companion is the product**.
+
+Your tasks and reminders become meaningful because they affect the companion's bond and activity. The companion's state then becomes context for the connected AI agent.
+
+---
+
+# 🧠 The PixelPal Loop
 
 ```mermaid
 flowchart LR
-    subgraph You
-        T[Tasks + Subtasks + Photo Proof]
-        R[Reminders - exact alarm]
-    end
-    subgraph Pet
-        B[Bond & Streaks]
-        P[Personality - daily worker]
-    end
-    subgraph AI
-        E[Your HTTP / ws / Gemini Endpoint]
-        Q[QR Pair - private LAN allowlist]
-        A[Approve / Deny via Notification]
-        C[Chat - streaming Flow]
-    end
-    T -->| +2 | B
-    R -->| +3 | B
-    B -->| unlocks | P
-    B -->| level | E
-    P -->| prompt injection | E
-    Q --> E
-    E -->| poll + live typing | A
-    A -->| decision POST | E
-    C --> E
-    E -->| reaction | Pet
+    U["👤 User"]
+
+    T["✅ Tasks<br/>+ Subtasks<br/>+ Photo Proof"]
+    R["⏰ Reminders"]
+
+    B["💗 Bond<br/>+ Streaks"]
+    P["🧠 Personality"]
+
+    A["🤖 AI Agent<br/>HTTP / WebSocket / Gemini"]
+    C["💬 Companion Reactions"]
+    N["🔔 Notifications<br/>Approve / Deny"]
+
+    U --> T
+    U --> R
+
+    T -->|completion| B
+    R -->|completion| B
+
+    B --> P
+    P -->|context| A
+
+    A -->|status / message| C
+    A -->|approval request| N
+    N -->|decision| A
+
+    C --> U
 ```
 
-**How it works in practice:**
-
-1. **You connect an agent** — paste `https://your-agent/status` or `ws://192.168.1.10:8765` or a Gemini key. Or **Scan QR** on your laptop dashboard (CameraX + ML Kit). The app allowlists private LAN so `http://` works at home.
-2. **The app polls / streams** — `GenericHttpAgentConnector` polls `{status, currentTask, progress, message, pendingApproval}` and `WebSocketAgentConnector` streams the same envelope over `ws://`. `AgentStatusWorker` runs every 15 min per `companionId` (battery-not-low, `NetworkType.CONNECTED`).
-3. **It asks you, not just tells you** — when the envelope contains `pendingApproval`, you get a notification **Approve / Deny** (`AgentApprovalReceiver`). One `approvalId`, one notification, deduped via `PreferencesManager.lastApprovalId`.
-4. **You talk back** — `sendCommand` POSTs `{"command": "..."}` to `commandUrl` or sends over the live socket. Gemini streams via `Flow<String>`.
-5. **The pet reacts** — `CompanionReactionProvider` weaves live state into messages. Activity Center shows **🟢 Agent is typing…** when `currentStatus == WORKING` (live WebSocket typing indicator).
-
-**Why tasks & reminders aren't just "features":**
-- Without them, bond never moves, personality never evolves, streaks die, and the agent has nothing to react to.
-- With them, every completed task is a **bond event** that also writes an `ActivityEvent` and pushes to Firestore — the same pipeline the agent reads. It's one loop: **Do → Bond → Personality → Agent context → Reaction**. That's why the app feels alive.
+The result is a companion whose state is connected to what you actually do inside the app.
 
 ---
 
-## ✨ Core features
+# 🌟 Core Features
 
-- **AI Agent Connection** — Generic HTTP / WebSocket / Gemini, `WORKING/IDLE/ERROR/OFFLINE` UI, `Check Now`, QR-pair, notification gate, `FirestorePushWorker` retry queue (hourly full sync backup)
-- **Tasks that matter** — `NewTask → TaskDetail` with **photo proof** (Coil, `TaskEntity.photoUri` v13, local-first), subtasks with drag-agnostic `sortOrder`, swipe-to-delete, progress bar, widget opt-in
-- **Reminders that fire** — `AlarmManager` exact + `BootReceiver` + `ReminderActionReceiver`, snooze, status `PENDING → TRIGGERED → COMPLETED`
-- **Bond & Streaks** — `BondEngine` caps taps at 3/day, feed/play are cosmetic, level every 5
-- **Personality** — `PersonalityWorker` recomputes daily from activity
-- **Overlay** — `SYSTEM_ALERT_WINDOW`, `MAX_SIMULTANEOUS_OVERLAYS=1`, draggable `OverlaySession`
-- **Desktop widget** — `104×112` PyWebView (`mini_pet.py`) mirrors the same Lottie, `overflow:hidden`, `border-radius 12`
-- **Single companion, enforced** — `CompanionBootstrapInitializer` folds legacy rows (activeId → favorite → most-recent) once, idempotent
+## 🐾 Digital Companion
+
+PixelPal maintains **one active companion per installation**.
+
+The companion has:
+
+- Name
+- Species
+- Color
+- Pattern
+- Bond level
+- Streak
+- Personality
+- Activity history
+- Tasks
+- Reminders
+- AI-agent connection
+
+The current species roster includes:
+
+| Species | Unlock Bond Level |
+|---|---:|
+| 🐱 Cat | 0 |
+| 🐶 Dog | 10 |
+| 🐰 Bunny | 25 |
+| 🐼 Panda | 30 |
+| 🐋 Whale | 40 |
+| 🦎 Axolotl | 50 |
+| 🦙 Llama | 60 |
+
+Appearance is represented independently through:
+
+**Species × Color × Pattern**
+
+Available appearance options are implemented for species, colors, and patterns rather than treating customization as separate companion identities.
 
 ---
 
-## 🏗 Architecture
+## 💗 Bond & Streak System
 
+Bond progression is driven by meaningful interaction.
+
+| Action | Bond effect |
+|---|---:|
+| Complete task | +2 |
+| Complete reminder | +3 |
+| Tap interaction | +1, limited meaningful taps/day |
+| Feed / play | Cosmetic interaction |
+| Daily interaction | Maintains streak |
+
+Bond levels are capped at **100**.
+
+Bond milestones are recorded every **5 levels**, while streak milestones include:
+
+**3 → 7 → 14 → 30 → 60 → 100 days**
+
+The progression system is implemented centrally through `BondEngine`, so different parts of the application do not create their own conflicting bond logic.
+
+---
+
+# ✅ Tasks
+
+PixelPal's task system supports:
+
+- Tasks
+- Subtasks
+- Task progress
+- Completion state
+- Ordering
+- Photo proof
+- Activity events
+- Bond progression
+- Widget interaction
+
+The flow is:
+
+```text
+Tasks
+   ↓
+New Task
+   ↓
+Task Details
+   ├── Subtasks
+   ├── Progress
+   └── Photo Proof
+   ↓
+Complete
+   ↓
+Bond + Activity Event
 ```
-app/
- ├─ data/local/db/          Room v13 (Companion, Bond, Personality, Task+Subtask+photoUri, Reminder, AgentConnection, Activity)
- │   └─ DatabaseMigrations.kt  1→13 (photoUri is 12→13)
- ├─ data/local/datastore/   PreferencesManager + Bootstrap (SingleCompanionFold)
- ├─ data/remote/            GenericHttpAgentConnector, WebSocketAgentConnector, GeminiAgentConnector
- ├─ data/remote/firebase/   FirebaseAuth (anon + email), FirestoreSyncEngine + FirestorePushWorker + FirestoreSyncWorker
- ├─ domain/engine/          ActiveCompanionManager (the authority), BondEngine, ReactionProvider
- ├─ presentation/           Compose + LottiePetView (state→rawRes) + Home/Tasks/NewTask/TaskDetail(with ViewModel)/Reminders/Customize/Agent/QrScan/Activity
- ├─ overlay/                OverlayManager (1 session max)
- ├─ worker/                 AgentStatusWorker, PersonalityWorker, BondDecayWorker, FirestoreSyncWorker/PushWorker
- ├─ widget/                 TasksWidgetProvider, HomeWidgetProvider
- └─ di/                     Hilt
-agent-endpoint/
- ├─ server.py               GET / → envelope, POST /approve, GET /mini (Lottie page)
- └─ mini_pet.py             floating 104×112 square
+
+Task data is stored locally first and can be synchronized with Firestore.
+
+---
+
+# ⏰ Reminders
+
+Reminders use Android scheduling infrastructure rather than relying only on an in-app timer.
+
+Implemented pieces include:
+
+- `AlarmManager`
+- `ReminderScheduler`
+- `AlarmReceiver`
+- `ReminderActionReceiver`
+- `BootReceiver`
+- Snooze/action handling
+- Reminder status tracking
+- Bond updates after completion
+
+Reminder state follows the application's persisted lifecycle rather than disappearing after the notification is shown.
+
+---
+
+# 🤖 AI Agent Integration
+
+One of PixelPal's main differentiating features is its **pluggable AI-agent connection layer**.
+
+PixelPal supports multiple agent connection styles:
+
+### HTTP
+
+A generic HTTP endpoint can provide agent state such as:
+
+```json
+{
+  "status": "WORKING",
+  "currentTask": "Run the test suite",
+  "progress": 72,
+  "message": "Almost done",
+  "pendingApproval": false
+}
 ```
 
-### System overview
+### WebSocket
 
-```mermaid
-graph TB
-    UI[Compose UI] --> VM[ViewModels]
-    VM --> Domain[ActiveCompanionManager / BondEngine]
-    Domain --> Repo[Task/Reminder/Agent Repos]
-    Repo --> DB[(Room v13)]
-    Repo -->|push async + retry| FS[(Firestore users/{uid})]
-    FS -->|snapshot| Repo
-    Agent[Your Agent<br/>HTTP / WS / Gemini] -->|poll/stream + QR| Repo
-    Agent --> Desk[Desktop mini_pet]
-    Repo --> Overlay[OverlayService]
-    Repo --> Widget[Widgets]
+The WebSocket connector supports live event/status delivery using OkHttp.
+
+This enables the application to react to changing agent state without depending only on periodic polling.
+
+### Gemini
+
+PixelPal also contains a Gemini-based connector for AI interaction and streaming responses.
+
+### Agent state
+
+The UI can represent states such as:
+
+```text
+CONNECTED
+ONLINE
+WORKING
+IDLE
+ERROR
+OFFLINE
 ```
 
-### Task → Bond → AI loop
+---
+
+# 🔐 Agent Approval Flow
+
+PixelPal can require the user to explicitly approve an agent action.
 
 ```mermaid
 sequenceDiagram
-    participant U as You
+    participant Agent as AI Agent
     participant App as PixelPal
-    participant Pet as Bond/Personality
-    participant AI as Your Agent
-    U->>App: Complete Task (+ photo proof)
-    App->>Pet: +2 bond, activity event, streak check
-    Pet->>AI: personality + bond level in next poll context
-    AI-->>App: {status:WORKING, currentTask:"run tests", pendingApproval?}
-    App-->>U: 🟢 Agent is typing… + Approve/Deny notification
-    U->>AI: POST /approve {decision}
+    participant Android as Android Notification
+    participant User as User
+
+    Agent->>App: pendingApproval
+    App->>Android: Approval notification
+    Android->>User: Approve / Deny
+    User->>Android: Decision
+    Android->>App: AgentApprovalReceiver
+    App->>Agent: Approval decision
+```
+
+Approval requests are deduplicated using the stored approval identifier so the same request does not repeatedly generate notifications.
+
+---
+
+# 📷 QR Agent Pairing
+
+PixelPal includes CameraX + ML Kit barcode scanning for QR-based agent pairing.
+
+The intended flow is:
+
+```text
+Agent Dashboard
+      ↓
+Generate QR
+      ↓
+PixelPal Camera
+      ↓
+Scan QR
+      ↓
+Store Agent Connection
+      ↓
+Check / Poll / Stream Agent
+```
+
+This is particularly useful for connecting PixelPal to an agent running on the same local network.
+
+---
+
+# 🧠 Personality System
+
+Personality is not simply a static label.
+
+The application contains a personality engine and worker that use interaction information to recalculate the companion's personality state.
+
+The daily personality workflow is handled through `PersonalityWorker`.
+
+Conceptually:
+
+```mermaid
+flowchart TD
+    Activity["Daily Activity"]
+    Stats["Interaction Statistics"]
+    Engine["Personality Engine"]
+    Personality["Companion Personality"]
+    Agent["AI Agent Context"]
+
+    Activity --> Stats
+    Stats --> Engine
+    Engine --> Personality
+    Personality --> Agent
+```
+
+This allows the companion and connected agent to use the same underlying user activity instead of maintaining unrelated personality state.
+
+---
+
+# 🪟 Floating Companion Overlay
+
+PixelPal can display the companion outside the main application through an Android overlay.
+
+The implementation uses:
+
+- `SYSTEM_ALERT_WINDOW`
+- Foreground service
+- `OverlayService`
+- `OverlayManager`
+- `OverlaySession`
+- Companion rendering
+- Speech-bubble UI
+- Touch handling
+- Dynamic island-style overlay components
+
+The project deliberately limits the active overlay system to **one companion session**.
+
+```mermaid
+flowchart TD
+    App["PixelPal App"]
+    Manager["OverlayManager"]
+    Session["OverlaySession"]
+    Service["OverlayService"]
+    View["Companion Overlay"]
+
+    App --> Manager
+    Manager --> Session
+    Session --> Service
+    Service --> View
 ```
 
 ---
 
-## 🎬 60-second demo
+# 📱 Home-Screen Widgets
 
-1. Onboarding → Auth (guest)
-2. Home — Lottie hero
-3. Tasks → New Task → add subtasks → Create Task → appears instantly (Flow) → Task Detail → attach photo proof → tick subtasks → Complete (see bond bump)
-4. Reminders → create exact alarm
-5. Customize → unlock Llama at bond 60
-6. AI Agent → paste endpoint or Scan QR → Check Now → see `Working` + live typing in Activity → Approve via notification
-7. Overlay → float over any app
+PixelPal contains two Android widgets.
 
----
+### 🏠 Home Widget
 
-## 🔗 Live demo in your resume — how to show it without a Play Store build
+The home widget can display:
 
-You put `https://github.com/riddhibantia/Pixel-Pal-` in your resume. To make it **click → see it live**, add one of these next to the link:
+- Companion name
+- Bond level
+- Streak
+- Remaining tasks
+- Reminder information
+- Agent status
 
-**1. GitHub Releases APK (fastest, no store):**
-```bash
-./gradlew :app:assembleDebug
-# upload app/build/outputs/apk/debug/app-debug.apk to:
-# GitHub → Releases → Tag v1.1.0 → attach APK → link in README:
-# [📲 Download APK](https://github.com/riddhibantia/Pixel-Pal-/releases/download/v1.1.0/app-debug.apk)
-```
-Recruiters tap → install on any Android 8+ device. Add that line under the title.
+### ✅ Tasks Widget
 
-**2. Firebase App Distribution (looks most professional):**
-```bash
-firebase appdistribution:distribute app/build/outputs/apk/debug/app-debug.apk \
-  --app 1:xxx:android:xxx --groups "recruiters" --release-notes "PixelPal v1.1.0 — AI companion"
-# you get a https://appdistribution.firebase.google.com/testerapps/... invite link
-# put: Live build → [Firebase App Distribution](your-link) (no Play review)
-```
+The task widget can:
 
-**3. Live web mini-demo (shows the AI widget without an Android device):**
-Host `agent-endpoint/server.py` + `GET /mini` as a static page on GitHub Pages:
-```bash
-# copy agent-endpoint/server.py MINI_PAGE HTML to docs/mini.html
-git add docs/mini.html && git push
-# enable Settings → Pages → docs/ → https://riddhibantia.github.io/Pixel-Pal-/mini.html?species=cat
-# put: [🟢 Live Widget Demo](https://riddhibantia.github.io/Pixel-Pal-/mini.html)
-```
+- Display current tasks
+- Show completion state
+- Toggle task completion
+- Display remaining task count
+- Open PixelPal
+- Update the home widget after changes
 
-**4. 30s video (highest conversion for resumes):**
-Record the flow above, upload as `docs/demo.mp4` or to YouTube unlisted, embed:
-```md
-[![Demo](docs/screenshots/home.png)](https://youtu.be/YOUR_ID)
-```
-**Recommendation for your resume:** keep the GitHub link + add **one** of: `[APK](Releases)` *or* `[Live Widget](Pages)` + `[Video](YouTube)`. I can generate the Release tag and the `docs/mini.html` for Pages on the next push — say which you want and I'll wire it.
+Both widgets read from the same local Room database used by the application.
 
 ---
 
-## 🛠 Tech stack
+# ☁️ Firebase & Offline-First Data
 
-| Layer | Choice |
+PixelPal uses Firebase for authentication and cloud synchronization.
+
+### Authentication
+
+The application supports Firebase authentication flows including:
+
+- Anonymous/guest authentication
+- Email/password authentication
+- Password reset
+- Google sign-in integration through Android Credential Manager
+
+### Firestore
+
+The synchronization layer maintains cloud representations of application data, including:
+
+```text
+users/
+ └── {userId}/
+      ├── companion/
+      │    └── primary
+      ├── tasks/
+      ├── reminders/
+      └── metrics/
+           └── bond
+```
+
+The local Room database remains the primary application data layer, while Firestore provides cloud synchronization and real-time updates.
+
+Background synchronization is handled through WorkManager-based workers.
+
+---
+
+# 🏗️ Architecture
+
+PixelPal follows a layered Android architecture built around **Compose UI + ViewModels + domain logic + repositories + Room/Firebase**.
+
+```mermaid
+flowchart TB
+
+    subgraph UI["Presentation Layer"]
+        Compose["Jetpack Compose"]
+        Screens["Screens"]
+        Components["Reusable Components"]
+        ViewModels["ViewModels"]
+    end
+
+    subgraph Domain["Domain Layer"]
+        UseCases["Use Cases"]
+        CompanionManager["ActiveCompanionManager"]
+        BondEngine["BondEngine"]
+        Personality["Personality Engine"]
+        Repositories["Repository Interfaces"]
+    end
+
+    subgraph Data["Data Layer"]
+        Room["Room Database"]
+        DataStore["DataStore"]
+        Firebase["Firestore / Firebase Auth"]
+        Agent["HTTP / WebSocket / Gemini"]
+    end
+
+    subgraph Platform["Android Platform"]
+        Workers["WorkManager"]
+        Alarm["AlarmManager"]
+        Overlay["Overlay Service"]
+        Widgets["Home / Tasks Widgets"]
+        Notifications["Notifications"]
+        Camera["CameraX + ML Kit"]
+    end
+
+    Compose --> Screens
+    Screens --> ViewModels
+    ViewModels --> UseCases
+    UseCases --> CompanionManager
+    UseCases --> BondEngine
+    UseCases --> Personality
+    UseCases --> Repositories
+
+    Repositories --> Room
+    Repositories --> DataStore
+    Repositories --> Firebase
+    Repositories --> Agent
+
+    Workers --> Repositories
+    Alarm --> Repositories
+    Overlay --> Repositories
+    Widgets --> Room
+    Notifications --> Repositories
+    Camera --> Agent
+```
+
+---
+
+# 🗂️ Project Structure
+
+```text
+Pixel-Pal/
+│
+├── app/
+│   ├── src/main/
+│   │   ├── java/com/pixelpal/app/
+│   │   │
+│   │   ├── data/
+│   │   │   ├── local/
+│   │   │   │   ├── db/
+│   │   │   │   └── datastore/
+│   │   │   ├── remote/
+│   │   │   │   ├── firebase/
+│   │   │   │   ├── GeminiAgentConnector.kt
+│   │   │   │   ├── GenericHttpAgentConnector.kt
+│   │   │   │   └── WebSocketAgentConnector.kt
+│   │   │   └── repository/
+│   │   │
+│   │   ├── domain/
+│   │   │   ├── engine/
+│   │   │   ├── model/
+│   │   │   ├── repository/
+│   │   │   └── usecase/
+│   │   │
+│   │   ├── presentation/
+│   │   │   ├── components/
+│   │   │   ├── screens/
+│   │   │   ├── navigation/
+│   │   │   └── theme/
+│   │   │
+│   │   ├── overlay/
+│   │   ├── receiver/
+│   │   ├── service/
+│   │   ├── widget/
+│   │   ├── worker/
+│   │   └── di/
+│   │
+│   ├── src/test/
+│   └── src/androidTest/
+│
+├── agent-endpoint/
+│   ├── server.py
+│   ├── mini_pet.py
+│   └── status.json
+│
+├── docs/
+│   └── superpowers/
+│
+├── .github/
+│   └── workflows/
+│       └── ci.yml
+│
+├── gradle/
+│   └── libs.versions.toml
+│
+├── firestore.rules
+├── implementation_plan.md
+├── AGENTS.md
+└── README.md
+```
+
+---
+
+# 🛠️ Tech Stack
+
+| Area | Technology |
 |---|---|
-| Language / build | Kotlin 2.0, AGP 8.5, KSP, Java 17 |
-| UI | Jetpack Compose (BOM), Material 3, Lottie Compose, Coil, Navigation Compose |
-| DI / async | Hilt, Coroutines + Flow, WorkManager |
-| Local | Room v13 (8 entities, exportSchema, photoUri 12→13), DataStore |
-| Cloud | Firebase Auth (anon + email), Firestore (offline cache, `cloudId` UUID, `FirestorePushWorker` retry) |
-| AI | Gemini `Flow<String>` + Generic HTTP + WebSocket (`OkHttp` + `WebSocketAgentConnector`) |
-| Agent UX | CameraX + ML Kit (QR), `AgentNotificationHelper` Approve/Deny |
-| Desktop | Python + PyWebView (`mini_pet.py` 104×112) |
+| Language | Kotlin 2.0.0 |
+| Android Build | Android Gradle Plugin 8.5.0 |
+| JVM | Java 17 |
+| UI | Jetpack Compose |
+| Design System | Material 3 |
+| Navigation | Navigation Compose |
+| Dependency Injection | Hilt |
+| Local Database | Room |
+| Preferences | DataStore |
+| Async | Kotlin Coroutines + Flow |
+| Background Work | WorkManager |
+| Scheduling | AlarmManager |
+| Animation | Lottie |
+| Image Loading | Coil |
+| Authentication | Firebase Auth + Credential Manager |
+| Cloud Database | Cloud Firestore |
+| AI | Gemini |
+| Agent Networking | OkHttp + HTTP + WebSocket |
+| QR Pairing | CameraX + ML Kit |
+| Logging | Timber |
+| Serialization | Kotlinx Serialization |
+| Testing | JUnit + AndroidX Test + Espresso + Compose UI Test |
+| CI | GitHub Actions |
+| Desktop Companion | Python + PyWebView |
 
 ---
 
-## 🚀 Build & run
+# 🔄 Data Flow
+
+The central data flow looks like this:
+
+```mermaid
+flowchart LR
+
+    UI["Compose UI"]
+    VM["ViewModel"]
+    Repo["Repository"]
+    Room["Room"]
+    Sync["Firestore Sync"]
+    Agent["AI Agent"]
+    Worker["WorkManager"]
+    Overlay["Overlay"]
+    Widget["Widgets"]
+
+    UI --> VM
+    VM --> Repo
+    Repo --> Room
+
+    Room <--> Sync
+    Sync <--> Firebase["Firebase / Firestore"]
+
+    Worker --> Repo
+    Repo <--> Agent
+
+    Room --> Overlay
+    Room --> Widget
+```
+
+This keeps the application's core state centralized instead of allowing the overlay, widgets, screens, and background workers to maintain independent versions of the companion.
+
+---
+
+# 🎨 Animation System
+
+PixelPal uses Lottie animation assets stored under:
+
+```text
+app/src/main/res/raw/
+```
+
+Animation states include combinations such as:
+
+```text
+idle
+blink
+happy
+sad
+excited
+thinking
+eat
+sleep
+walk
+jump
+wave
+celebrate
+```
+
+The renderer selects animations according to the companion's species and current state, with drawable fallbacks where required.
+
+The repository contains animation assets for the supported companion species.
+
+---
+
+# 🖥️ Desktop Companion Endpoint
+
+The repository also contains a small Python-based companion endpoint:
+
+```text
+agent-endpoint/
+├── server.py
+├── mini_pet.py
+└── status.json
+```
+
+The endpoint can provide a lightweight agent status surface and a small desktop companion view.
+
+The Android application can use the same agent concept through its HTTP/WebSocket connection layer.
+
+---
+
+# 🧪 Testing
+
+The repository contains both local unit tests and Android instrumented tests.
+
+## Unit tests
+
+Examples include:
+
+- Bond engine behavior
+- Personality engine
+- Agent connection logic
+- Firebase model serialization
+- Approval envelope behavior
+- Species/model behavior
+- Animation state behavior
+- Theme/color behavior
+
+## Instrumented tests
+
+The project includes Android tests for:
+
+- Room DAO behavior
+- Reminder DAO behavior
+- Database migrations
+- Navigation smoke testing
+
+Run unit tests locally:
+
+```bash
+./gradlew :app:testDebugUnitTest
+```
+
+Run instrumented tests on a connected/emulated device:
+
+```bash
+./gradlew :app:connectedDebugAndroidTest
+```
+
+The instrumented suite depends on a correctly configured Android emulator and ADB environment.
+
+---
+
+# ⚙️ GitHub Actions CI
+
+The repository contains:
+
+```text
+.github/workflows/ci.yml
+```
+
+The CI pipeline is organized into three jobs:
+
+```mermaid
+flowchart LR
+    Push["Push / Pull Request"]
+
+    Build["Build"]
+    Rules["Firestore Rules"]
+    Instrumented["Android Instrumented Tests"]
+
+    Push --> Build
+    Push --> Rules
+    Build --> Instrumented
+```
+
+### Build job
+
+The build workflow runs:
 
 ```bash
 ./gradlew :app:assembleDebug
-./gradlew :app:installDebug
-./gradlew :app:testDebugUnitTest   # 34 unit
+./gradlew :app:testDebugUnitTest
 ./gradlew :app:lintDebug
-./gradlew clean
-# desktop widget
-python agent-endpoint/server.py 8765
-pythonw agent-endpoint/mini_pet.py cat
 ```
 
-Needs JDK 17, SDK 35, `local.properties` with `GEMINI_API_KEY`, `app/google-services.json` (demo project `pixel-pet-a1cc6` — replace for a fork).
+It also checks that Room schemas remain synchronized.
+
+### Instrumented job
+
+The workflow creates an Android emulator and runs:
+
+```bash
+./gradlew :app:connectedDebugAndroidTest
+```
+
+The instrumented-test job is intended to validate the application on an Android emulator.
+
+> **CI status note:** The instrumented-test environment may require further emulator/runner configuration depending on the GitHub Actions runner environment. A successful application build does not by itself guarantee that the emulator-based instrumented tests will pass.
+
+### Firestore rules
+
+The workflow also contains a conditional Firestore-rules deployment step when the required Firebase token is available.
 
 ---
 
-## 🧪 Tests & CI
+# 🚀 Getting Started
 
-- **Unit** `SpeciesRosterTest`, `ApprovalEnvelopeTest`, Bond
-- **Instrumented** `MigrationTest 3→13` + `TaskDaoTest` + `ReminderDaoTest` + `NavSmokeTest`
-- **CI** `.github/workflows/ci.yml` → `build ✅ / instrumented ✅ / rules ✅`
-  - `build`: `assembleDebug` + `Room schema diff` + `testDebugUnitTest` + `lintDebug`
-  - `instrumented`: `api 35 google_apis pixel_7_pro` + KVM + `900s` boot + `sys.boot_completed` check → `connectedDebugAndroidTest`
+## Requirements
 
----
+Before building PixelPal, install:
 
-## 📄 Resume bullets
+- Android Studio
+- JDK 17
+- Android SDK 35
+- Git
 
-- **PixelPal — AI Companion App (Kotlin, Jetpack Compose, Firebase)** — Single-companion OS (Room v13, 12 migrations) where tasks/reminders/photo-proof feed Bond (daily cap 3, milestones every 5) and personality; offline-first Firestore sync with stable `cloudId` + WorkManager retry.
-- **AI-first**: pluggable agent (HTTP / WebSocket live stream / Gemini), QR-pair for private LAN, polling worker per `companionId`, notification gate (`pendingApproval` → Approve/Deny), live typing banner in Activity Center.
-- **Lottie as source of truth** — launcher icon sampled pixel-for-pixel from `pet_cat_idle.json` (`scale 82.08/400`); `104×112` desktop widget mirrors the same art.
-- **34 unit + migration/DAO/espresso tests, CI with emulator api-35, schema diff guard.**
+The project uses:
 
-*One-liner:* `PixelPal — AI companion where habits grow a pet that your agent talks through (Compose + Room v13 + Firestore + WebSocket live typing).`
-
----
-
-## 📸 Screenshots
-
-```
-docs/screenshots/home.png
-docs/screenshots/tasks.png
-docs/screenshots/new_task.png
-docs/screenshots/mini_pet.png
+```text
+compileSdk = 35
+targetSdk  = 35
+minSdk     = 26
 ```
 
 ---
 
-## 👤 Author
+## 1. Clone the repository
 
-**Riddhi Bantia** — `https://github.com/riddhibantia/Pixel-Pal-`
-
-```
+```bash
 git clone https://github.com/riddhibantia/Pixel-Pal-.git
-cd Pixel-Pal- && ./gradlew :app:assembleDebug
+cd Pixel-Pal-
 ```
 
+---
+
+## 2. Configure Firebase
+
+The application uses Firebase Authentication and Cloud Firestore.
+
+For your own Firebase project:
+
+1. Create a Firebase project.
+2. Add an Android application with package:
+
+```text
+com.pixelpal.app
+```
+
+3. Download `google-services.json`.
+4. Place it in:
+
+```text
+app/google-services.json
+```
+
+5. Enable the authentication providers you want to use.
+6. Create/configure Cloud Firestore.
+7. Apply the repository's `firestore.rules`.
+
+> **Security:** Do not commit private API keys, service-account credentials, release keystores, or other secrets.
+
+---
+
+## 3. Configure Gemini
+
+Create a local properties file:
+
+```text
+GEMINI_API_KEY=your_api_key_here
+```
+
+PixelPal reads the key from `local.properties`, Gradle properties, or the environment.
+
+For CI, the workflow currently supplies a dummy value so the project can compile without exposing a real Gemini key.
+
+---
+
+## 4. Build
+
+```bash
+./gradlew :app:assembleDebug
+```
+
+On Windows:
+
+```powershell
+gradlew.bat :app:assembleDebug
+```
+
+---
+
+## 5. Install on a device
+
+```bash
+./gradlew :app:installDebug
+```
+
+---
+
+# 🔐 Permissions
+
+Depending on the features you use, PixelPal can request Android permissions for:
+
+- Notifications
+- Camera
+- Overlay display
+- Exact alarms
+- Boot completed events
+- Foreground service
+- Accessibility service
+- Battery optimization handling
+
+Some features require additional user approval in Android Settings.
+
+PixelPal does not assume these permissions are automatically available.
+
+---
+
+# 📸 Screenshots
+
+The repository currently contains several PixelPal UI/visual captures that can be used as the project's GitHub gallery.
+
+### Home / Companion
+
+![PixelPal Home](panda_home.png)
+
+### Companion Interaction
+
+![PixelPal Interaction](shot_interact.png)
+
+### Companion / Avatar
+
+![PixelPal Companion](panda_face.png)
+
+### Custom Companion
+
+![PixelPal Customization](panda_sq.png)
+
+---
+
+# 🔒 Security & Privacy
+
+PixelPal connects to external services only for features that require them, such as Firebase synchronization or an explicitly configured AI agent.
+
+Important security considerations:
+
+- Keep `GEMINI_API_KEY` outside source control.
+- Use your own Firebase project when deploying your own instance.
+- Do not commit Firebase service-account credentials.
+- Agent endpoints should be treated as trusted endpoints.
+- Approval-gated agent actions require explicit user interaction.
+- Private/local HTTP endpoints are supported for development scenarios.
+
+---
+
+# 🧩 Design Principles
+
+PixelPal is built around several architectural principles.
+
+### 1. One companion
+
+There is one active companion.
+
+Tasks, reminders, bond, personality, agent connection, activity, widgets, and overlay behavior all refer back to that companion.
+
+### 2. Local-first state
+
+Room is the application's central local persistence layer.
+
+Cloud synchronization should not require every interaction to depend on a network connection.
+
+### 3. Centralized domain logic
+
+Important rules such as bond progression belong in domain engines rather than individual screens.
+
+### 4. Background work belongs in WorkManager
+
+Periodic work such as agent status checks and personality recalculation is separated from UI lifecycle.
+
+### 5. UI observes state
+
+Compose screens use ViewModels and observable state rather than maintaining their own persistent versions of application data.
+
+---
+
+# 🗺️ Roadmap
+
+Potential future directions include:
+
+- More companion animation packs
+- More companion customization
+- Richer AI-agent actions
+- More real-time agent events
+- Expanded activity insights
+- More widget sizes and layouts
+- Improved desktop companion integration
+- Release/distribution automation
+- Additional accessibility improvements
+- More automated UI and emulator coverage
+
+---
+
+# 📁 Important Project Files
+
+| File / Directory | Purpose |
+|---|---|
+| `app/src/main/java/com/pixelpal/app/` | Main Android application |
+| `data/local/db/` | Room database, entities, DAOs, migrations |
+| `data/remote/firebase/` | Firebase authentication and Firestore synchronization |
+| `data/remote/` | AI-agent connectors |
+| `domain/engine/` | Companion, bond, personality and reaction logic |
+| `presentation/` | Compose screens and UI components |
+| `overlay/` | Floating companion implementation |
+| `worker/` | Background WorkManager jobs |
+| `widget/` | Android home-screen widgets |
+| `receiver/` | Alarm, boot, approval and screen-state receivers |
+| `agent-endpoint/` | Python agent/desktop companion endpoint |
+| `.github/workflows/ci.yml` | GitHub Actions CI |
+| `firestore.rules` | Firestore security rules |
+| `implementation_plan.md` | Project implementation planning |
+| `AGENTS.md` | Project architecture and development guidance |
+
+---
+
+# 👩‍💻 Author
+
+**Riddhi Bantia**
+
+Built as an Android project combining:
+
+**Kotlin + Jetpack Compose + Room + Firebase + AI Agents + Lottie**
+
+---
+
+# 📄 License
+
+Add the project's intended license here before publishing a release.
+
+If this repository is intended for public reuse, adding an explicit license is recommended so other developers know what they are allowed to do with the code.
+
+---
+
+<p align="center">
+
+**🐾 PixelPal**
+
+*Do something. Grow together.*
+
+</p>
