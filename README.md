@@ -74,6 +74,170 @@ DB: Single companion — `CompanionBootstrapInitializer` does a one-time fold (a
 
 ---
 
+## 📊 System Diagrams (Mermaid)
+
+### 1. High-level architecture & data ownership
+
+```mermaid
+graph TB
+    subgraph Client[Android — PixelPal :app]
+        UI[Compose UI<br/>Home / Tasks / Reminders<br/>Customize / Agent / Activity]
+        VM[ViewModels<br/>TasksViewModel / HomeViewModel]
+        Domain[Domain Engine<br/>ActiveCompanionManager<br/>BondEngine / ReactionProvider]
+        Repo[Repositories<br/>Task / Reminder / Bond<br/>AgentConnection]
+        DB[(Room v12<br/>8 entities<br/>exportSchema)]
+        DS[(DataStore<br/>PreferencesManager)]
+        Workers[Workers<br/>AgentStatusWorker<br/>PersonalityWorker]
+        Overlay[OverlayService<br/>1 session max]
+        Widget[AppWidgets<br/>Tasks + Home]
+    end
+
+    subgraph Cloud[Firebase]
+        Auth[Firebase Auth<br/>Anonymous + Email]
+        FS[(Firestore<br/>users/{uid}/companion<br/>users/{uid}/tasks/{cloudId}<br/>offline cache unlimited)]
+    end
+
+    subgraph External[User Agent]
+        Endpoint[HTTP Endpoint<br/>{status, currentTask, progress, message}]
+        Laptop[Desktop Widget<br/>PyWebView 104x112<br/>same Lottie]
+    end
+
+    UI --> VM --> Domain --> Repo --> DB
+    Repo <-->|Flow| VM
+    Repo -->|push async| FS
+    FS -->|snapshotListener| Repo
+    Domain --> DS
+    Workers --> Repo
+    Overlay --> Domain
+    Widget --> Repo
+    Auth --> FS
+    Endpoint -->|poll / QR pair| Repo
+    Endpoint --> Laptop
+
+    classDef db fill:#1f6feb,stroke:#fff,color:#fff
+    class DB,FS,DS db
+```
+
+### 2. Single-companion invariant — why "one pet" never leaks
+
+```mermaid
+flowchart LR
+    A[App start] --> B[CompanionBootstrapInitializer]
+    B --> C{Exactly 1 row?}
+    C -- Yes --> D[Ensure bond/personality rows]
+    C -- No, 0 rows --> E[Seed fresh companion + bond + personality]
+    C -- No, 2+ legacy rows --> F[SingleCompanionFold<br/>pick primary:<br/>activeId → favorite → most-recent]
+    F --> G[Move pending tasks/reminders<br/>activity + agentConnection<br/>to primary]
+    G --> H[Delete extras]
+    H --> D
+    E --> D
+    D --> I[ActiveCompanionManager.activeCompanion<br/>= getPrimary()]
+    I --> J[All features read companion.id<br/>Tasks / Reminders / Overlay / Agent]
+```
+
+### 3. Task creation — the race that was fixed
+
+```mermaid
+sequenceDiagram
+    participant U as User
+    participant NTS as NewTaskScreen
+    participant VM as TasksViewModel
+    participant ACM as ActiveCompanionManager
+    participant Repo as TaskRepository
+    participant DB as Room tasks
+    participant FS as Firestore
+
+    U->>NTS: type title + subtasks → tap Create Task
+    NTS->>VM: createTask(title, desc, subtasks)
+    Note over VM: old: activeCompanion.value?.id ?: return<br/>(StateFlow not emitted → silent drop)
+    VM->>ACM: getActiveCompanionDirect()
+    ACM-->>VM: Companion id=1
+    VM->>Repo: addTask(Task companionId=1)
+    Repo->>DB: insert(TaskEntity cloudId=UUID)
+    Repo->>FS: pushTaskAsync(task cloudId) 
+    Repo->>DB: insert subtasks
+    Repo-->>VM: id
+    VM-->>NTS: popBackStack
+    NTS->>U: TasksScreen Flow emits new list<br/>(getTasks(1) → LazyColumn)
+```
+
+### 4. Agent connection — poll, QR pair, approve/deny
+
+```mermaid
+sequenceDiagram
+    participant U as User
+    participant AgentScreen as Agent Screen / QrScanScreen
+    participant GHA as GenericHttpAgentConnector
+    participant Repo as AgentConnectionRepository
+    participant Worker as AgentStatusWorker
+    participant Notif as AgentNotificationHelper
+    participant Desk as Laptop mini_pet
+
+    U->>AgentScreen: Paste endpoint or Scan QR (CameraX + ML Kit)
+    AgentScreen->>GHA: isAllowedEndpoint(url) + checkNow()
+    GHA->>Endpoint: GET / → {status, currentTask, progress, message, pendingApproval?}
+    Endpoint-->>GHA: 200 WORKING + pendingApproval id=42
+    GHA-->>Repo: AgentCheckResult (status, pendingApproval)
+    Repo->>DB: persist AgentConnectionEntity
+    Repo->>Notif: notifyApproval(id=42) → notification with Approve/Deny
+    Notif-->>U: 🔔 Approve / Deny
+    U->>Notif: Tap Approve
+    Notif->>Repo: respondToApproval(approve=true)
+    Repo->>Endpoint: POST /approve {id, approved:true}
+    loop every 15m per companionId
+        Worker->>GHA: poll → persist → activity if meaningful → notify
+    end
+    Endpoint-->>Desk: GET / → same envelope → PyWebView cat 80px bounces
+```
+
+### 5. Offline-first sync — Room is truth
+
+```mermaid
+graph LR
+    LocalWrite[Local write<br/>addTask / toggle] --> Room[(Room)]
+    Room --> Push[FirestoreSyncEngine<br/>scope.launch pushTaskAsync<br/>never blocks UI]
+    Push --> Cloud[(Firestore<br/>tasks/{cloudId})]
+    Cloud --> Listener[SnapshotListener<br/>observeCloudTasks]
+    Listener --> Merge[Merge by updatedAt<br/>last-write-wins]
+    Merge --> Room
+
+    style Room fill:#0969da,color:#fff
+    style Cloud fill:#ff7b00,color:#fff
+```
+
+---
+
+## 💡 Why this is useful & better than a "todo + pet" clone
+
+| Problem with clones | PixelPal's answer |
+|---|---|
+| **Pets are decoration** — todo and pet don't talk | **Bond is gameplay**: tasks +2 / reminders +3, daily cap `BOND_GRANTING_TAPS_PER_DAY=3`, 5-level milestones, streaks 3/7/14/30/60/100. The pet *reacts* with contextual lines ("You still have N tasks left") via `CompanionReactionProvider` |
+| **Multi-pet chaos** — duplicates, ghost data | **Single companion invariant** enforced in DB + `ActiveCompanionManager` + `SingleCompanionFold` migration. Simpler UX, no identity leak |
+| **Offline breaks** | **Offline-first**: Room source of truth, Firestore unlimited cache, async pushes, `cloudId` UUID never collides across devices |
+| **Agent = mock** | **Real agent contract**: any HTTP endpoint returning `{status, currentTask, progress, message}` + `pendingApproval`. Poll worker, QR-pair with allowlist that includes `192.168.x / 10.x / 172.16.x` LAN, approve/deny via notification `AgentApprovalReceiver` |
+| **Icons don't match** | **Launcher = Lottie frame**: vector foreground sampled at `scale 82.08/400` so store icon, Home hero, and desktop widget are the same square cat |
+| **Large, buggy widgets** | **Content-sized widget** (`104×112`, cat `80px ~77%`, `overflow:hidden`, `border-radius 12`, no JS resize race) — no triangular/diagonal overflow |
+
+> In short: it's a **habit loop with a face**, not a checklist with a sticker. The pet gives you a reason to come back tomorrow.
+
+---
+
+## 🔮 If I had more time — the "Blue Man Group" and beyond
+
+> *"If I had time I should have done the Blue Man Group"* — i.e., the **collaborative / live** layer. Here's the roadmap I would ship next:
+
+- **Blue Man Group — Live squad mode** — 3 pets on one screen that sync via Firestore presence. Think multiplayer Tamagotchi: your streak helps the group's bond, agent tasks are shared, and the desktop widget shows all three. Needs `users/{uid}/squad/{squadId}` + presence heartbeat.
+- **Live follow-along** — WebSocket agent connector already exists (`WebSocketAgentConnector`) — wire it to a live typing indicator in the Activity Center so the cat "watches" the agent work.
+- **Media attachments for tasks** — photo proof for `TASK_COMPLETED` (Coil + Storage), shown in detail screen.
+- **Full offline queue + retry** — WorkManager-constrained sync with exponential backoff instead of fire-and-forget `scope.launch`.
+- **Play Store hardening** — release signing via `RELEASE_STORE_FILE`, `app bundle` + `baseline profile`, screenshot automation, and a 60-second Play Store video (the demo flow above).
+- **Accessibility & i18n** — talk-back labels for Lottie, dynamic color, and Hindi/English strings.
+- **E2E tests** — `composeTestRule` for New Task → list → detail → complete, plus screenshot tests for all 7 species.
+
+The foundation (single-companion, stable `cloudId`, offline cache, polling worker) is already built for all of this — the next 20% is just wiring.
+
+---
+
 ## 🛠 Tech stack
 
 | Layer | Choice |
@@ -174,4 +338,3 @@ git clone https://github.com/riddhibantia/Pixel-Pal-.git
 cd Pixel-Pal-
 ./gradlew :app:assembleDebug
 ```
-
