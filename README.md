@@ -39,7 +39,7 @@ In short: connect an agent once, and your on-screen pet becomes a live status re
 - **One active companion** by design — tasks, reminders, agent connection, personality, and bond are all *features of your one pet*, not separate profiles.
 - **Tasks & Reminders** — create reminders and tasks; completing them feeds directly into your companion's reactions and bond growth rather than just sitting in a plain list. Tasks support subtasks, progress, swipe-to-delete, and optional **photo proof** on the detail screen.
 - **Bond & Personality system** — a friendship level that grows through real interaction (taps, completed tasks, completed reminders — capped per day to avoid grinding), streaks with milestone celebrations, and a personality that gradually adapts to how you use the app.
-- **Character customization** — appearance picker across species, color, and pattern combinations.
+- **Character customization** — pick from 7 species (Cat, Dog, Bunny, Panda, Whale, Axolotl, Llama), all unlocked from day one, plus a custom name.
 - **Cloud sync** — optional Firebase Auth (including guest/anonymous mode) with two-way Firestore sync, so your companion, tasks, and agent connection aren't stuck on one device.
 - **Offline-first** — Room (v13, 13 migrations) is the source of truth; writes sync via a WorkManager retry queue, so the app works with no network.
 - **Home-screen widgets + desktop mini widget** — Tasks and Home widgets read the same database, and a tiny floating desktop window (`agent-endpoint/mini_pet.py`) mirrors agent status on your laptop.
@@ -112,7 +112,7 @@ On first launch, PixelPal will ask for the "Display over other apps" permission 
 2. **Enable the overlay** so your pet appears on top of other apps.
 3. **Connect an agent** from the AI Agent Connection screen — pick Gemini, a WebSocket endpoint, or a generic HTTP status endpoint.
 4. Go about your day — your companion will animate, speak, and notify you as your agent's status changes.
-5. Add **tasks and reminders**; completing them grows your bond level and unlocks personality shifts and cosmetic milestones.
+5. Add **tasks and reminders**; completing them grows your streak and interaction count, and gradually shifts your companion's personality.
 
 ---
 
@@ -134,7 +134,31 @@ This is currently a solo/early-stage project. Issues and suggestions are welcome
 
 ## 📄 License
 
-MIT — see [LICENSE](LICENSE). Copyright © 2026 Riddhi Bantia.
+This project is licensed under the **MIT License** — see [LICENSE](LICENSE).
+
+```
+MIT License
+
+Copyright (c) 2026 Riddhi Bantia — PixelPal
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+```
 
 ---
 
