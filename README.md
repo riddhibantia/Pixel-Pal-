@@ -2,6 +2,16 @@
 
 **A pixel-art screen companion that watches your AI coding agents for you.**
 
+<p>
+  <a href="https://github.com/riddhibantia/Pixel-Pal-/releases">📲 Download APK</a> •
+  <a href="https://riddhibantia.github.io/Pixel-Pal-/mini.html">🟢 Live Widget Demo</a>
+</p>
+
+<p>
+  <img src="docs/screenshots/home.png" width="250" alt="Home" />
+  <img src="docs/screenshots/agent.png" width="250" alt="AI Agent" />
+</p>
+
 PixelPal is an Android app that lives as a small floating pet on top of your phone screen. Underneath the cute pixel-art exterior, its real job is to be a **live window into your AI agents** — Gemini, custom HTTP-based agents, or anything that streams status over a WebSocket — so you can glance at your pet and instantly know what your agent is doing, without opening a terminal, a laptop, or a dashboard.
 
 Tasks, reminders, a bond/personality system, and character customization round out the companion experience, but the agent-monitoring layer is the core idea: **turn "is my AI agent still working?" into a one-glance question.**
