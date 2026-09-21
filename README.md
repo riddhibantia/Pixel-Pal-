@@ -9,11 +9,7 @@
 
 PixelPal is an Android app (Kotlin + Jetpack Compose) built around **one companion, forever**. Tasks, reminders, streaks, personality, overlay, widgets and AI are not separate screens — they are the same pet's life.
 
-<p align="center">
-  <img src="docs/screenshots/home.png" width="260" alt="Home" />
-  &nbsp;
-  <img src="docs/screenshots/agent.png" width="260" alt="AI Agent" />
-</p>
+<!-- Screenshots temporarily removed — recapturing binary-safe from device. -->
 
 <p align="center">
   <a href="https://github.com/riddhibantia/Pixel-Pal-/releases">📲 APK</a> •
@@ -71,16 +67,9 @@ The pet doesn't decorate the todo list — **the todo list feeds the pet that yo
 
 ---
 
-## Screenshots — real device (motorola edge 60 stylus)
+## Screenshots
 
-> If you see broken images, hard-refresh. Paths are `docs/screenshots/*.png` relative to this README.
-
-| | | |
-|---|---|---|
-| **AI Agent** — the main feature | **Home** — hero + streak | **Tasks** |
-| <img src="docs/screenshots/agent.png" width="240" /> | <img src="docs/screenshots/home.png" width="240" /> | <img src="docs/screenshots/tasks.png" width="240" /> |
-| **New Task** | **Customize** — all unlocked | |
-| <img src="docs/screenshots/new_task.png" width="240" /> | <img src="docs/screenshots/customize.png" width="240" /> | |
+> Coming back shortly — recapturing from a real device (binary-safe). The gallery lives in `docs/screenshots/`.
 
 ---
 
