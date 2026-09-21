@@ -25,6 +25,8 @@ This is what PixelPal is actually built around:
 - **Background polling** via `AgentStatusWorker`, so your companion's status stays current even when the app isn't open — network issues surface as OFFLINE, non-2xx responses surface as ERROR.
 - **Companion reacts to agent state**: `CompanionReactionProvider` weaves live agent state into what your pet actually says ("still working on it," task progress, completion), instead of just showing a raw status field.
 - **Persisted connection config + status** in a single `AgentConnectionEntity`, so your agent link survives restarts.
+- **QR pairing** — point the in-app scanner (CameraX + ML Kit) at a QR code holding the endpoint URL; private-LAN `http://` endpoints are allowed so a laptop agent on the same Wi-Fi just works.
+- **Approval gate** — when the agent sends `pendingApproval`, you get an Approve/Deny notification (`AgentApprovalReceiver`); each approval notifies once, deduplicated by id.
 - **Notification Center** surfaces meaningful agent activity (not just taps/feeds) so you get pinged when something actually changes.
 
 In short: connect an agent once, and your on-screen pet becomes a live status readout — expressive, glanceable, and always running in the background.
@@ -35,10 +37,12 @@ In short: connect an agent once, and your on-screen pet becomes a live status re
 
 - **Floating overlay pet** that sits on top of any app, draggable, with idle/blink/sleep animation states rendered via Lottie.
 - **One active companion** by design — tasks, reminders, agent connection, personality, and bond are all *features of your one pet*, not separate profiles.
-- **Tasks & Reminders** — create reminders and tasks; completing them feeds directly into your companion's reactions and bond growth rather than just sitting in a plain list.
+- **Tasks & Reminders** — create reminders and tasks; completing them feeds directly into your companion's reactions and bond growth rather than just sitting in a plain list. Tasks support subtasks, progress, swipe-to-delete, and optional **photo proof** on the detail screen.
 - **Bond & Personality system** — a friendship level that grows through real interaction (taps, completed tasks, completed reminders — capped per day to avoid grinding), streaks with milestone celebrations, and a personality that gradually adapts to how you use the app.
 - **Character customization** — appearance picker across species, color, and pattern combinations.
 - **Cloud sync** — optional Firebase Auth (including guest/anonymous mode) with two-way Firestore sync, so your companion, tasks, and agent connection aren't stuck on one device.
+- **Offline-first** — Room (v13, 13 migrations) is the source of truth; writes sync via a WorkManager retry queue, so the app works with no network.
+- **Home-screen widgets + desktop mini widget** — Tasks and Home widgets read the same database, and a tiny floating desktop window (`agent-endpoint/mini_pet.py`) mirrors agent status on your laptop.
 
 ---
 
@@ -78,7 +82,7 @@ worker/         → periodic background jobs (agent polling, personality recalcu
 ### Prerequisites
 - Android Studio (latest stable)
 - JDK 17
-- An Android device/emulator (check `minSdk` in `app/build.gradle.kts` for the exact floor)
+- An Android device/emulator — `minSdk 26`, `targetSdk 35`, package `com.pixelpal.app`
 
 ### Setup
 ```bash
@@ -130,7 +134,7 @@ This is currently a solo/early-stage project. Issues and suggestions are welcome
 
 ## 📄 License
 
-[Add your license here — e.g. MIT]
+MIT — see [LICENSE](LICENSE). Copyright © 2026 Riddhi Bantia.
 
 ---
 
