@@ -69,7 +69,7 @@ The pet doesn't decorate the todo list — **the todo list feeds the pet that yo
 
 ## Screenshots
 
-> Coming back shortly — recapturing from a real device (binary-safe). The gallery lives in `docs/screenshots/`.
+> Gallery temporarily removed — recapturing from a real device (binary-safe) into `docs/screenshots/`.
 
 ---
 
