@@ -17,10 +17,15 @@ class SpeciesRosterTest {
 
     @Test
     fun panda_unlocksAtRabbitSlot() {
+        // All species are unlocked from day one — no bond gates.
+        // "Rabbit slot" refers to panda's position in SpeciesStyle.SPECIES
+        // (replacing the old rabbit entry), not a bond level.
         val panda = PetType.fromId("panda")
         assertEquals("Panda", panda.displayName)
-        assertEquals(30, panda.unlockBondLevel)
+        assertEquals(0, panda.unlockBondLevel)
         assertTrue(panda.hasFullAnimationSet)
+        assertTrue("panda" in SpeciesStyle.SPECIES)
+        assertTrue("rabbit" !in SpeciesStyle.SPECIES)
     }
 
     @Test
