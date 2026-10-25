@@ -16,7 +16,7 @@ import androidx.room.PrimaryKey
             onDelete = ForeignKey.SET_NULL
         )
     ],
-    indices = [Index("companionId"), Index("cloudId"), Index(value = ["companionId", "triggerTime"])]
+    indices = [Index("companionId"), Index("cloudId"), Index(value = ["companionId", "triggerTime"]), Index(value = ["status", "triggerTime"])]
 )
 data class ReminderEntity(
     @PrimaryKey(autoGenerate = true) val id: Long = 0,

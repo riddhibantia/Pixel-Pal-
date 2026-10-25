@@ -462,4 +462,18 @@ object DatabaseMigrations {
             db.execSQL("ALTER TABLE `tasks` ADD COLUMN `photoUri` TEXT NOT NULL DEFAULT ''")
         }
     }
+
+    /**
+     * Version 14 adds composite indices that match the actual DAO queries:
+     * the activity feed sorts by companionId + createdAt, the pending list
+     * filters by status + triggerTime, and the task list sorts by
+     * companionId + isDone + createdAt.
+     */
+    val MIGRATION_13_14 = object : Migration(13, 14) {
+        override fun migrate(db: SupportSQLiteDatabase) {
+            db.execSQL("CREATE INDEX IF NOT EXISTS `index_activity_events_companionId_createdAt` ON `activity_events` (`companionId`, `createdAt`)")
+            db.execSQL("CREATE INDEX IF NOT EXISTS `index_reminders_status_triggerTime` ON `reminders` (`status`, `triggerTime`)")
+            db.execSQL("CREATE INDEX IF NOT EXISTS `index_tasks_companionId_isDone_createdAt` ON `tasks` (`companionId`, `isDone`, `createdAt`)")
+        }
+    }
 }

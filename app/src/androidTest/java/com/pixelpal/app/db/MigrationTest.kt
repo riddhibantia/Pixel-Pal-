@@ -51,7 +51,7 @@ class MigrationTest {
 
     @Test
     @Throws(IOException::class)
-    fun migrate3To12_fullChainPreservesData() {
+    fun migrate3To14_fullChainPreservesData() {
         var db = helper.createDatabase(TEST_DB, 3)
         db.execSQL(
             "INSERT INTO reminders (title, triggerTime, hour, minute, recurrence, category, status, snoozeCount, createdAt) " +
@@ -61,7 +61,7 @@ class MigrationTest {
 
         helper.runMigrationsAndValidate(
             TEST_DB,
-            12,
+            14,
             true,
             DatabaseMigrations.MIGRATION_3_4,
             DatabaseMigrations.MIGRATION_4_5,
@@ -71,12 +71,41 @@ class MigrationTest {
             DatabaseMigrations.MIGRATION_8_9,
             DatabaseMigrations.MIGRATION_9_10,
             DatabaseMigrations.MIGRATION_10_11,
-            DatabaseMigrations.MIGRATION_11_12
+            DatabaseMigrations.MIGRATION_11_12,
+            DatabaseMigrations.MIGRATION_12_13,
+            DatabaseMigrations.MIGRATION_13_14
         ).use { migrated ->
             migrated.query("SELECT title FROM reminders").use { c ->
-                assert(c.count == 1) { "expected 1 reminder after 3->12, got ${c.count}" }
+                assert(c.count == 1) { "expected 1 reminder after 3->14, got ${c.count}" }
                 c.moveToFirst()
                 assert(c.getString(0) == "keep me")
+            }
+        }
+    }
+
+    @Test
+    @Throws(IOException::class)
+    fun migrate13To14_createsQueryIndices() {
+        helper.createDatabase(TEST_DB, 13).close()
+
+        helper.runMigrationsAndValidate(
+            TEST_DB,
+            14,
+            true,
+            DatabaseMigrations.MIGRATION_13_14
+        ).use { db ->
+            val indices = mutableListOf<String>()
+            db.query("SELECT name FROM sqlite_master WHERE type = 'index'").use { c ->
+                while (c.moveToNext()) indices += c.getString(0)
+            }
+            assert(indices.contains("index_activity_events_companionId_createdAt")) {
+                "missing activity feed index: $indices"
+            }
+            assert(indices.contains("index_reminders_status_triggerTime")) {
+                "missing pending reminder index: $indices"
+            }
+            assert(indices.contains("index_tasks_companionId_isDone_createdAt")) {
+                "missing task list index: $indices"
             }
         }
     }
