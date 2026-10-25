@@ -75,9 +75,16 @@ fun AuthScreen(
 ) {
     val authState by viewModel.authState.collectAsState()
     val uiState by viewModel.uiState.collectAsState()
+    val isSyncing by viewModel.isSyncing.collectAsState()
+    val isDataReady by viewModel.isDataReady.collectAsState()
+    val syncError by viewModel.syncError.collectAsState()
 
-    LaunchedEffect(authState) {
-        if (authState is AuthState.Authenticated) {
+    // Navigate only after auth AND the post-login cloud restore finished —
+    // never on auth alone, or Home renders an empty Room mid-restore.
+    // A sync failure stays on this screen with a retry option instead of
+    // silently showing an empty app.
+    LaunchedEffect(authState, isDataReady, syncError) {
+        if (authState is AuthState.Authenticated && isDataReady && syncError == null) {
             onAuthSuccess()
         }
     }
@@ -215,13 +222,50 @@ fun AuthScreen(
                     )
                 }
 
+                // Firestore/application-init failure AFTER successful auth —
+                // kept visually distinct from auth errors above.
+                if (syncError != null) {
+                    Spacer(modifier = Modifier.height(Spacing.sm))
+                    Text(
+                        text = syncError ?: "",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.error,
+                        textAlign = TextAlign.Center
+                    )
+                    Spacer(modifier = Modifier.height(Spacing.xs))
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(
+                            Spacing.sm,
+                            Alignment.CenterHorizontally
+                        ),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        TextButton(onClick = viewModel::retrySync) {
+                            Text(text = "Retry sync")
+                        }
+                        TextButton(onClick = onAuthSuccess) {
+                            Text(text = "Continue offline")
+                        }
+                    }
+                }
+
                 Spacer(modifier = Modifier.height(Spacing.md))
 
-                if (uiState.isLoading) {
+                if (uiState.isLoading || isSyncing) {
                     CircularProgressIndicator(
                         modifier = Modifier.size(36.dp),
                         color = MaterialTheme.colorScheme.primary
                     )
+                    if (isSyncing) {
+                        Spacer(modifier = Modifier.height(Spacing.xs))
+                        Text(
+                            text = "Syncing your companion...",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            textAlign = TextAlign.Center
+                        )
+                    }
                 } else {
                     // Primary Action Button
                     PrimaryButton(

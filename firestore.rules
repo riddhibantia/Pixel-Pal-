@@ -1,27 +1,33 @@
 rules_version = '2';
 
-// PixelPal Firestore security rules — least privilege per collection.
+// PixelPal Firestore security rules -- authenticated users access ONLY their
+// own /users/{uid} branch. Never loosen to public read/write.
 // Deploy with: firebase deploy --only firestore:rules
 service cloud.firestore {
   match /databases/{database}/documents {
     match /users/{userId} {
       allow read, write: if request.auth != null && request.auth.uid == userId;
 
-      // Companion is a single doc per user (users/{uid}/companion/data)
+      // Companion is a single doc per user (users/{uid}/companion/primary)
       match /companion/{docId} {
         allow read, write: if request.auth != null && request.auth.uid == userId;
       }
       // Tasks keyed by stable cloudId UUID — never auto-inc id
       match /tasks/{taskId} {
         allow read, write: if request.auth != null && request.auth.uid == userId;
-        match /subtasks/{subId} {
-          allow read, write: if request.auth != null && request.auth.uid == userId;
-        }
       }
       match /reminders/{remId} {
         allow read, write: if request.auth != null && request.auth.uid == userId;
       }
-      // Activity/bond/personality are local-only; deny cloud writes if ever created
+      // Bond & streak metrics (users/{uid}/metrics/bond) — synced by BondRepository.
+      match /metrics/{docId} {
+        allow read, write: if request.auth != null && request.auth.uid == userId;
+      }
+      // Subtasks live top-level (users/{uid}/subtasks/{cloudId}), linked via parentCloudId.
+      match /subtasks/{subId} {
+        allow read, write: if request.auth != null && request.auth.uid == userId;
+      }
+      // Activity/personality are local-only; deny cloud writes if ever created
       match /{other=**} {
         allow read, write: if false;
       }

@@ -50,6 +50,10 @@ class FirestoreSyncCoordinator @Inject constructor(
     private val _isSyncing = MutableStateFlow(false)
     val isSyncing: StateFlow<Boolean> = _isSyncing.asStateFlow()
 
+    private val _lastSyncError = MutableStateFlow<String?>(null)
+    /** Last full-sync failure message (null when the last sync succeeded). */
+    val lastSyncError: StateFlow<String?> = _lastSyncError.asStateFlow()
+
     val isUserLoggedIn: Boolean
         get() = syncEngine.isUserLoggedIn
 
@@ -59,34 +63,71 @@ class FirestoreSyncCoordinator @Inject constructor(
     val currentUserEmail: String?
         get() = syncEngine.currentUserEmail
 
-    private var realtimeStarted = false
+    /** Bumped on every sign-out so a stale in-flight sync can abort instead of clobbering. */
+    private var sessionEpoch = 0
+
+    private var realtimeUid: String? = null
+    private var realtimeJobs = emptyList<kotlinx.coroutines.Job>()
 
     /**
-     * Starts the real-time cloud → local listeners. Safe to call repeatedly;
-     * listeners live for the process lifetime and no-op when signed out.
+     * Starts the real-time cloud → local listeners, pinned to the CURRENT
+     * authenticated uid. Safe to call repeatedly; no-ops when signed out so a
+     * later [onUserAuthenticated] can start them once auth is ready.
+     *
+     * Previously this captured the uid once at Application start (usually
+     * signed-out) and never rebound after login, so post-login realtime sync
+     * silently never ran.
      */
     fun startRealtimeSync() {
-        if (realtimeStarted) return
-        realtimeStarted = true
+        val uid = syncEngine.currentUserId
+        if (uid.isNullOrBlank()) {
+            Timber.d("[FIRESTORE] Realtime sync deferred: no authenticated user yet")
+            return
+        }
+        if (realtimeUid == uid && realtimeJobs.any { it.isActive }) return
+        cancelRealtimeSync()
+        realtimeUid = uid
+        Timber.d("[FIRESTORE] Starting realtime listeners for uid=%s", uid)
 
-        scope.launch {
-            syncEngine.observeCloudTasks().collect { remoteTasks ->
-                runCatching { remoteTasks.forEach { applyCloudTask(it) } }
-                    .onFailure { Timber.e(it, "Failed applying cloud tasks") }
+        realtimeJobs = listOf(
+            scope.launch {
+                syncEngine.observeCloudTasksFor(uid).collect { remoteTasks ->
+                    runCatching { remoteTasks.forEach { applyCloudTask(it) } }
+                        .onFailure { Timber.e(it, "[FIRESTORE] Failed applying cloud tasks") }
+                }
+            },
+            scope.launch {
+                syncEngine.observeCloudRemindersFor(uid).collect { remoteReminders ->
+                    runCatching { remoteReminders.forEach { applyCloudReminder(it) } }
+                        .onFailure { Timber.e(it, "[FIRESTORE] Failed applying cloud reminders") }
+                }
+            },
+            scope.launch {
+                syncEngine.observeCloudSubtasksFor(uid).collect { remoteSubtasks ->
+                    runCatching { remoteSubtasks.forEach { applyCloudSubtask(it) } }
+                        .onFailure { Timber.e(it, "[FIRESTORE] Failed applying cloud subtasks") }
+                }
             }
-        }
-        scope.launch {
-            syncEngine.observeCloudReminders().collect { remoteReminders ->
-                runCatching { remoteReminders.forEach { applyCloudReminder(it) } }
-                    .onFailure { Timber.e(it, "Failed applying cloud reminders") }
-            }
-        }
-        scope.launch {
-            syncEngine.observeCloudSubtasks().collect { remoteSubtasks ->
-                runCatching { remoteSubtasks.forEach { applyCloudSubtask(it) } }
-                    .onFailure { Timber.e(it, "Failed applying cloud subtasks") }
-            }
-        }
+        )
+    }
+
+    /**
+     * Call immediately after Firebase Auth succeeds (uid available): rebinds
+     * realtime listeners to the new uid and runs a full pull → push restore.
+     * Awaiting the returned Result before navigating guarantees the companion
+     * and metrics are in Room before Home renders.
+     */
+    suspend fun onUserAuthenticated(): Result<Unit> {
+        val uid = syncEngine.currentUserId
+        Timber.d("[AUTH] Session established, uid=%s. Rebinding sync.", uid)
+        startRealtimeSync()
+        return fullSync()
+    }
+
+    private fun cancelRealtimeSync() {
+        realtimeJobs.forEach { it.cancel() }
+        realtimeJobs = emptyList()
+        realtimeUid = null
     }
 
     /**
@@ -94,12 +135,20 @@ class FirestoreSyncCoordinator @Inject constructor(
      * Used after sign-in, by the periodic worker, and by "Sync Now".
      */
     suspend fun fullSync(): Result<Unit> {
-        if (!syncEngine.isUserLoggedIn) {
+        val uid = syncEngine.currentUserId
+        if (uid.isNullOrBlank()) {
+            Timber.w("[FIRESTORE] fullSync skipped: no authenticated user")
             return Result.failure(IllegalStateException("No user logged in"))
         }
+        val epoch = sessionEpoch
         _isSyncing.value = true
         try {
+            Timber.d("[FIRESTORE] fullSync start for uid=%s", uid)
             pullAndApplyCloud()
+            if (epoch != sessionEpoch) {
+                Timber.w("[FIRESTORE] fullSync aborted: session changed mid-sync")
+                return Result.failure(java.util.concurrent.CancellationException("Session changed"))
+            }
 
             val primary = companionDao.getPrimaryDirect()
             val tasks = primary?.let { taskDao.getTasksDirect(it.id) } ?: emptyList()
@@ -115,7 +164,15 @@ class FirestoreSyncCoordinator @Inject constructor(
                 bond = bond?.toDomainModel()
             )
             if (pushResult.isFailure) {
-                Timber.w("fullSync push failed: %s", pushResult.exceptionOrNull()?.message)
+                val msg = pushResult.exceptionOrNull()?.message
+                _lastSyncError.value = msg
+                Timber.w("[FIRESTORE] fullSync push failed for uid=%s: %s", uid, msg)
+            } else {
+                _lastSyncError.value = null
+                Timber.d(
+                    "[FIRESTORE] fullSync complete for uid=%s (companion=%s)",
+                    uid, primary?.name
+                )
             }
             return pushResult
         } finally {
@@ -183,14 +240,35 @@ class FirestoreSyncCoordinator @Inject constructor(
     }
 
     private suspend fun applyCloudCompanion() {
-        val cloud = syncEngine.pullCompanionFromCloud().getOrNull() ?: return
+        val cloudResult = syncEngine.pullCompanionFromCloud()
+        val cloud = cloudResult.getOrNull()
+        if (cloud == null) {
+            if (cloudResult.isFailure) {
+                Timber.w(
+                    "[FIRESTORE] Companion pull failed: %s",
+                    cloudResult.exceptionOrNull()?.message
+                )
+            } else {
+                Timber.d("[FIRESTORE] No cloud companion yet (new user)")
+            }
+            return
+        }
         val local = companionDao.getPrimaryDirect()
         if (local == null) {
             companionDao.insert(cloud.toEntityWithTimestamps(cloudUpdatedAt = cloud.updatedAt))
-        } else if (cloud.updatedAt > local.updatedAt) {
+            Timber.d("[FIRESTORE] Companion restored from cloud (name=%s)", cloud.name)
+        } else if (cloud.updatedAt > local.updatedAt || isFreshUneditedLocal(local)) {
+            // A fresh bootstrap seed (createdAt == updatedAt, never edited) always
+            // loses to an existing cloud row: otherwise a post-wipe reseed with a
+            // newer timestamp would permanently hide the user's real companion.
             companionDao.update(cloud.toEntityWithTimestamps(cloudUpdatedAt = cloud.updatedAt, local = local))
+            Timber.d("[FIRESTORE] Companion restored from cloud (name=%s)", cloud.name)
         }
     }
+
+    /** True when the local row is a just-seeded default the user never edited. */
+    private fun isFreshUneditedLocal(local: CompanionEntity): Boolean =
+        local.createdAt == local.updatedAt
 
     private fun CompanionEntity.toDomainModel() = com.pixelpal.app.domain.model.Companion(
         id = id,
@@ -247,7 +325,17 @@ class FirestoreSyncCoordinator @Inject constructor(
     }
 
     private suspend fun applyCloudBond() {
-        val cloud = syncEngine.pullBondFromCloud().getOrNull() ?: return
+        val cloudResult = syncEngine.pullBondFromCloud()
+        val cloud = cloudResult.getOrNull()
+        if (cloud == null) {
+            if (cloudResult.isFailure) {
+                Timber.w(
+                    "[FIRESTORE] Bond pull failed: %s",
+                    cloudResult.exceptionOrNull()?.message
+                )
+            }
+            return
+        }
         val primary = companionDao.getPrimaryDirect() ?: return
         val local = bondDao.getBondDirect(primary.id)
         if (local == null) {
@@ -264,7 +352,8 @@ class FirestoreSyncCoordinator @Inject constructor(
                     updatedAt = cloud.updatedAt
                 )
             )
-        } else if (cloud.updatedAt > local.updatedAt) {
+            Timber.d("[FIRESTORE] Bond metrics restored from cloud (level=%d)", cloud.level)
+        } else if (cloud.updatedAt > local.updatedAt || isFreshDefaultBond(local)) {
             bondDao.insertOrUpdate(
                 local.copy(
                     level = cloud.level,
@@ -280,20 +369,33 @@ class FirestoreSyncCoordinator @Inject constructor(
         }
     }
 
+    /** True when the local bond row is an untouched ensureExists() default. */
+    private fun isFreshDefaultBond(local: BondEntity): Boolean =
+        local.totalInteractions == 0 && local.level <= 0 && local.updatedAt == 0L
+
     /**
      * Wipes ALL local user data, then signs out of Firebase. Guarantees the
      * next sign-in (any account, including guest) starts clean instead of
      * pushing the previous user's data under the new uid.
+     *
+     * The wipe runs BEFORE auth sign-out in the same coroutine, the realtime
+     * listeners are cancelled, and [sessionEpoch] is bumped so any in-flight
+     * fullSync aborts instead of re-pushing stale rows under the next uid.
      */
     fun signOut() {
-        scope.launch {
-            try {
-                clearAllLocalData()
-            } catch (e: Exception) {
-                Timber.e(e, "Failed to clear local data on sign-out")
-            }
-            authManager.signOut()
+        scope.launch { signOutSuspend() }
+    }
+
+    suspend fun signOutSuspend() {
+        sessionEpoch++
+        cancelRealtimeSync()
+        try {
+            clearAllLocalData()
+        } catch (e: Exception) {
+            Timber.e(e, "[AUTH] Failed to clear local data on sign-out")
         }
+        Timber.d("[AUTH] Signed out, local session cleared")
+        authManager.signOut()
     }
 
     private suspend fun clearAllLocalData() {

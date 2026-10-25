@@ -36,6 +36,27 @@ class AuthViewModel @Inject constructor(
     private val _uiState = MutableStateFlow(AuthUiState())
     val uiState: StateFlow<AuthUiState> = _uiState.asStateFlow()
 
+    /** True while a post-login cloud restore (pull → push) is in flight. */
+    private val _isSyncing = MutableStateFlow(false)
+    val isSyncing: StateFlow<Boolean> = _isSyncing.asStateFlow()
+
+    /**
+     * True once the post-login sync ATTEMPT finished (success or failure).
+     * Navigation waits for this — never for auth alone — so Home renders
+     * after Room holds the user's companion/metrics, fixing the race where
+     * Firestore was still restoring when the UI first read Room.
+     */
+    private val _isDataReady = MutableStateFlow(false)
+    val isDataReady: StateFlow<Boolean> = _isDataReady.asStateFlow()
+
+    /**
+     * Firestore/application-init failure AFTER successful authentication.
+     * Kept separate from [AuthUiState.errorMessage] (auth failures) so the
+     * UI can tell "login worked, data load failed" apart from "login failed".
+     */
+    private val _syncError = MutableStateFlow<String?>(null)
+    val syncError: StateFlow<String?> = _syncError.asStateFlow()
+
     fun onEmailChanged(value: String) {
         _uiState.update { it.copy(email = value, errorMessage = null) }
     }
@@ -70,9 +91,12 @@ class AuthViewModel @Inject constructor(
             }
 
             result.fold(
-                onSuccess = {
-                    // Restore cloud data into Room first, then push local state up.
-                    syncCoordinator.syncInBackground()
+                onSuccess = { user ->
+                    // Auth done — now restore users/{uid} into Room BEFORE the
+                    // UI navigates. Awaiting here (not fire-and-forget) closes
+                    // the race where Home read an empty Room mid-restore.
+                    timber.log.Timber.d("[AUTH] Login successful uid=%s, restoring data", user.uid)
+                    runPostAuthSync()
                     _uiState.update { it.copy(isLoading = false) }
                 },
                 onFailure = { error ->
@@ -90,17 +114,24 @@ class AuthViewModel @Inject constructor(
     fun signInWithGoogle(activityContext: android.content.Context) {
         viewModelScope.launch {
             _uiState.update { it.copy(isLoading = true, errorMessage = null) }
+            _syncError.value = null
+            _isDataReady.value = false
             val result = authManager.signInWithGoogle(activityContext)
             result.fold(
-                onSuccess = {
-                    syncCoordinator.syncInBackground()
+                onSuccess = { user ->
+                    timber.log.Timber.d("[AUTH] Google login successful uid=%s, restoring data", user.uid)
+                    runPostAuthSync()
                     _uiState.update { it.copy(isLoading = false) }
                 },
                 onFailure = { error ->
+                    // User cancellation is not an error to display loudly.
+                    val cancelled = error is java.util.concurrent.CancellationException ||
+                        error is androidx.credentials.exceptions.GetCredentialCancellationException
                     _uiState.update {
                         it.copy(
                             isLoading = false,
-                            errorMessage = error.localizedMessage ?: "Google sign-in failed"
+                            errorMessage = if (cancelled) null
+                            else error.localizedMessage ?: "Google sign-in failed"
                         )
                     }
                 }
@@ -113,8 +144,9 @@ class AuthViewModel @Inject constructor(
             _uiState.update { it.copy(isLoading = true, errorMessage = null) }
             val result = authManager.signInAnonymously()
             result.fold(
-                onSuccess = {
-                    syncCoordinator.syncInBackground()
+                onSuccess = { user ->
+                    timber.log.Timber.d("[AUTH] Guest login successful uid=%s", user.uid)
+                    runPostAuthSync()
                     _uiState.update { it.copy(isLoading = false) }
                 },
                 onFailure = { error ->
@@ -127,6 +159,45 @@ class AuthViewModel @Inject constructor(
                 }
             )
         }
+    }
+
+    /**
+     * Pulls users/{uid}/companion/primary + metrics/bond (+tasks/reminders)
+     * into Room and rebinds realtime listeners. Auth is already complete when
+     * this runs, so the uid is guaranteed available — no null-uid requests.
+     * Sync failure does NOT log the user out; it surfaces via [syncError]
+     * while [isDataReady] still unblocks navigation.
+     */
+    private suspend fun runPostAuthSync() {
+        _isSyncing.value = true
+        _syncError.value = null
+        _uiState.update { it.copy(isLoading = true) }
+        try {
+            val result = syncCoordinator.onUserAuthenticated()
+            result.fold(
+                onSuccess = {
+                    timber.log.Timber.d("[FIRESTORE] Post-login restore complete")
+                    _syncError.value = null
+                },
+                onFailure = { error ->
+                    val msg = error.message ?: "Sync failed"
+                    timber.log.Timber.w("[FIRESTORE] Post-login restore failed: %s", msg)
+                    _syncError.value = "Signed in, but data couldn't load: $msg"
+                }
+            )
+        } catch (e: Exception) {
+            timber.log.Timber.w("[FIRESTORE] Post-login restore failed: %s", e.message)
+            _syncError.value = "Signed in, but data couldn't load: ${e.message}"
+        } finally {
+            _isSyncing.value = false
+            _isDataReady.value = true
+            _uiState.update { it.copy(isLoading = false) }
+        }
+    }
+
+    /** Re-runs the post-login restore after a [syncError] (retry button). */
+    fun retrySync() {
+        viewModelScope.launch { runPostAuthSync() }
     }
 
     fun sendPasswordReset() {

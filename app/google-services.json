@@ -14,6 +14,14 @@
       },
       "oauth_client": [
         {
+          "client_id": "385771806844-udjedijco7rngqie8mnsgesgmrmlh8n9.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.pixelpal.app",
+            "certificate_hash": "ffb309964ad0a7f62ed80670fd7e64037384eddb"
+          }
+        },
+        {
           "client_id": "385771806844-pafkg5sns6fk3034o9u4gcrm4uhht52q.apps.googleusercontent.com",
           "client_type": 3
         }

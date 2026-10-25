@@ -49,6 +49,25 @@ class FirestoreSyncEngine @Inject constructor(
     val isAnonymousUser: Boolean
         get() = auth.currentUser?.isAnonymous == true
 
+    /**
+     * Logs Firestore failures with the authenticated UID (never tokens/keys)
+     * and a PERMISSION_DENIED hint. Permission denials under locked-down
+     * rules almost always mean: signed out, wrong uid path, or wrong Firebase
+     * project — never a reason to reopen the rules.
+     */
+    private fun logFirestoreError(op: String, e: Exception) {
+        val code = (e as? com.google.firebase.firestore.FirebaseFirestoreException)?.code
+        Timber.e(e, "[FIRESTORE] %s failed (uid=%s, code=%s)", op, currentUserId, code)
+        if (code == com.google.firebase.firestore.FirebaseFirestoreException.Code.PERMISSION_DENIED) {
+            Timber.w(
+                "[FIRESTORE] PERMISSION_DENIED on %s: auth uid does not match " +
+                    "users/{uid} path, session not ready, or wrong Firebase project. " +
+                    "Keep rules locked; fix the app path/session.",
+                op
+            )
+        }
+    }
+
     private fun tasksRef(uid: String) =
         firestore.collection("users").document(uid).collection("tasks")
 
@@ -110,7 +129,7 @@ class FirestoreSyncEngine @Inject constructor(
                     Result.success(null)
                 }
             } catch (e: Exception) {
-                Timber.e(e, "Failed to pull companion from cloud")
+                logFirestoreError("pull companion users/{uid}/companion/primary", e)
                 Result.failure(e)
             }
         }
@@ -118,10 +137,16 @@ class FirestoreSyncEngine @Inject constructor(
 
     /**
      * Observes real-time changes to the cloud companion.
+     *
+     * Prefer [observeCloudCompanionFor] with an explicit uid captured AFTER
+     * auth completes — the no-arg version snapshots [currentUserId] at
+     * collection time and closes immediately when signed out.
      */
-    fun observeCloudCompanion(): Flow<FirestoreCompanion?> = callbackFlow {
-        val uid = currentUserId
-        if (uid == null) {
+    fun observeCloudCompanion(): Flow<FirestoreCompanion?> =
+        observeCloudCompanionFor(currentUserId ?: "")
+
+    fun observeCloudCompanionFor(uid: String): Flow<FirestoreCompanion?> = callbackFlow {
+        if (uid.isBlank()) {
             trySend(null)
             close()
             return@callbackFlow
@@ -208,7 +233,7 @@ class FirestoreSyncEngine @Inject constructor(
                 val tasks = snapshot.documents.mapNotNull { it.toObject(FirestoreTask::class.java) }
                 Result.success(tasks)
             } catch (e: Exception) {
-                Timber.e(e, "Failed to pull tasks from cloud")
+                logFirestoreError("pull tasks users/{uid}/tasks", e)
                 Result.failure(e)
             }
         }
@@ -216,10 +241,16 @@ class FirestoreSyncEngine @Inject constructor(
 
     /**
      * Observes real-time changes to the cloud tasks collection.
+     *
+     * Prefer [observeCloudTasksFor] with an explicit uid captured AFTER auth
+     * completes — the no-arg version snapshots [currentUserId] at collection
+     * time and closes immediately when signed out.
      */
-    fun observeCloudTasks(): Flow<List<FirestoreTask>> = callbackFlow {
-        val uid = currentUserId
-        if (uid == null) {
+    fun observeCloudTasks(): Flow<List<FirestoreTask>> =
+        observeCloudTasksFor(currentUserId ?: "")
+
+    fun observeCloudTasksFor(uid: String): Flow<List<FirestoreTask>> = callbackFlow {
+        if (uid.isBlank()) {
             trySend(emptyList())
             close()
             return@callbackFlow
@@ -298,7 +329,7 @@ class FirestoreSyncEngine @Inject constructor(
                 val reminders = snapshot.documents.mapNotNull { it.toObject(FirestoreReminder::class.java) }
                 Result.success(reminders)
             } catch (e: Exception) {
-                Timber.e(e, "Failed to pull reminders from cloud")
+                logFirestoreError("pull reminders users/{uid}/reminders", e)
                 Result.failure(e)
             }
         }
@@ -306,10 +337,15 @@ class FirestoreSyncEngine @Inject constructor(
 
     /**
      * Observes real-time changes to the cloud reminders collection.
+     *
+     * Prefer [observeCloudRemindersFor] with an explicit uid captured AFTER
+     * auth completes.
      */
-    fun observeCloudReminders(): Flow<List<FirestoreReminder>> = callbackFlow {
-        val uid = currentUserId
-        if (uid == null) {
+    fun observeCloudReminders(): Flow<List<FirestoreReminder>> =
+        observeCloudRemindersFor(currentUserId ?: "")
+
+    fun observeCloudRemindersFor(uid: String): Flow<List<FirestoreReminder>> = callbackFlow {
+        if (uid.isBlank()) {
             trySend(emptyList())
             close()
             return@callbackFlow
@@ -379,7 +415,7 @@ class FirestoreSyncEngine @Inject constructor(
                     Result.success(null)
                 }
             } catch (e: Exception) {
-                Timber.e(e, "Failed to pull bond from cloud")
+                logFirestoreError("pull bond users/{uid}/metrics/bond", e)
                 Result.failure(e)
             }
         }
@@ -441,15 +477,23 @@ class FirestoreSyncEngine @Inject constructor(
                 val subtasks = snapshot.documents.mapNotNull { it.toObject(FirestoreSubtask::class.java) }
                 Result.success(subtasks)
             } catch (e: Exception) {
-                Timber.e(e, "Failed to pull subtasks from cloud")
+                logFirestoreError("pull subtasks users/{uid}/subtasks", e)
                 Result.failure(e)
             }
         }
     }
 
-    fun observeCloudSubtasks(): Flow<List<FirestoreSubtask>> = callbackFlow {
-        val uid = currentUserId
-        if (uid == null) {
+    /**
+     * Observes real-time changes to the cloud subtasks collection.
+     *
+     * Prefer this uid-pinned overload with a uid captured AFTER auth
+     * completes.
+     */
+    fun observeCloudSubtasks(): Flow<List<FirestoreSubtask>> =
+        observeCloudSubtasksFor(currentUserId ?: "")
+
+    fun observeCloudSubtasksFor(uid: String): Flow<List<FirestoreSubtask>> = callbackFlow {
+        if (uid.isBlank()) {
             trySend(emptyList())
             close()
             return@callbackFlow

@@ -44,8 +44,10 @@ class FirebaseAuthManager @Inject constructor(
         val listener = FirebaseAuth.AuthStateListener { firebaseAuth ->
             val user = firebaseAuth.currentUser
             if (user != null) {
+                Timber.d("[AUTH] Auth state: authenticated uid=%s", user.uid)
                 trySend(AuthState.Authenticated(user))
             } else {
+                Timber.d("[AUTH] Auth state: unauthenticated")
                 trySend(AuthState.Unauthenticated)
             }
         }
@@ -60,9 +62,10 @@ class FirebaseAuthManager @Inject constructor(
         return try {
             val result = auth.signInAnonymously().await()
             val user = result.user ?: throw IllegalStateException("Firebase user was null")
+            Timber.d("[AUTH] Guest sign-in success uid=%s", user.uid)
             Result.success(user)
         } catch (e: Exception) {
-            Timber.e(e, "Anonymous sign-in failed")
+            Timber.w("[AUTH] Guest sign-in failed: %s", e.message)
             Result.failure(e)
         }
     }
@@ -74,9 +77,10 @@ class FirebaseAuthManager @Inject constructor(
         return try {
             val result = auth.signInWithEmailAndPassword(email.trim(), password).await()
             val user = result.user ?: throw IllegalStateException("Firebase user was null")
+            Timber.d("[AUTH] Email sign-in success uid=%s", user.uid)
             Result.success(user)
         } catch (e: Exception) {
-            Timber.e(e, "Email sign-in failed")
+            Timber.w("[AUTH] Email sign-in failed: %s", e.message)
             Result.failure(e)
         }
     }
@@ -88,9 +92,10 @@ class FirebaseAuthManager @Inject constructor(
         return try {
             val result = auth.createUserWithEmailAndPassword(email.trim(), password).await()
             val user = result.user ?: throw IllegalStateException("Firebase user was null")
+            Timber.d("[AUTH] Email sign-up success uid=%s", user.uid)
             Result.success(user)
         } catch (e: Exception) {
-            Timber.e(e, "Email sign-up failed")
+            Timber.w("[AUTH] Email sign-up failed: %s", e.message)
             Result.failure(e)
         }
     }
@@ -134,17 +139,39 @@ class FirebaseAuthManager @Inject constructor(
                     ?: throw IllegalStateException("Firebase user was null")
                 Result.success(user)
             } else {
+                Timber.w("[AUTH] Google Sign-In: unsupported credential type %s", credential.type)
                 Result.failure(IllegalStateException("Unsupported credential type"))
             }
         } catch (e: GoogleIdTokenParsingException) {
-            Timber.e(e, "Google Sign-In: invalid credential response")
+            Timber.e(e, "[AUTH] Google Sign-In: invalid credential response")
             Result.failure(e)
         } catch (e: androidx.credentials.exceptions.GetCredentialCancellationException) {
-            Timber.d("Google Sign-In cancelled by user")
-            Result.failure(e)
+            Timber.d("[AUTH] Google Sign-In cancelled by user")
+            // Cancellation is user action, not an error — surface quietly.
+            Result.failure(java.util.concurrent.CancellationException("Sign-in cancelled"))
+        } catch (e: androidx.credentials.exceptions.NoCredentialException) {
+            Timber.w("[AUTH] Google Sign-In: no credentials available: %s", e.message)
+            Result.failure(
+                IllegalStateException(
+                    "No Google accounts found on this device. Add a Google account in Settings and try again.",
+                    e
+                )
+            )
         } catch (e: Exception) {
-            Timber.e(e, "Google Sign-In failed")
-            Result.failure(e)
+            val raw = e.message.orEmpty()
+            Timber.e(e, "[AUTH] Google Sign-In failed")
+            // 12500 / DEVELOPER_ERROR = Firebase console setup problem (SHA-1 or
+            // web client id), not a user error. Say so explicitly.
+            val friendly = when {
+                raw.contains("12500") || raw.contains("DEVELOPER_ERROR", ignoreCase = true) ->
+                    "Google Sign-In isn't configured for this app build. The SHA-1 " +
+                        "fingerprint must be registered in the Firebase console " +
+                        "(Project Settings → Android app → SHA certificate)."
+                raw.contains("network", ignoreCase = true) ->
+                    "Network error during Google Sign-In. Check your connection and try again."
+                else -> e.localizedMessage ?: "Google sign-in failed"
+            }
+            Result.failure(IllegalStateException(friendly, e))
         }
     }
 
