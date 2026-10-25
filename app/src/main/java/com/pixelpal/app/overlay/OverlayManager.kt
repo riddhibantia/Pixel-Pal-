@@ -11,6 +11,9 @@ import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -37,6 +40,23 @@ class OverlayManager @Inject constructor(
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Main)
 
     private val sessions = LinkedHashMap<Long, OverlaySession>()
+
+    /**
+     * True while any app activity is resumed. The overlay bubble is pointless
+     * (and a full second infinite Lottie render loop) while the user is
+     * already looking at the pet inside the app, so the service parks all
+     * sessions when this is true and restores them on backgrounding.
+     * Driven by the Application's activity callbacks; defaults to false.
+     */
+    private val _appForeground = MutableStateFlow(false)
+    val appForeground: StateFlow<Boolean> = _appForeground.asStateFlow()
+
+    fun setAppForeground(foreground: Boolean) {
+        if (_appForeground.value != foreground) {
+            _appForeground.value = foreground
+            timber.log.Timber.d("[OVERLAY] App foreground=%s", foreground)
+        }
+    }
 
     // ── Session lifecycle ──────────────────────────────────────────────────
 

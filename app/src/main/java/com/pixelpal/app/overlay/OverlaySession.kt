@@ -118,6 +118,7 @@ class OverlaySession(
             try {
                 windowManager.addView(overlayView, layoutParams)
             } catch (e: Exception) {
+                timber.log.Timber.w(e, "[OVERLAY] addView failed for companion %d", companionId)
                 view = null
                 return@launch
             }

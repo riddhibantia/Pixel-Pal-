@@ -67,6 +67,18 @@ class MainActivity : ComponentActivity() {
                             authManager.currentUser == null -> Screen.Auth.route
                             else -> Screen.Home.route
                         }
+                        // Heal the overlay after process death / reinstall /
+                        // battery-manager kills: enabled means running, and a
+                        // foreground-activity start is always allowed. Without
+                        // this the bubble silently never comes back until the
+                        // user finds the toggle, a reboot, or onboarding.
+                        // (No-op when disabled, and start() on an already
+                        // running service is harmless.)
+                        if (preferencesManager.overlayEnabled.first() &&
+                            android.provider.Settings.canDrawOverlays(this@MainActivity)
+                        ) {
+                            com.pixelpal.app.overlay.OverlayService.start(this@MainActivity)
+                        }
                     }
 
                     val startRoute = start
@@ -76,6 +88,30 @@ class MainActivity : ComponentActivity() {
                             navController = navController,
                             startDestination = startRoute
                         )
+                        // Reactive auth gate: a sign-out from ANY screen
+                        // (Profile, settings, session expiry) returns to Auth
+                        // instead of leaving a signed-out Home on the stack.
+                        // Only fires on an Authenticated → Unauthenticated
+                        // transition, never on cold start (which would skip
+                        // onboarding or bounce a restoring session).
+                        val authState by authManager.authStateFlow
+                            .collectAsStateWithLifecycle(initialValue = null)
+                        var seenAuthenticated by remember { mutableStateOf(false) }
+                        LaunchedEffect(authState) {
+                            when (authState) {
+                                is com.pixelpal.app.data.remote.firebase.AuthState.Authenticated ->
+                                    seenAuthenticated = true
+                                is com.pixelpal.app.data.remote.firebase.AuthState.Unauthenticated -> {
+                                    if (seenAuthenticated) {
+                                        seenAuthenticated = false
+                                        navController.navigate(Screen.Auth.route) {
+                                            popUpTo(0) { inclusive = true }
+                                        }
+                                    }
+                                }
+                                else -> Unit
+                            }
+                        }
                     }
                 }
             }

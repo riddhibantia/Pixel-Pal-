@@ -60,14 +60,22 @@ class OverlayService : Service() {
 
             combine(
                 preferencesManager.overlayEnabled,
-                companionRepository.getPrimary()
-            ) { enabled, companion -> enabled to companion }
-                .collect { (enabled, companion) ->
-                    val desired = if (enabled && companion != null) {
+                companionRepository.getPrimary(),
+                overlayManager.appForeground
+            ) { enabled, companion, foreground -> Triple(enabled, companion, foreground) }
+                .collect { (enabled, companion, foreground) ->
+                    // Park the bubble while the app itself is open: the pet is
+                    // already on screen, and a second infinite Lottie loop
+                    // costs roughly half the app's idle render budget.
+                    val desired = if (enabled && companion != null && !foreground) {
                         listOf(companion.id)
                     } else {
                         emptyList()
                     }
+                    Timber.d(
+                        "[OVERLAY] Sync: enabled=%s companion=%s foreground=%s desired=%s",
+                        enabled, companion?.id, foreground, desired
+                    )
                     syncSessions(desired)
                     if (companion != null && desired.isNotEmpty()) {
                         notifyForeground(companion.name)
