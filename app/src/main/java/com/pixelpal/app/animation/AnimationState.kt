@@ -37,13 +37,27 @@ enum class AnimationState(
     /**
      * Resolves the Lottie raw JSON resource for this state and pet type.
      * Returns 0 if no matching Lottie animation exists.
+     *
+     * Results are cached process-wide: `Resources.getIdentifier()` scans the
+     * resource table on every call, and this runs on every Lottie recompose
+     * plus every overlay state change — uncached it is a steady main-thread
+     * tax on an animation-heavy app.
      */
     fun getLottieRawResId(petType: String, context: Context): Int {
-        val specificName = "pet_${petType.lowercase()}_$stateName"
-        val specificId = context.resources.getIdentifier(specificName, "raw", context.packageName)
-        if (specificId != 0) return specificId
+        val key = "${petType.lowercase()}:$stateName"
+        return resIdCache.getOrPut(key) {
+            val specificName = "pet_${petType.lowercase()}_$stateName"
+            val specificId = context.resources.getIdentifier(specificName, "raw", context.packageName)
+            if (specificId != 0) {
+                specificId
+            } else {
+                context.resources.getIdentifier("lottie_pet_$stateName", "raw", context.packageName)
+            }
+        }
+    }
 
-        val genericName = "lottie_pet_$stateName"
-        return context.resources.getIdentifier(genericName, "raw", context.packageName)
+    /** Process-wide res-id memo table (ints only — never holds a Context). */
+    private companion object {
+        val resIdCache = java.util.concurrent.ConcurrentHashMap<String, Int>()
     }
 }

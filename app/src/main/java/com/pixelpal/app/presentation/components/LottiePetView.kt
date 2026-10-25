@@ -47,38 +47,48 @@ fun LottiePetView(
     val context = LocalContext.current
     val lottieRawRes = animationState.getLottieRawResId(petType, context)
 
+    // True when a tint is actually requested. No current caller tints, and
+    // skipping the (empty) dynamic-properties object keeps Lottie on the
+    // hardware rendering path — color-filter callbacks force software
+    // rasterization of every frame on the RenderThread.
+    val hasTint = bodyColor != null || accentColor != null
+
     // Plain remember (not the remember*DynamicProperty composables): the
     // property count varies with nullability, which would break Compose
     // call-order rules. LottieDynamicProperty's constructor is public.
     val dynamicProperties = remember(bodyColor, accentColor) {
-        LottieDynamicProperties(
-            buildList {
-                bodyColor?.let { c ->
-                    val filter = SimpleColorFilter(c.toArgb())
-                    PetTint.BODY_LAYERS.forEach { layer ->
-                        add(
-                            LottieDynamicProperty<android.graphics.ColorFilter>(
-                                LottieProperty.COLOR_FILTER,
-                                KeyPath(layer, "**"),
-                                filter
+        if (!hasTint) {
+            null
+        } else {
+            LottieDynamicProperties(
+                buildList {
+                    bodyColor?.let { c ->
+                        val filter = SimpleColorFilter(c.toArgb())
+                        PetTint.BODY_LAYERS.forEach { layer ->
+                            add(
+                                LottieDynamicProperty<android.graphics.ColorFilter>(
+                                    LottieProperty.COLOR_FILTER,
+                                    KeyPath(layer, "**"),
+                                    filter
+                                )
                             )
-                        )
+                        }
+                    }
+                    accentColor?.let { c ->
+                        val filter = SimpleColorFilter(c.toArgb())
+                        PetTint.ACCENT_LAYERS.forEach { layer ->
+                            add(
+                                LottieDynamicProperty<android.graphics.ColorFilter>(
+                                    LottieProperty.COLOR_FILTER,
+                                    KeyPath(layer, "**"),
+                                    filter
+                                )
+                            )
+                        }
                     }
                 }
-                accentColor?.let { c ->
-                    val filter = SimpleColorFilter(c.toArgb())
-                    PetTint.ACCENT_LAYERS.forEach { layer ->
-                        add(
-                            LottieDynamicProperty<android.graphics.ColorFilter>(
-                                LottieProperty.COLOR_FILTER,
-                                KeyPath(layer, "**"),
-                                filter
-                            )
-                        )
-                    }
-                }
-            }
-        )
+            )
+        }
     }
 
     Box(
@@ -91,18 +101,32 @@ fun LottiePetView(
                     LottieCompositionSpec.RawRes(lottieRawRes)
                 )
                 if (composition != null) {
-                    val progress by animateLottieCompositionAsState(
+                    // Hold the State object WITHOUT reading it here: `val p by
+                    // animate...` would subscribe this composable to every
+                    // animation frame and recompose the whole subtree at
+                    // 30-120fps. Reading `.value` only inside the progress
+                    // lambda defers it to the draw phase — zero recompositions.
+                    val progressState = animateLottieCompositionAsState(
                         composition = composition,
                         iterations = if (animationState.loops) LottieConstants.IterateForever else 1,
                         speed = speed
                     )
 
-                    LottieAnimation(
-                        composition = composition,
-                        progress = { progress },
-                        dynamicProperties = dynamicProperties,
-                        modifier = Modifier.size(size)
-                    )
+                    val props = dynamicProperties
+                    if (props != null) {
+                        LottieAnimation(
+                            composition = composition,
+                            progress = { progressState.value },
+                            dynamicProperties = props,
+                            modifier = Modifier.size(size)
+                        )
+                    } else {
+                        LottieAnimation(
+                            composition = composition,
+                            progress = { progressState.value },
+                            modifier = Modifier.size(size)
+                        )
+                    }
                 }
             }
         }

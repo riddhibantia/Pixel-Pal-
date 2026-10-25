@@ -87,7 +87,11 @@ fun HomeScreen(
     navController: NavController,
     viewModel: HomeViewModel = hiltViewModel()
 ) {
-    val uiState by viewModel.uiState.collectAsState()
+    // Perf: gate only on two distinct booleans. Every section below collects
+    // its own slice, so e.g. an unread-badge bump from a background worker
+    // no longer recomposes the Lottie hero and the whole screen.
+    val isLoading by viewModel.isLoading.collectAsState()
+    val hasCompanion by viewModel.hasCompanion.collectAsState()
 
     Scaffold(
         bottomBar = {
@@ -101,17 +105,16 @@ fun HomeScreen(
                 .verticalScroll(rememberScrollState())
                 .padding(bottom = Spacing.lg)
         ) {
-            HomeHeader(
-                userName = uiState.userName,
-                unreadCount = uiState.unreadActivityCount,
+            HomeHeaderSlot(
+                viewModel = viewModel,
                 onBellClick = { navController.navigate(Screen.ActivityCenter.route) },
                 onSettingsClick = { navController.navigate(Screen.Settings.route) }
             )
 
             when {
-                uiState.isLoading -> LoadingState(modifier = Modifier.padding(top = Spacing.xl))
+                isLoading -> LoadingState(modifier = Modifier.padding(top = Spacing.xl))
 
-                uiState.companion == null && !uiState.isLoading -> EmptyState(
+                !hasCompanion -> EmptyState(
                     title = "No companion yet",
                     message = "Your digital companion will appear here once created.",
                     petState = AnimationState.WAVE
@@ -119,75 +122,141 @@ fun HomeScreen(
 
                 else -> Column(modifier = Modifier.padding(horizontal = Spacing.screenHorizontal)) {
 
-                    val companion = uiState.companion
-
-                    CompanionHeroCard(
-                        state = uiState,
-                        onInteract = { viewModel.interactWithCompanion() },
-                        onFeed = { viewModel.feedCompanion() },
+                    HeroSlot(
+                        viewModel = viewModel,
                         onOpenWorkspace = {
-                            companion?.let {
-                                navController.navigate(Screen.CompanionWorkspace.route)
-                            }
+                            navController.navigate(Screen.CompanionWorkspace.route)
                         }
                     )
 
                     Spacer(modifier = Modifier.height(Spacing.md))
 
                     // The agent is the axis of the app — give it a live card on home.
-                    AgentStatusCard(
-                        connection = uiState.agentConnection,
+                    AgentSlot(
+                        viewModel = viewModel,
                         onOpen = { navController.navigate(Screen.CompanionWorkspace.route) }
                     )
 
                     Spacer(modifier = Modifier.height(Spacing.md))
 
-                    SectionHeader(title = "Today")
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.spacedBy(Spacing.sm)
-                    ) {
-                        QuickStatusCard(
-                            modifier = Modifier.weight(1f),
-                            icon = Icons.Default.Checklist,
-                            label = "Tasks",
-                            value = "${uiState.pendingTasks.size} remaining",
-                            onClick = { navController.navigate(Screen.Tasks.route) }
-                        )
-                        QuickStatusCard(
-                            modifier = Modifier.weight(1f),
-                            icon = Icons.Default.Alarm,
-                            label = "Reminders",
-                            value = uiState.nextReminder?.let { "1 upcoming" } ?: "None",
-                            onClick = { navController.navigate(Screen.Reminders.route) }
-                        )
-                        QuickStatusCard(
-                            modifier = Modifier.weight(1f),
-                            icon = Icons.Default.SmartToy,
-                            label = "Agent",
-                            value = agentChipValue(uiState.agentConnection?.currentStatus),
-                            onClick = { navController.navigate(Screen.CompanionWorkspace.route) }
-                        )
-                    }
+                    TodaySlot(
+                        viewModel = viewModel,
+                        onTasksClick = { navController.navigate(Screen.Tasks.route) },
+                        onRemindersClick = { navController.navigate(Screen.Reminders.route) },
+                        onAgentClick = { navController.navigate(Screen.CompanionWorkspace.route) }
+                    )
 
                     Spacer(modifier = Modifier.height(Spacing.md))
 
-                    SettingsGroup {
-                        SettingsRow(
-                            title = "Screen Overlay",
-                            description = if (uiState.overlayEnabled) {
-                                "${companion?.name ?: "Pixel"} is active on top of other apps"
-                            } else {
-                                "The overlay companion is paused"
-                            },
-                            value = if (uiState.overlayEnabled) "Active" else "Paused",
-                            icon = Icons.Default.SmartToy,
-                            onClick = { navController.navigate(Screen.OverlaySettings.route) }
-                        )
-                    }
+                    OverlaySlot(
+                        viewModel = viewModel,
+                        onClick = { navController.navigate(Screen.OverlaySettings.route) }
+                    )
                 }
             }
         }
+    }
+}
+
+@Composable
+private fun HomeHeaderSlot(
+    viewModel: HomeViewModel,
+    onBellClick: () -> Unit,
+    onSettingsClick: () -> Unit
+) {
+    val header by viewModel.headerSlice.collectAsState()
+    HomeHeader(
+        userName = header.userName,
+        unreadCount = header.unreadCount,
+        onBellClick = onBellClick,
+        onSettingsClick = onSettingsClick
+    )
+}
+
+@Composable
+private fun HeroSlot(
+    viewModel: HomeViewModel,
+    onOpenWorkspace: () -> Unit
+) {
+    val hero by viewModel.heroSlice.collectAsState()
+    val companion = hero.companion ?: return
+    CompanionHeroCard(
+        companion = companion,
+        bond = hero.bond,
+        onInteract = { viewModel.interactWithCompanion() },
+        onFeed = { viewModel.feedCompanion() },
+        onOpenWorkspace = onOpenWorkspace
+    )
+}
+
+@Composable
+private fun AgentSlot(
+    viewModel: HomeViewModel,
+    onOpen: () -> Unit
+) {
+    val connection by viewModel.agentSlice.collectAsState()
+    AgentStatusCard(
+        connection = connection,
+        onOpen = onOpen
+    )
+}
+
+@Composable
+private fun TodaySlot(
+    viewModel: HomeViewModel,
+    onTasksClick: () -> Unit,
+    onRemindersClick: () -> Unit,
+    onAgentClick: () -> Unit
+) {
+    val today by viewModel.todaySlice.collectAsState()
+    val agent by viewModel.agentSlice.collectAsState()
+    SectionHeader(title = "Today")
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.spacedBy(Spacing.sm)
+    ) {
+        QuickStatusCard(
+            modifier = Modifier.weight(1f),
+            icon = Icons.Default.Checklist,
+            label = "Tasks",
+            value = "${today.pendingCount} remaining",
+            onClick = onTasksClick
+        )
+        QuickStatusCard(
+            modifier = Modifier.weight(1f),
+            icon = Icons.Default.Alarm,
+            label = "Reminders",
+            value = if (today.hasUpcomingReminder) "1 upcoming" else "None",
+            onClick = onRemindersClick
+        )
+        QuickStatusCard(
+            modifier = Modifier.weight(1f),
+            icon = Icons.Default.SmartToy,
+            label = "Agent",
+            value = agentChipValue(agent?.currentStatus),
+            onClick = onAgentClick
+        )
+    }
+}
+
+@Composable
+private fun OverlaySlot(
+    viewModel: HomeViewModel,
+    onClick: () -> Unit
+) {
+    val overlay by viewModel.overlaySlice.collectAsState()
+    SettingsGroup {
+        SettingsRow(
+            title = "Screen Overlay",
+            description = if (overlay.enabled) {
+                "${overlay.companionName} is active on top of other apps"
+            } else {
+                "The overlay companion is paused"
+            },
+            value = if (overlay.enabled) "Active" else "Paused",
+            icon = Icons.Default.SmartToy,
+            onClick = onClick
+        )
     }
 }
 
@@ -316,8 +385,9 @@ private fun HomeHeader(
         verticalAlignment = Alignment.CenterVertically
     ) {
         Column(modifier = Modifier.weight(1f)) {
+            val greeting = remember { getGreeting() }
             Text(
-                text = getGreeting(),
+                text = greeting,
                 style = MaterialTheme.typography.headlineSmall,
                 fontWeight = FontWeight.Bold,
                 color = MaterialTheme.colorScheme.onSurface
@@ -355,13 +425,15 @@ private fun HomeHeader(
 
 @Composable
 private fun CompanionHeroCard(
-    state: HomeUiState,
+    companion: com.pixelpal.app.domain.model.Companion,
+    bond: com.pixelpal.app.domain.model.Bond?,
     onInteract: () -> Unit,
     onFeed: () -> Unit,
     onOpenWorkspace: () -> Unit
 ) {
-    val companion = state.companion ?: return
-    val bond = state.bond
+    // Derived once per bond change — not recomputed on every frame/recompose.
+    val stateLabel = remember(bond?.lastInteractionTime) { bondStateLabel(bond) }
+    val isMaxBond = (bond?.level ?: 0) >= com.pixelpal.app.util.Constants.MAX_BOND_LEVEL
 
     // -- Interaction animation state --
     var interactionTick by remember { mutableIntStateOf(0) }
@@ -477,18 +549,18 @@ private fun CompanionHeroCard(
                 modifier = Modifier.size(220.dp),
                 contentAlignment = Alignment.Center
             ) {
-                // Soft glow behind companion during reaction
-                if (glowAlphaAnim.value > 0.01f) {
-                    Box(
-                        modifier = Modifier
-                            .size(190.dp)
-                            .alpha(glowAlphaAnim.value)
-                            .background(
-                                MaterialTheme.colorScheme.primary.copy(alpha = 0.18f),
-                                CircleShape
-                            )
-                    )
-                }
+                // Soft glow behind companion during reaction. graphicsLayer
+                // lambda reads the animated value in the layout phase, so the
+                // glow frames never recompose this subtree.
+                Box(
+                    modifier = Modifier
+                        .size(190.dp)
+                        .graphicsLayer { alpha = glowAlphaAnim.value }
+                        .background(
+                            MaterialTheme.colorScheme.primary.copy(alpha = 0.18f),
+                            CircleShape
+                        )
+                )
 
                 // Sparkles / stars / hearts overlay - positioned around the pet
                 if (showParticles) {
@@ -501,11 +573,13 @@ private fun CompanionHeroCard(
                         .clip(CircleShape)
                         .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.08f))
                         .clickable(onClickLabel = "Interact with ${companion.name}") { triggerInteract() }
-                        .graphicsLayer(
-                            scaleX = scaleAnim.value,
-                            scaleY = scaleAnim.value,
+                        // Lambda form: animation frames update the layer
+                        // without recomposing the Lottie subtree every frame.
+                        .graphicsLayer {
+                            scaleX = scaleAnim.value
+                            scaleY = scaleAnim.value
                             rotationZ = rotationAnim.value
-                        ),
+                        },
                     contentAlignment = Alignment.Center
                 ) {
                     LottiePetView(
@@ -547,7 +621,7 @@ private fun CompanionHeroCard(
             )
             Spacer(modifier = Modifier.height(4.dp))
             Text(
-                text = "${state.stateLabel()} \u00B7 ${bond?.streakDays ?: 0}d streak",
+                text = "$stateLabel \u00B7 ${bond?.streakDays ?: 0}d streak",
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.primary,
                 fontWeight = FontWeight.Medium
@@ -581,7 +655,7 @@ private fun CompanionHeroCard(
                 StatText("${bond?.streakDays ?: 0}d streak")
             }
             Spacer(modifier = Modifier.height(Spacing.xs))
-            if (state.isMaxBond) {
+            if (isMaxBond) {
                 Text(
                     text = "Max Bond reached",
                     style = MaterialTheme.typography.labelSmall,
@@ -606,6 +680,11 @@ private fun CompanionHeroCard(
 
 @Composable
 private fun SparkleOverlay(alpha: Float) {
+    // Painters resolved once — not re-looked-up on every recompose.
+    val sparkle = androidx.compose.ui.res.painterResource(id = com.pixelpal.app.R.drawable.particle_sparkle)
+    val star = androidx.compose.ui.res.painterResource(id = com.pixelpal.app.R.drawable.particle_star)
+    val heart = androidx.compose.ui.res.painterResource(id = com.pixelpal.app.R.drawable.particle_heart)
+    val dot = androidx.compose.ui.res.painterResource(id = com.pixelpal.app.R.drawable.particle_dot)
     Box(
         modifier = Modifier
             .size(220.dp)
@@ -613,7 +692,7 @@ private fun SparkleOverlay(alpha: Float) {
     ) {
         // Top-left sparkle (vector, not text emoji)
         androidx.compose.foundation.Image(
-            painter = androidx.compose.ui.res.painterResource(id = com.pixelpal.app.R.drawable.particle_sparkle),
+            painter = sparkle,
             contentDescription = null,
             modifier = Modifier
                 .align(Alignment.TopStart)
@@ -622,7 +701,7 @@ private fun SparkleOverlay(alpha: Float) {
         )
         // Top-right star
         androidx.compose.foundation.Image(
-            painter = androidx.compose.ui.res.painterResource(id = com.pixelpal.app.R.drawable.particle_star),
+            painter = star,
             contentDescription = null,
             modifier = Modifier
                 .align(Alignment.TopEnd)
@@ -631,7 +710,7 @@ private fun SparkleOverlay(alpha: Float) {
         )
         // Bottom-left heart
         androidx.compose.foundation.Image(
-            painter = androidx.compose.ui.res.painterResource(id = com.pixelpal.app.R.drawable.particle_heart),
+            painter = heart,
             contentDescription = null,
             modifier = Modifier
                 .align(Alignment.BottomStart)
@@ -640,7 +719,7 @@ private fun SparkleOverlay(alpha: Float) {
         )
         // Bottom-right sparkle
         androidx.compose.foundation.Image(
-            painter = androidx.compose.ui.res.painterResource(id = com.pixelpal.app.R.drawable.particle_sparkle),
+            painter = sparkle,
             contentDescription = null,
             modifier = Modifier
                 .align(Alignment.BottomEnd)
@@ -649,7 +728,7 @@ private fun SparkleOverlay(alpha: Float) {
         )
         // Mid-right dot glow
         androidx.compose.foundation.Image(
-            painter = androidx.compose.ui.res.painterResource(id = com.pixelpal.app.R.drawable.particle_dot),
+            painter = dot,
             contentDescription = null,
             modifier = Modifier
                 .align(Alignment.CenterEnd)
@@ -716,4 +795,15 @@ private fun getGreeting(): String {
         hour < 21 -> "Good evening"
         else -> "Good night"
     }
+}
+
+private const val RECENT_INTERACTION_WINDOW_MS = 2 * 60 * 1000L
+
+/** "Happy"/"Calm" label from bond recency (matches HomeUiState.stateLabel). */
+private fun bondStateLabel(
+    bond: com.pixelpal.app.domain.model.Bond?,
+    now: Long = System.currentTimeMillis()
+): String {
+    val last = bond?.lastInteractionTime ?: 0L
+    return if (now - last < RECENT_INTERACTION_WINDOW_MS) "Happy" else "Calm"
 }

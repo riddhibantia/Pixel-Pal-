@@ -24,8 +24,10 @@ import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.flowOf
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import java.util.Calendar
@@ -133,6 +135,66 @@ class HomeViewModel @Inject constructor(
             overlayEnabled = meta.third
         )
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), HomeUiState())
+
+    // ---- Scoped slices (perf): HomeScreen collects one slice per section
+    // so a change in one area (e.g. unread badge from a background worker
+    // poll, agent status) does NOT recompose the Lottie hero and the whole
+    // screen. Each slice is distinctUntilChanged — collectors wake only when
+    // their own data actually changes.
+
+    /** False after the first companion emission (even null = known-empty). */
+    val isLoading: StateFlow<Boolean> = companion
+        .map { false }
+        .distinctUntilChanged()
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), true)
+
+    val hasCompanion: StateFlow<Boolean> = companion
+        .map { it != null }
+        .distinctUntilChanged()
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), false)
+
+    data class HeaderSlice(val userName: String = "", val unreadCount: Int = 0)
+
+    val headerSlice: StateFlow<HeaderSlice> = combine(userName, unreadActivityCount) { user, unread ->
+        HeaderSlice(userName = user, unreadCount = unread)
+    }.distinctUntilChanged()
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), HeaderSlice())
+
+    data class HeroSlice(val companion: Companion? = null, val bond: Bond? = null)
+
+    val heroSlice: StateFlow<HeroSlice> = combine(companion, bondFlow) { c, bond ->
+        HeroSlice(companion = c, bond = bond)
+    }.distinctUntilChanged()
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), HeroSlice())
+
+    /** Agent card data only — status polls must not redraw the hero. */
+    val agentSlice: StateFlow<AgentConnection?> = agentFlow
+        .distinctUntilChanged()
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), null)
+
+    data class TodaySlice(
+        val pendingCount: Int = 0,
+        val completedToday: Int = 0,
+        val hasUpcomingReminder: Boolean = false
+    )
+
+    val todaySlice: StateFlow<TodaySlice> = features
+        .map { f ->
+            TodaySlice(
+                pendingCount = f.pendingTasks.size,
+                completedToday = f.completedToday,
+                hasUpcomingReminder = f.nextReminder != null
+            )
+        }
+        .distinctUntilChanged()
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), TodaySlice())
+
+    data class OverlaySlice(val enabled: Boolean = true, val companionName: String = "Pixel")
+
+    val overlaySlice: StateFlow<OverlaySlice> = combine(overlayEnabled, companion) { enabled, c ->
+        OverlaySlice(enabled = enabled, companionName = c?.name ?: "Pixel")
+    }.distinctUntilChanged()
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), OverlaySlice())
 
     /** Casual interaction with THE companion. */
     fun interactWithCompanion() {
